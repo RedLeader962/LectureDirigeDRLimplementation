@@ -26,7 +26,7 @@ def myfunct() -> object:
     return people['name'] + my.__str__()
 
 
-# if __name__ == '__main__':
-#     print(myfunct())
+if __name__ == '__main__':
+    print(myfunct())
 
 
