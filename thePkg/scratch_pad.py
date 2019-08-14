@@ -11,7 +11,8 @@ class myClass:
         return self.name
 
 
-
+def myIncrement(x):
+    return x + 1
 
 
 def myfunct() -> object:
