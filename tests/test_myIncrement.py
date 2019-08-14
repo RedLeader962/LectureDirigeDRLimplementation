@@ -10,5 +10,5 @@ def test_my_increment_pass():
 
 def test_my_increment_fail():
     with pytest.raises(AssertionError):
-        assert scratch_pad.myIncrement(4) == 4
+        assert scratch_pad.myIncrement(4) == 5
 
