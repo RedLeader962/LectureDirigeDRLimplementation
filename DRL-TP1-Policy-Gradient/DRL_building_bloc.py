@@ -107,19 +107,19 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, output_placeholder
 
     with tf.name_scope(vocab.Multi_Layer_Perceptron) as scope:
         # Create input layer
-        ops = tf_cv1.layers.Dense(hidden_layer_topology[0], input_shape=input_placeholder.shape,
+        ops = keras.layers.Dense(hidden_layer_topology[0], input_shape=input_placeholder.shape,
                                   activation=hidden_layers_activation, name=vocab.input_layer)
 
         parent_layer = ops(input_placeholder)
 
         # create & connect all hidden layer
         for id in range(len(hidden_layer_topology)):
-            h_layer = tf_cv1.layers.Dense(hidden_layer_topology[id], activation=hidden_layers_activation, name='{}{}'.format(vocab.hidden_, id + 1))
+            h_layer = keras.layers.Dense(hidden_layer_topology[id], activation=hidden_layers_activation, name='{}{}'.format(vocab.hidden_, id + 1))
             parent_layer = h_layer(parent_layer)
             print(parent_layer) # todo-->remove
 
         # create & connect the ouput layer
-        output_layer = tf_cv1.layers.Dense(output_placeholder.shape[-1], activation=output_layers_activation, name=vocab.output_layer)
+        output_layer = keras.layers.Dense(output_placeholder.shape[-1], activation=output_layers_activation, name=vocab.output_layer)
 
         return output_layer(parent_layer)
 
