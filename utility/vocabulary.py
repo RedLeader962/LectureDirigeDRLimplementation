@@ -13,7 +13,7 @@ _rl_vocab_list = [
     'entropy', 'KL',
     'Multi_Layer_Perceptron',
     'input_placeholder', 'output_placeholder',
-    'input_layer', 'output_layer', 'hidden_'
+    'input_layer', 'hidden_', 'output_layer', 'logits'
 ]
 
 """

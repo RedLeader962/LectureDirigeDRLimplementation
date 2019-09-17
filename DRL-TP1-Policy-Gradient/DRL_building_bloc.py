@@ -10,7 +10,7 @@ tf_cv1 = tf.compat.v1   # shortcut
 from vocabulary import rl_name as vocab
 
 
-class Playground(object):
+class BuildGymPlayground(object):
     def __init__(self,
                  environment_name='LunarLanderContinuous-v2',
                  trajectory_batch_size=10,
@@ -21,12 +21,15 @@ class Playground(object):
         Setup the learning playground for the agent:
             the environment in witch he will play and for how long
 
-        Defaut environment: LunarLanderContinuous-v2
+        Note: LunarLanderContinuous-v2 (DEFAUT environment)
                 env: <TimeLimit<LunarLanderContinuous<LunarLanderContinuous-v2>>>
+                Metadata:
+                    {'render.modes': ['human', 'rgb_array'], 'video.frames_per_second': 50}
 
-                Metadata: {'render.modes': ['human', 'rgb_array'], 'video.frames_per_second': 50}
-
-                REWARD range: (-inf, inf)
+                OBSERVATION SPACE:
+                    Type: Box(8,)
+                        Higher bound: [inf inf inf inf inf inf inf inf]
+                        Lower bound: [-inf -inf -inf -inf -inf -inf -inf -inf]
 
                 ACTION SPACE:
                     Type: Box(2,)
@@ -38,10 +41,24 @@ class Playground(object):
                                 (!) Engine can't work with less than 50% power.
                     Left-right:  -1.0..-0.5 fire left engine, +0.5..+1.0 fire right engine, -0.5..0.5 off
 
-                OBSERVATION SPACE:
-                    Type: Box(8,)
-                        Higher bound: [inf inf inf inf inf inf inf inf]
-                        Lower bound: [-inf -inf -inf -inf -inf -inf -inf -inf]
+                REWARD range: (-inf, inf)
+
+        Note: LunarLander-v2 (Discrete version):
+                env: <TimeLimit<LunarLander<LunarLander-v2>>>
+                Metadata:
+                    {'render.modes': ['human', 'rgb_array'], 'video.frames_per_second': 50}
+
+            OBSERVATION SPACE:
+                Type: Box(8,)
+                    Higher bound: [inf inf inf inf inf inf inf inf]
+                    Lower bound: [-inf -inf -inf -inf -inf -inf -inf -inf]
+
+            ACTION SPACE:
+                Type: Discrete(4)
+                    Higher bound: 1
+                    Lower bound: 0
+
+            REWARD range: (-inf, inf)
 
         :param environment_name: a gym environment
         :type environment_name: str
@@ -67,15 +84,19 @@ class Playground(object):
 
         self.env = gym.make(self.ENVIRONMENT_NAME)
 
-        self.ACTION_SPACE_DIMENSION = len(self.env.action_space.high)
-        self.OBSERVATION_SPACE_DIMENSION = len(self.env.observation_space.high)
+        if isinstance(self.env.action_space, gym.spaces.Box):
+            self.ACTION_SPACE_SHAPE = self.env.action_space.shape
+        else:
+            self.ACTION_SPACE_SHAPE = self.env.action_space.n
 
-        if self.ENVIRONMENT_NAME is 'LunarLanderContinuous-v2':
-            action_space_doc = "Action is two floats [main engine, left-right engines].\n" \
+        self.OBSERVATION_SPACE_SHAPE = self.env.observation_space.shape
+
+        if self.ENVIRONMENT_NAME == 'LunarLanderContinuous-v2':
+            action_space_doc = "\tAction is two floats [main engine, left-right engines].\n" \
                            "\tMain engine: -1..0 off, 0..+1 throttle from 50% to 100% power.\n" \
                            "\t\t\t\t(!) Engine can't work with less than 50% power.\n" \
-                           "\tLeft-right:  -1.0..-0.5 fire left engine, +0.5..+1.0 fire right engine, -0.5..0.5 off"
-            info_str = pretty_printing.environnement_doc_str(self.env, action_space_doc)
+                           "\tLeft-right:  -1.0..-0.5 fire left engine, +0.5..+1.0 fire right engine, -0.5..0.5 off\n\n"
+            info_str = pretty_printing.environnement_doc_str(self.env, action_space_doc=action_space_doc)
         else:
             info_str = pretty_printing.environnement_doc_str(self.env)
 
@@ -87,9 +108,14 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, output_placeholder
                                 output_layers_activation: tf.Tensor = tf.sigmoid) -> tf.Tensor:
     """
     Builder function for Low Level TensorFlow API.
-    Return a Multi Layer Perceptron with topology:
+    Return a Multi Layer Perceptron computatin graph with topology:
 
         input_placeholder | *hidden_layer_topology | output_placeholder
+
+    It's last layer is called the 'logits' (aka: the raw output of the MLP)
+
+    In the context of deep learning, 'logits' is the equivalent of 'raw output' of our prediction.
+    It will later be transform into probabilies using the 'softmax function'
 
     :param input_placeholder:
     :type input_placeholder:
@@ -101,8 +127,8 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, output_placeholder
     :type hidden_layers_activation:
     :param output_layers_activation:
     :type output_layers_activation:
-    :return:
-    :rtype:
+    :return: a well construct computation graph
+    :rtype: tf.Tensor
     """
 
     with tf.name_scope(vocab.Multi_Layer_Perceptron) as scope:
@@ -118,10 +144,10 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, output_placeholder
             parent_layer = h_layer(parent_layer)
             print(parent_layer) # todo-->remove
 
-        # create & connect the ouput layer
-        output_layer = keras.layers.Dense(output_placeholder.shape[-1], activation=output_layers_activation, name=vocab.output_layer)
+        # create & connect the ouput layer: the logits
+        logits = keras.layers.Dense(output_placeholder.shape[-1], activation=output_layers_activation, name=vocab.logits)
 
-        return output_layer(parent_layer)
+        return logits(parent_layer)
 
 
 def neural_network_policy_theta(observation, action, environment, hidden_layer_shape=(16, 16)):
@@ -132,6 +158,37 @@ def neural_network_policy_theta(observation, action, environment, hidden_layer_s
 def continuous_space_placeholder(space, name=None):
     return tf_cv1.placeholder(dtype=tf.float32, shape=(None, *space), name=name)
 
+def discrete_space_placeholder(space: tuple, name=None):
+    if isinstance(space, tuple):
+        space = space[0]
+    return tf_cv1.placeholder(dtype=tf.int32, shape=(None, space), name=name)
+
+def playground_to_tensorflow_graph_adapter(playground: BuildGymPlayground) -> (tf.placeholder, tf.placeholder):
+    """
+    Configure handle for feeding value to the computation graph
+            Continuous space    -->     dtype=tf.float32
+            Discrete scpace     -->     dtype=tf.int32
+    :param playground:
+    :type playground: BuildGymPlayground
+    :return: input_placeholder, output_placeholder
+    :rtype: (tf.placeholder, tf.placeholder)
+    """
+    assert isinstance(playground, BuildGymPlayground), "\n\n>>> playground_to_tensorflow_graph_adapter() expected a formated BuildGymPlayground.\n\n"
+
+    if isinstance(playground.env.action_space, gym.spaces.Box):
+        """environment is continuous"""
+        input_placeholder = continuous_space_placeholder(playground.OBSERVATION_SPACE_SHAPE, name=vocab.input_placeholder)
+        output_placeholder = continuous_space_placeholder(playground.ACTION_SPACE_SHAPE, name=vocab.output_placeholder)
+    elif isinstance(playground.env.action_space, gym.spaces.Discrete):
+        """environment is discrete"""
+        input_placeholder = discrete_space_placeholder(playground.OBSERVATION_SPACE_SHAPE, name=vocab.input_placeholder)
+        output_placeholder = discrete_space_placeholder(playground.ACTION_SPACE_SHAPE, name=vocab.output_placeholder)
+    else:
+        raise NotImplementedError
+
+    return input_placeholder, output_placeholder
+
+
 
 if __name__ == '__main__':
     """
@@ -141,24 +198,20 @@ if __name__ == '__main__':
     In browser, go to:
         http://0.0.0.0:6006/ 
     """
-    env = Playground().env
+    play = BuildGymPlayground()
+    observation_space_size = play.env.observation_space.shape
+    action_space = play.env.action_space.shape
 
     """Hyperparameter"""
     batch_size = 10
     hidden_layer_topology = (4, 2, 2, 4)
-    observation_space_size = env.observation_space.shape
-    action_space = env.action_space.shape
+
 
     # fake input data
     input_data = np.ones((batch_size, *observation_space_size))
     # input_data = [[1, 1, 1], [1, 1, 1]]
 
-    """Configure handle for feeding value to the computation graph
-        Continuous space    -->     dtype=tf.float32
-        Discreet scpace     -->     dtype=tf.int32
-    """
-    input_placeholder = continuous_space_placeholder(observation_space_size, name=vocab.input_placeholder)
-    out_placeholder = continuous_space_placeholder(action_space, name=vocab.output_placeholder)
+    input_placeholder, out_placeholder = playground_to_tensorflow_graph_adapter(play)
 
     """Build a Multi Layer Perceptron (MLP) as the policy parameter theta using a computation graph"""
     theta = build_MLP_computation_graph(input_placeholder, out_placeholder, hidden_layer_topology)
