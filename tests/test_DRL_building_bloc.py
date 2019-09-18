@@ -23,30 +23,30 @@ def tf_setup():
 
 @pytest.fixture
 def gym_continuous_setup():
-    return bloc.BuildGymPlayground('LunarLanderContinuous-v2')
+    return bloc.GymPlayground('LunarLanderContinuous-v2')
 
 @pytest.fixture
 def gym_discrete_setup():
-    return bloc.BuildGymPlayground('LunarLander-v2')
+    return bloc.GymPlayground('LunarLander-v2')
 
 # ---- playground ------------------------------------------------------------------------------------------------
 
 def test_Playground_init_ENV_FAIL():
     with pytest.raises(Exception):
-        bloc.BuildGymPlayground('UnExistingEnvironment!!!')
+        bloc.GymPlayground('UnExistingEnvironment!!!')
 
 def test_Playground_init_ENV_TOPOLOGY_FAIL():
     with pytest.raises(Exception):
-        bloc.BuildGymPlayground('LunarLanderContinuous-v2', neural_net_hidden_layer_topology=(1,))
+        bloc.GymPlayground('LunarLanderContinuous-v2', neural_net_hidden_layer_topology=(1,))
 
 
 def test_Playground_continuous():
-    play = bloc.BuildGymPlayground('LunarLanderContinuous-v2')
+    play = bloc.GymPlayground('LunarLanderContinuous-v2')
     assert play.ACTION_SPACE_SHAPE == (2,)
     assert play.OBSERVATION_SPACE_SHAPE == (8,)
 
 def test_Playground_discreet():
-    play = bloc.BuildGymPlayground('LunarLander-v2')
+    play = bloc.GymPlayground('LunarLander-v2')
     assert play.ACTION_SPACE_SHAPE == 4
 
 
@@ -94,7 +94,7 @@ def test_build_MLP_computation_graph_with_CONTINUOUS_adapter(gym_continuous_setu
 
 
 def test_integration_Playground_to_adapter_to_build_graph():
-    continuous_play = bloc.BuildGymPlayground(trajectory_batch_size=10,
+    continuous_play = bloc.GymPlayground(trajectory_batch_size=10,
                                          neural_net_hidden_layer_topology=[2, 2])
 
     # (!) fake input data

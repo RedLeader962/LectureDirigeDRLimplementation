@@ -10,10 +10,11 @@ def execute():
 
     https://github.com/h5py/h5py/issues/995
     """
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", message="Conversion of the second argument of issubdtype "
-                                                  "from `float` to `np.floating` is deprecated", category=FutureWarning)
-        import h5py
+    # with warnings.catch_warnings():
+    #     warnings.filterwarnings("ignore", message="Conversion of the second argument of issubdtype "
+    #                                               "from `float` to `np.floating` is deprecated", category=FutureWarning)
+    #     import h5py
+
 
 
 
