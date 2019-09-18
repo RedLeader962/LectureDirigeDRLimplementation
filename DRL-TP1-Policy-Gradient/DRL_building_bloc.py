@@ -260,26 +260,23 @@ class SamplingContainer(object):
         self._observations = []
         self._actions = []
         self._rewards = []
-        self.t_count = 0
+        self.step_count = 0
 
     def __call__(self, observation, action, reward, *args, **kwargs):
         try:
-            assert self.t_count < self._experiment_spec.timestep_max_per_trajectorie, "Max timestep per trajectorie reached so the SamplingContainer is full."
+            assert self.step_count < self._experiment_spec.timestep_max_per_trajectorie, "Max timestep per trajectorie reached so the SamplingContainer is full."
             self._observations.append(observation)
             self._actions.append(action)
             self._rewards.append(reward)
-            self.t_count += 1
+            self.step_count += 1
         except AssertionError as ae:
-            self.close_container()
             raise ae
-
         return None
 
-    def normalize_container_size(self):
+    def _normalize_container_size(self):
         """
         Complete sampled trajectorie with dummy value to make all sampled trajectories of even lenght
-        :return:
-        :rtype:
+        :return: None
         """
         t_timestep = len(self._observations)
         d = 0   # todo --> confirm chosen value do not affect training
@@ -291,28 +288,38 @@ class SamplingContainer(object):
 
         return None
 
-    def close_container_and_return_np_array(self):
-        np_obs = np.array(self._observations, dtype=np.float32)
-        np_act = np.array(self._actions, dtype=np.float32)
-        np_rew = np.array(self._rewards, dtype=np.float32)
-        return np_obs, np_act, np_rew
-
-    def __del__(self):
+    def _reset(self):
         self._observations.clear()
         self._actions.clear()
         self._rewards.clear()
+        self.step_count = 0
+        return None
+
+    def return_np_array_and_reset(self):
+        """
+        Return the sampled trajectorie as 3 np.ndarray (observations, actions, rewards)
+        than reset the container ready for the next trajectorie sampling.
+
+        :return: (np_array_obs, np_array_act, np_array_rew)
+        :rtype: (np.ndarray, np.ndarray, np.ndarray)
+        """
+        self._normalize_container_size()
+
+        np_array_obs = np.array(self._observations, dtype=np.float32)
+        np_array_act = np.array(self._actions, dtype=np.float32)
+        np_array_rew = np.array(self._rewards, dtype=np.float32)
+        return np_array_obs, np_array_act, np_array_rew
+
+    def __del__(self):
+        self._reset()
 
 
 
-class TrajectoryBuffer(object):
+class TrajectoriesBuffer(object):
     """Iterable container by timestep increment for storage & retrieval of component of a sampled trajectory"""
     def __init__(self, max_trajectory_lenght: int, playground: GymPlayground):
         self.max_trajectory_lenght = max_trajectory_lenght
         self.playground = playground
-
-
-
-
 
     def store_at_timestep(self, observation, action, reward):
         raise NotImplementedError   # todo: implement

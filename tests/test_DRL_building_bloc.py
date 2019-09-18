@@ -145,9 +145,9 @@ def test_policy_theta_continuous_space_PASS():
     # todo: implement test casse
 
 
-# --- TrajectoryBuffer & epoch_buffer ---------------------------------------------------------------------------
+# --- TrajectoriesBuffer & epoch_buffer ---------------------------------------------------------------------------
 
-def test_sampling_and_store_by_nparray_iteration_BENCHMARCK(gym_continuous_setup):
+def test_sampling_and_storing_by_nparray_iteration_BENCHMARK(gym_continuous_setup):
     (exp_spec, playground) = gym_continuous_setup
     env = playground.env
 
@@ -155,7 +155,7 @@ def test_sampling_and_store_by_nparray_iteration_BENCHMARCK(gym_continuous_setup
     for traj in range(exp_spec.trajectories_batch_size):
         observation = env.reset()
 
-        # numpy array instantiation
+        """ STEP-1: Container instantiation"""
         observations = np.zeros((playground.OBSERVATION_SPACE_SHAPE, exp_spec.timestep_max_per_trajectorie))
         actions = np.zeros((playground.ACTION_SPACE_SHAPE, exp_spec.timestep_max_per_trajectorie))
         rewards = np.zeros(exp_spec.timestep_max_per_trajectorie)
@@ -171,26 +171,26 @@ def test_sampling_and_store_by_nparray_iteration_BENCHMARCK(gym_continuous_setup
 
             print("\ninfo: {}\n".format(info))
 
-            # append sample to numpy array
+            """ STEP-2: append sample to container"""
             actions[:, step] = action
             observations[:, step] = observation
             rewards[step] = reward
 
-            # acces numpy array
+            """ STEP-3: acces container"""
             if done:
                 print(
                     "\n\n----------------------------------------------------------------------------------------"
                     "\n Episode finished after {} timesteps".format(step + 1))
-                print("reward: {}".format(rewards))
                 print("observation: {}".format(observations))
+                print("reward: {}".format(rewards))
                 break
 
-def test_SamplingContainer_NPARRAY_ITERATION(gym_continuous_setup):
+def test_SamplingContainer_BENCHMARK(gym_continuous_setup):
     (exp_spec, playground) = gym_continuous_setup
     env = playground.env
 
-    # Container instantiation
-    sc = bloc.SamplingContainer(exp_spec, playground)
+    """ STEP-1: Container instantiation"""
+    sample_container = bloc.SamplingContainer(exp_spec, playground)
 
     """--Simulator code: trajectorie -------------------------------------------------------------------------------"""
     for traj in range(exp_spec.trajectories_batch_size):
@@ -207,22 +207,21 @@ def test_SamplingContainer_NPARRAY_ITERATION(gym_continuous_setup):
 
             print("\ninfo: {}\n".format(info))
 
-            # append sample to numpy array
-            # actions[:, step] = action
-            # observations[:, step] = observation
-            # rewards[step] = reward
+            """ STEP-2: append sample to container"""
+            sample_container(observation, action, reward)
 
-            # acces numpy array
+            """ STEP-3: acces container"""
             if done:
+                np_array_obs, np_array_act, np_array_rew = sample_container.return_np_array_and_reset()
                 print(
                     "\n\n----------------------------------------------------------------------------------------"
                     "\n Trajectorie finished after {} timesteps".format(step + 1))
-                # print("reward: {}".format(rewards))
-                # print("observation: {}".format(observations))
+                print("observation: {}".format(np_array_obs))
+                print("reward: {}".format(np_array_rew))
                 break
 
-def test_trajectory_buffer_PASS():
-    bloc.TrajectoryBuffer()
+def test_TrajectoriesBuffer_PASS():
+    bloc.TrajectoriesBuffer()
     # todo: implement test casse
 
 
