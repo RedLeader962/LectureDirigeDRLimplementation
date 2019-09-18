@@ -185,13 +185,20 @@ def gym_playground_to_tensorflow_graph_adapter(playground: BuildGymPlayground) -
     """
     assert isinstance(playground, BuildGymPlayground), "\n\n>>> gym_playground_to_tensorflow_graph_adapter() expected a formated BuildGymPlayground.\n\n"
 
-    if isinstance(playground.env.action_space, gym.spaces.Box):
-        """environment is continuous"""
+    if isinstance(playground.env.observation_space, gym.spaces.Box):
+        """observation space is continuous"""
         input_placeholder = continuous_space_placeholder(playground.OBSERVATION_SPACE_SHAPE, name=vocab.input_placeholder)
+    elif isinstance(playground.env.action_space, gym.spaces.Discrete):
+        """observation space is discrete"""
+        input_placeholder = discrete_space_placeholder(playground.OBSERVATION_SPACE_SHAPE, name=vocab.input_placeholder)
+    else:
+        raise NotImplementedError
+
+    if isinstance(playground.env.action_space, gym.spaces.Box):
+        """action space is continuous"""
         output_placeholder = continuous_space_placeholder(playground.ACTION_SPACE_SHAPE, name=vocab.output_placeholder)
     elif isinstance(playground.env.action_space, gym.spaces.Discrete):
-        """environment is discrete"""
-        input_placeholder = discrete_space_placeholder(playground.OBSERVATION_SPACE_SHAPE, name=vocab.input_placeholder)
+        """action space is discrete"""
         output_placeholder = discrete_space_placeholder(playground.ACTION_SPACE_SHAPE, name=vocab.output_placeholder)
     else:
         raise NotImplementedError
