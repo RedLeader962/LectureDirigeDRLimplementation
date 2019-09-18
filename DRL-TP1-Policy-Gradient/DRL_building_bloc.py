@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+# coding=utf-8
 
 import gym
 import pretty_printing
@@ -13,38 +13,55 @@ tf_cv1 = tf.compat.v1   # shortcut
 
 from vocabulary import rl_name as vocab
 
+"""
+Start TensorBoard in terminal:
+    tensorboard --logdir=DRL-TP1-Policy-Gradient/graph/
+
+In browser, go to:
+    http://0.0.0.0:6006/ 
+"""
 
 class ExperimentSpec(object):
-    def __init__(self, trajectory_batch_size=10, max_trajectory_lenght=400,
-                 max_timestep=2000, random_seed=42, neural_net_hidden_layer_topology: list =[32, 32]):
+    def __init__(self, timestep_max_per_trajectorie=20, trajectories_batch_size=10, max_epoch=2, discout_factor=1,
+                 neural_net_hidden_layer_topology: list = [32, 32], random_seed=42):
         """
         Gather the specification for a experiement
+        
+        note:
+          |     EPOCH definition:
+          |         In our casse, collecting and updating the gradient of a set of trajectories of
+          |         size=trajectorie_batch_size is equal to one EPOCH
 
-        :param trajectory_batch_size:
-        :type trajectory_batch_size:
-        :param max_trajectory_lenght:
-        :type max_trajectory_lenght:
-        :param max_timestep:
-        :type max_timestep:
-        :param random_seed:
-        :type random_seed:
-        :param neural_net_hidden_layer_topology:
-        :type neural_net_hidden_layer_topology:
+
+        # todo: add a param for the neural net configuration via a dict fed as a argument
         """
+        self.max_epoch = max_epoch
+        self.trajectories_batch_size = trajectories_batch_size
+        self.timestep_max_per_trajectorie = timestep_max_per_trajectorie         # horizon
 
-        self.TRAJECTORY_BATCH_SIZE = trajectory_batch_size
-        self.tj_bs = trajectory_batch_size  # shortcut
-        self.MAX_TRAJECTORY_LEN = max_trajectory_lenght
-        self.max_TJ_len = max_trajectory_lenght  # shortcut
-        self.MAX_TIMESTEP = max_timestep
-        self.max_TS = max_timestep  # shortcut
-        self.RANDOM_SEED = random_seed
-        self.seed = random_seed  # shortcut
-        self.NEURAL_NET_HIDDEN_LAYER_TOPOLOGY = neural_net_hidden_layer_topology
-        self.nn_h_layer_topo = neural_net_hidden_layer_topology  # shortcut
+        self.nn_h_layer_topo = neural_net_hidden_layer_topology
+        self.random_seed = random_seed
+        # todo: self.hidden_layer_activation_function
+        # todo: self.output_layer_activation_function
+        # todo: any NN usefull param
 
         assert isinstance(neural_net_hidden_layer_topology, list)
 
+    def get_agent_training_spec(self):
+        """
+        Return specification related to the agent training
+        :return: ( trajectories_batch_size, max_epoch, timestep_max_per_trajectorie )
+        :rtype: (int, int, int)
+        """
+        return self.trajectories_batch_size, self.max_epoch, self.timestep_max_per_trajectorie
+
+    def get_neural_net_spec(self):
+        """
+        Return the specification related to the neural net construction
+        :return:
+        :rtype:
+        """
+        return self.nn_h_layer_topo, self.random_seed
 
 class GymPlayground(object):
     def __init__(self, environment_name='LunarLanderContinuous-v2'):
@@ -95,6 +112,7 @@ class GymPlayground(object):
         """
 
         self.ENVIRONMENT_NAME = environment_name
+        # self.env = None
 
         try:
             self.env = gym.make(self.ENVIRONMENT_NAME)
@@ -123,6 +141,15 @@ class GymPlayground(object):
         print(info_str)
 
 
+    def get_environment_spec(self):
+        """
+        Return specification related to the gym environment
+        :return: (OBSERVATION_SPACE_SHAPE, ACTION_SPACE_SHAPE, ENVIRONMENT_NAME)
+        :rtype: tuple
+        """
+        return self.OBSERVATION_SPACE_SHAPE, self.ACTION_SPACE_SHAPE, self.ENVIRONMENT_NAME
+
+
 def build_MLP_computation_graph(input_placeholder: tf.Tensor, output_placeholder: tf.Tensor,
                                 hidden_layer_topology: list,
                                 hidden_layers_activation: tf.Tensor = tf.tanh,
@@ -139,9 +166,9 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, output_placeholder
     It will later be transform into probabilies using the 'softmax function'
 
     :param input_placeholder:
-    :type input_placeholder:
+    :type input_placeholder: tf.Tensor
     :param output_placeholder:
-    :type output_placeholder:
+    :type output_placeholder: tf.Tensor
     :param hidden_layer_topology:
     :type hidden_layer_topology:
     :param hidden_layers_activation:
@@ -151,6 +178,9 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, output_placeholder
     :return: a well construct computation graph
     :rtype: tf.Tensor
     """
+    assert isinstance(input_placeholder, tf.Tensor)
+    assert isinstance(output_placeholder, tf.Tensor)
+    assert isinstance(hidden_layer_topology, list)
 
     with tf.name_scope(vocab.Multi_Layer_Perceptron) as scope:
         # Create input layer
@@ -179,7 +209,7 @@ def discrete_space_placeholder(space: tuple, name=None):
         space = space[0]
     return tf_cv1.placeholder(dtype=tf.int32, shape=(None, space), name=name)
 
-def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground) -> (tf_cv1.placeholder, tf_cv1.placeholder):
+def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground) -> (tf.Tensor, tf.Tensor):
     """
     Configure handle for feeding value to the computation graph
             Continuous space    -->     dtype=tf.float32
@@ -187,7 +217,7 @@ def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground) -> (tf
     :param playground:
     :type playground: GymPlayground
     :return: input_placeholder, output_placeholder
-    :rtype: (tf.placeholder, tf.placeholder)
+    :rtype: (tf.Tensor, tf.Tensor)
     """
     assert isinstance(playground, GymPlayground), "\n\n>>> gym_playground_to_tensorflow_graph_adapter() expected a builded GymPlayground.\n\n"
 
@@ -217,6 +247,78 @@ def policy_theta_discrete_space(playground: GymPlayground, neural_net_hyperparam
     observation_placeholder, action_placeholder = gym_playground_to_tensorflow_graph_adapter(playground)
     build_MLP_computation_graph(observation_placeholder, action_placeholder)
 
+    raise NotImplementedError   # todo: finish implementation
+
+def policy_theta_continuous_space(playground: GymPlayground, neural_net_hyperparam: dict):
+    raise NotImplementedError   # todo: implement
+
+
+class SamplingContainer(object):
+    def __init__(self, experiment_spec: ExperimentSpec, playground: GymPlayground):
+        self._experiment_spec = experiment_spec
+        self._playground_spec = playground.get_environment_spec()
+        self._observations = []
+        self._actions = []
+        self._rewards = []
+        self.t_count = 0
+
+    def __call__(self, observation, action, reward, *args, **kwargs):
+        try:
+            assert self.t_count < self._experiment_spec.timestep_max_per_trajectorie, "Max timestep per trajectorie reached so the SamplingContainer is full."
+            self._observations.append(observation)
+            self._actions.append(action)
+            self._rewards.append(reward)
+            self.t_count += 1
+        except AssertionError as ae:
+            self.close_container()
+            raise ae
+
+        return None
+
+    def normalize_container_size(self):
+        """
+        Complete sampled trajectorie with dummy value to make all sampled trajectories of even lenght
+        :return:
+        :rtype:
+        """
+        t_timestep = len(self._observations)
+        d = 0   # todo --> confirm chosen value do not affect training
+        delta_t = self._experiment_spec.max_epoch - t_timestep
+        for t in delta_t:
+            self.observations.append(d)
+            self.actions.append(d)
+            self.rewards.append(d)
+
+        return None
+
+    def close_container_and_return_np_array(self):
+        np_obs = np.array(self._observations, dtype=np.float32)
+        np_act = np.array(self._actions, dtype=np.float32)
+        np_rew = np.array(self._rewards, dtype=np.float32)
+        return np_obs, np_act, np_rew
+
+    def __del__(self):
+        self._observations.clear()
+        self._actions.clear()
+        self._rewards.clear()
+
+
+
+class TrajectoryBuffer(object):
+    """Iterable container by timestep increment for storage & retrieval of component of a sampled trajectory"""
+    def __init__(self, max_trajectory_lenght: int, playground: GymPlayground):
+        self.max_trajectory_lenght = max_trajectory_lenght
+        self.playground = playground
+
+
+
+
+
+    def store_at_timestep(self, observation, action, reward):
+        raise NotImplementedError   # todo: implement
+
+def epoch_buffer(trajectory_placeholder):
+    raise NotImplementedError   # todo: implement
 
 
 if __name__ == '__main__':
@@ -232,7 +334,7 @@ if __name__ == '__main__':
 
 
     # (!) fake input data
-    input_data = np.ones((exp_spec.TRAJECTORY_BATCH_SIZE, *continuous_play.OBSERVATION_SPACE_SHAPE))
+    input_data = np.ones((exp_spec.trajectories_batch_size, *continuous_play.OBSERVATION_SPACE_SHAPE))
     # input_data = [[1, 1, 1], [1, 1, 1]]
 
     input_placeholder, output_placeholder = gym_playground_to_tensorflow_graph_adapter(continuous_play)

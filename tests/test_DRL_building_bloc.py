@@ -15,21 +15,32 @@ tf_cv1 = tf.compat.v1   # shortcut
 
 @pytest.fixture
 def tf_setup():
+    """
+    :return: (in_p, out_p, nn_shape)
+    :rtype: (tf.Tensor, tf.Tensor, list)
+    """
     in_p = tf_cv1.placeholder(tf.float32, shape=(None, 8))
     out_p = tf_cv1.placeholder(tf.float32, shape=(None, 2))
-    nn_shape = (2, 2)
-
+    nn_shape = [2, 2]
     return in_p, out_p, nn_shape
 
 @pytest.fixture
 def gym_continuous_setup():
-    exp_spec = bloc.ExperimentSpec()
+    """
+    :return: (exp_spec, playground)
+    :rtype: (ExperimentSpec, GymPlayground)
+    """
+    exp_spec = bloc.ExperimentSpec(timestep_max_per_trajectorie=10, trajectories_batch_size=2, max_epoch=2, neural_net_hidden_layer_topology=[2, 2])
     playground = bloc.GymPlayground('LunarLanderContinuous-v2')
     return exp_spec, playground
 
 @pytest.fixture
 def gym_discrete_setup():
-    exp_spec = bloc.ExperimentSpec()
+    """
+    :return: (exp_spec, playground)
+    :rtype: (ExperimentSpec, GymPlayground)
+    """
+    exp_spec = bloc.ExperimentSpec(timestep_max_per_trajectorie=10, trajectories_batch_size=2, max_epoch=2, neural_net_hidden_layer_topology=[2, 2])
     playground = bloc.GymPlayground('LunarLander-v2')
     return exp_spec, playground
 
@@ -101,20 +112,18 @@ def test_build_MLP_computation_graph_with_CONTINUOUS_adapter(gym_continuous_setu
     bloc.build_MLP_computation_graph(input_placeholder, out_placeholder, hidden_layer_topology=[2,2])
 
 
-
-
 def test_integration_Playground_to_adapter_to_build_graph(gym_continuous_setup):
     exp_spec, playground = gym_continuous_setup
 
     # (!) fake input data
-    input_data = np.ones((exp_spec.TRAJECTORY_BATCH_SIZE, *playground.OBSERVATION_SPACE_SHAPE))
+    input_data = np.ones((exp_spec.trajectories_batch_size, *playground.OBSERVATION_SPACE_SHAPE))
 
     input_placeholder, out_placeholder = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
 
     """Build a Multi Layer Perceptron (MLP) as the policy parameter theta using a computation graph"""
     theta = bloc.build_MLP_computation_graph(input_placeholder, out_placeholder, exp_spec.nn_h_layer_topo)
 
-    # writer = tf_cv1.summary.FileWriter('./graph', tf_cv1.get_default_graph())
+    writer = tf_cv1.summary.FileWriter('./graph', tf_cv1.get_default_graph())
     with tf_cv1.Session() as sess:
         # initialize random variable in the computation graph
         sess.run(tf_cv1.global_variables_initializer())
@@ -123,7 +132,104 @@ def test_integration_Playground_to_adapter_to_build_graph(gym_continuous_setup):
         a = sess.run(theta, feed_dict={input_placeholder: input_data})
 
         # print("\n\n>>>run theta:\n{}\n\n".format(a))
-    # writer.close()
+    writer.close()
+
+
+# --- policy_theta ----------------------------------------------------------------------------------------------
+def test_policy_theta_discrete_space_PASS():
+    bloc.policy_theta_discrete_space()
+    # todo: implement test casse
+
+def test_policy_theta_continuous_space_PASS():
+    bloc.policy_theta_continuous_space()
+    # todo: implement test casse
+
+
+# --- TrajectoryBuffer & epoch_buffer ---------------------------------------------------------------------------
+
+def test_sampling_and_store_by_nparray_iteration_BENCHMARCK(gym_continuous_setup):
+    (exp_spec, playground) = gym_continuous_setup
+    env = playground.env
+
+    """--Simulator code: trajectorie--------------------------------------------------------------------------------"""
+    for traj in range(exp_spec.trajectories_batch_size):
+        observation = env.reset()
+
+        # numpy array instantiation
+        observations = np.zeros((playground.OBSERVATION_SPACE_SHAPE, exp_spec.timestep_max_per_trajectorie))
+        actions = np.zeros((playground.ACTION_SPACE_SHAPE, exp_spec.timestep_max_per_trajectorie))
+        rewards = np.zeros(exp_spec.timestep_max_per_trajectorie)
+
+        """--Simulator code: time-step------------------------------------------------------------------------------"""
+        for step in range(exp_spec.timestep_max_per_trajectorie):
+            # env.render()  # (!) keep render() turn OFF during unit test
+
+            print(observation)
+
+            action = env.action_space.sample()  # sample a random action from the action space (aka: a random agent)
+            observation, reward, done, info = env.step(action)
+
+            print("\ninfo: {}\n".format(info))
+
+            # append sample to numpy array
+            actions[:, step] = action
+            observations[:, step] = observation
+            rewards[step] = reward
+
+            # acces numpy array
+            if done:
+                print(
+                    "\n\n----------------------------------------------------------------------------------------"
+                    "\n Episode finished after {} timesteps".format(step + 1))
+                print("reward: {}".format(rewards))
+                print("observation: {}".format(observations))
+                break
+
+def test_SamplingContainer_NPARRAY_ITERATION(gym_continuous_setup):
+    (exp_spec, playground) = gym_continuous_setup
+    env = playground.env
+
+    # Container instantiation
+    sc = bloc.SamplingContainer(exp_spec, playground)
+
+    """--Simulator code: trajectorie -------------------------------------------------------------------------------"""
+    for traj in range(exp_spec.trajectories_batch_size):
+        observation = env.reset()
+
+        """--Simulator code: time-step------------------------------------------------------------------------------"""
+        for step in range(exp_spec.timestep_max_per_trajectorie):
+            # env.render()  # (!) keep render() turn OFF during unit test
+
+            print(observation)
+
+            action = env.action_space.sample()  # sample a random action from the action space (aka: a random agent)
+            observation, reward, done, info = env.step(action)
+
+            print("\ninfo: {}\n".format(info))
+
+            # append sample to numpy array
+            # actions[:, step] = action
+            # observations[:, step] = observation
+            # rewards[step] = reward
+
+            # acces numpy array
+            if done:
+                print(
+                    "\n\n----------------------------------------------------------------------------------------"
+                    "\n Trajectorie finished after {} timesteps".format(step + 1))
+                # print("reward: {}".format(rewards))
+                # print("observation: {}".format(observations))
+                break
+
+def test_trajectory_buffer_PASS():
+    bloc.TrajectoryBuffer()
+    # todo: implement test casse
+
+
+def test_epoch_buffer_PASS():
+    bloc.epoch_buffer()
+    # todo: implement test casse
+
 
 
 # ---- tensor experiment ------------------------------------------------------------------------------------------

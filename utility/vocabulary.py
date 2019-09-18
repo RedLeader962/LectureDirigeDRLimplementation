@@ -6,7 +6,7 @@ _rl_vocab_list = [
     'trajectorie', 'timestep', 'epoch', 'horizon',
     'observation', 'action', 'policy', 'transition_dynamic', 'reward', 'reward_to_go', 'G',
     'V_pi', 'Q_pi', 'A_pi',
-    'discout_factor',
+    'discout_factor',                           # gamma
     'baseline',
     'objective', 'loss', 'inference', 'optimizer',
     'learning_rate',
