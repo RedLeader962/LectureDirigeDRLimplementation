@@ -14,14 +14,42 @@ tf_cv1 = tf.compat.v1   # shortcut
 from vocabulary import rl_name as vocab
 
 
-class GymPlayground(object):
-    def __init__(self,
-                 environment_name='LunarLanderContinuous-v2',
-                 trajectory_batch_size=10, max_trajectory_lenght=400,
+class ExperimentSpec(object):
+    def __init__(self, trajectory_batch_size=10, max_trajectory_lenght=400,
                  max_timestep=2000, random_seed=42, neural_net_hidden_layer_topology: list =[32, 32]):
         """
-        Setup the learning playground for the agent:
-            the environment in witch he will play and for how long
+        Gather the specification for a experiement
+
+        :param trajectory_batch_size:
+        :type trajectory_batch_size:
+        :param max_trajectory_lenght:
+        :type max_trajectory_lenght:
+        :param max_timestep:
+        :type max_timestep:
+        :param random_seed:
+        :type random_seed:
+        :param neural_net_hidden_layer_topology:
+        :type neural_net_hidden_layer_topology:
+        """
+
+        self.TRAJECTORY_BATCH_SIZE = trajectory_batch_size
+        self.tj_bs = trajectory_batch_size  # shortcut
+        self.MAX_TRAJECTORY_LEN = max_trajectory_lenght
+        self.max_TJ_len = max_trajectory_lenght  # shortcut
+        self.MAX_TIMESTEP = max_timestep
+        self.max_TS = max_timestep  # shortcut
+        self.RANDOM_SEED = random_seed
+        self.seed = random_seed  # shortcut
+        self.NEURAL_NET_HIDDEN_LAYER_TOPOLOGY = neural_net_hidden_layer_topology
+        self.nn_h_layer_topo = neural_net_hidden_layer_topology  # shortcut
+
+        assert isinstance(neural_net_hidden_layer_topology, list)
+
+
+class GymPlayground(object):
+    def __init__(self, environment_name='LunarLanderContinuous-v2'):
+        """
+        Setup the learning playground for the agent (the environment in witch he will play) and gather relevant spec
 
         Note: 'LunarLanderContinuous-v2' (DEFAUT environment)
                 env: <TimeLimit<LunarLanderContinuous<LunarLanderContinuous-v2>>>
@@ -62,36 +90,11 @@ class GymPlayground(object):
 
             REWARD range: (-inf, inf)
 
-        :param neural_net_hidden_layer_topology:
-        :type neural_net_hidden_layer_topology:
         :param environment_name: a gym environment
         :type environment_name: str
-        :param trajectory_batch_size:
-        :type trajectory_batch_size: int
-        :param max_trajectory_lenght:
-        :type max_trajectory_lenght: int
-        :param max_timestep:
-        :type max_timestep: int
-        :param random_seed:
-        :type random_seed: int
         """
 
-
         self.ENVIRONMENT_NAME = environment_name
-
-
-        self.TRAJECTORY_BATCH_SIZE = trajectory_batch_size
-        self.tj_bs = trajectory_batch_size                                          # shortcut
-        self.MAX_TRAJECTORY_LEN = max_trajectory_lenght
-        self.max_TJ_len = max_trajectory_lenght                                     # shortcut
-        self.MAX_TIMESTEP = max_timestep
-        self.max_TS = max_timestep                                                  # shortcut
-        self.RANDOM_SEED = random_seed
-        self.seed = random_seed                                                     # shortcut
-        self.NEURAL_NET_HIDDEN_LAYER_TOPOLOGY = neural_net_hidden_layer_topology
-        self.nn_h_layer_topo = neural_net_hidden_layer_topology                     # shortcut
-
-        assert isinstance(neural_net_hidden_layer_topology, list)
 
         try:
             self.env = gym.make(self.ENVIRONMENT_NAME)
@@ -224,21 +227,19 @@ if __name__ == '__main__':
     In browser, go to:
         http://0.0.0.0:6006/ 
     """
-
-    continuous_play = GymPlayground(environment_name='LunarLander-v2',
-                                    trajectory_batch_size=5,
-                                    neural_net_hidden_layer_topology=[4, 2, 2, 4])
+    exp_spec = ExperimentSpec()
+    continuous_play = GymPlayground(environment_name='LunarLander-v2')
 
 
     # (!) fake input data
-    input_data = np.ones((continuous_play.TRAJECTORY_BATCH_SIZE, *continuous_play.OBSERVATION_SPACE_SHAPE))
+    input_data = np.ones((exp_spec.TRAJECTORY_BATCH_SIZE, *continuous_play.OBSERVATION_SPACE_SHAPE))
     # input_data = [[1, 1, 1], [1, 1, 1]]
 
     input_placeholder, output_placeholder = gym_playground_to_tensorflow_graph_adapter(continuous_play)
 
     # todo: we are here
     """Build a Multi Layer Perceptron (MLP) as the policy parameter theta using a computation graph"""
-    theta = build_MLP_computation_graph(input_placeholder, output_placeholder, continuous_play.nn_h_layer_topo)
+    theta = build_MLP_computation_graph(input_placeholder, output_placeholder, exp_spec.nn_h_layer_topo)
 
     writer = tf_cv1.summary.FileWriter('./graph', tf_cv1.get_default_graph())
     with tf_cv1.Session() as sess:

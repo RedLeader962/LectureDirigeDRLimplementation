@@ -23,21 +23,29 @@ def tf_setup():
 
 @pytest.fixture
 def gym_continuous_setup():
-    return bloc.GymPlayground('LunarLanderContinuous-v2')
+    exp_spec = bloc.ExperimentSpec()
+    playground = bloc.GymPlayground('LunarLanderContinuous-v2')
+    return exp_spec, playground
 
 @pytest.fixture
 def gym_discrete_setup():
-    return bloc.GymPlayground('LunarLander-v2')
+    exp_spec = bloc.ExperimentSpec()
+    playground = bloc.GymPlayground('LunarLander-v2')
+    return exp_spec, playground
+
+
+# --- ExperimentSpec ---------------------------------------------------------------------------------------------
+
+def test_ExperimentSpec_init_ENV_TOPOLOGY_FAIL():
+    with pytest.raises(Exception):
+        bloc.ExperimentSpec(neural_net_hidden_layer_topology=(1,))
+
 
 # ---- playground ------------------------------------------------------------------------------------------------
 
 def test_Playground_init_ENV_FAIL():
     with pytest.raises(Exception):
         bloc.GymPlayground('UnExistingEnvironment!!!')
-
-def test_Playground_init_ENV_TOPOLOGY_FAIL():
-    with pytest.raises(Exception):
-        bloc.GymPlayground('LunarLanderContinuous-v2', neural_net_hidden_layer_topology=(1,))
 
 
 def test_Playground_continuous():
@@ -57,14 +65,14 @@ def test_gym_env_to_tf_graph_adapter_WRONG_IMPORT_TYPE():
         bloc.gym_playground_to_tensorflow_graph_adapter(gym)
 
 def test_gym_env_to_tf_graph_adapter_DISCRETE_PASS(gym_discrete_setup):
-    playground = gym_discrete_setup
+    _, playground = gym_discrete_setup
     input_placeholder, output_placeholder = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
     assert input_placeholder.shape[-1] == playground.OBSERVATION_SPACE_SHAPE[0]
     print(output_placeholder.shape)
     assert output_placeholder.shape[-1] == playground.ACTION_SPACE_SHAPE
 
 def test_gym_env_to_tf_graph_adapter_CONTINUOUS_PASS(gym_continuous_setup):
-    playground = gym_continuous_setup
+    _, playground = gym_continuous_setup
     input_placeholder, output_placeholder = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
     assert input_placeholder.shape[-1] == playground.OBSERVATION_SPACE_SHAPE[0]
     assert output_placeholder.shape[-1] == playground.ACTION_SPACE_SHAPE[0]
@@ -83,27 +91,28 @@ def test_build_MLP_computation_graph_io(tf_setup):
 
 
 def test_build_MLP_computation_graph_with_DISCRETE_adapter(gym_discrete_setup):
-    input_placeholder, out_placeholder = bloc.gym_playground_to_tensorflow_graph_adapter(gym_discrete_setup)
+    _, playground = gym_discrete_setup
+    input_placeholder, out_placeholder = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
     bloc.build_MLP_computation_graph(input_placeholder, out_placeholder, hidden_layer_topology=[2,2])
 
 def test_build_MLP_computation_graph_with_CONTINUOUS_adapter(gym_continuous_setup):
-    input_placeholder, out_placeholder = bloc.gym_playground_to_tensorflow_graph_adapter(gym_continuous_setup)
+    _, playground = gym_continuous_setup
+    input_placeholder, out_placeholder = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
     bloc.build_MLP_computation_graph(input_placeholder, out_placeholder, hidden_layer_topology=[2,2])
 
 
 
 
-def test_integration_Playground_to_adapter_to_build_graph():
-    continuous_play = bloc.GymPlayground(trajectory_batch_size=10,
-                                         neural_net_hidden_layer_topology=[2, 2])
+def test_integration_Playground_to_adapter_to_build_graph(gym_continuous_setup):
+    exp_spec, playground = gym_continuous_setup
 
     # (!) fake input data
-    input_data = np.ones((continuous_play.TRAJECTORY_BATCH_SIZE, *continuous_play.OBSERVATION_SPACE_SHAPE))
+    input_data = np.ones((exp_spec.TRAJECTORY_BATCH_SIZE, *playground.OBSERVATION_SPACE_SHAPE))
 
-    input_placeholder, out_placeholder = bloc.gym_playground_to_tensorflow_graph_adapter(continuous_play)
+    input_placeholder, out_placeholder = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
 
     """Build a Multi Layer Perceptron (MLP) as the policy parameter theta using a computation graph"""
-    theta = bloc.build_MLP_computation_graph(input_placeholder, out_placeholder, continuous_play.nn_h_layer_topo)
+    theta = bloc.build_MLP_computation_graph(input_placeholder, out_placeholder, exp_spec.nn_h_layer_topo)
 
     # writer = tf_cv1.summary.FileWriter('./graph', tf_cv1.get_default_graph())
     with tf_cv1.Session() as sess:
