@@ -281,11 +281,10 @@ class SamplingContainer(object):
         t_timestep = len(self._observations)
         d = 0   # todo --> confirm chosen value do not affect training
         delta_t = self._experiment_spec.max_epoch - t_timestep
-        for t in delta_t:
+        for t in range(delta_t):
             self.observations.append(d)
             self.actions.append(d)
             self.rewards.append(d)
-
         return None
 
     def _reset(self):
@@ -308,6 +307,7 @@ class SamplingContainer(object):
         np_array_obs = np.array(self._observations, dtype=np.float32)
         np_array_act = np.array(self._actions, dtype=np.float32)
         np_array_rew = np.array(self._rewards, dtype=np.float32)
+        self._reset()
         return np_array_obs, np_array_act, np_array_rew
 
     def __del__(self):

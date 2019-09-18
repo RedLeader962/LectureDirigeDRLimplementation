@@ -135,19 +135,13 @@ def test_integration_Playground_to_adapter_to_build_graph(gym_continuous_setup):
     writer.close()
 
 
-# --- policy_theta ----------------------------------------------------------------------------------------------
-def test_policy_theta_discrete_space_PASS():
-    bloc.policy_theta_discrete_space()
-    # todo: implement test casse
-
-def test_policy_theta_continuous_space_PASS():
-    bloc.policy_theta_continuous_space()
-    # todo: implement test casse
-
 
 # --- TrajectoriesBuffer & epoch_buffer ---------------------------------------------------------------------------
 
 def test_sampling_and_storing_by_nparray_iteration_BENCHMARK(gym_continuous_setup):
+
+    raise NotImplementedError  # todo: (!) setup benchmark test
+
     (exp_spec, playground) = gym_continuous_setup
     env = playground.env
 
@@ -156,8 +150,9 @@ def test_sampling_and_storing_by_nparray_iteration_BENCHMARK(gym_continuous_setu
         observation = env.reset()
 
         """ STEP-1: Container instantiation"""
-        observations = np.zeros((playground.OBSERVATION_SPACE_SHAPE, exp_spec.timestep_max_per_trajectorie))
-        actions = np.zeros((playground.ACTION_SPACE_SHAPE, exp_spec.timestep_max_per_trajectorie))
+        # QuickFix:  *playground.OBSERVATION_SPACE_SHAPE to unpack shape --> wont work with Discrete space dimension
+        observations = np.zeros((*playground.OBSERVATION_SPACE_SHAPE, exp_spec.timestep_max_per_trajectorie))
+        actions = np.zeros((*playground.ACTION_SPACE_SHAPE, exp_spec.timestep_max_per_trajectorie))
         rewards = np.zeros(exp_spec.timestep_max_per_trajectorie)
 
         """--Simulator code: time-step------------------------------------------------------------------------------"""
@@ -177,7 +172,7 @@ def test_sampling_and_storing_by_nparray_iteration_BENCHMARK(gym_continuous_setu
             rewards[step] = reward
 
             """ STEP-3: acces container"""
-            if done:
+            if done or (step == exp_spec.timestep_max_per_trajectorie - 1):
                 print(
                     "\n\n----------------------------------------------------------------------------------------"
                     "\n Episode finished after {} timesteps".format(step + 1))
@@ -186,8 +181,12 @@ def test_sampling_and_storing_by_nparray_iteration_BENCHMARK(gym_continuous_setu
                 break
 
 def test_SamplingContainer_BENCHMARK(gym_continuous_setup):
+
+    raise NotImplementedError  # todo: (!) setup benchmark test
+
     (exp_spec, playground) = gym_continuous_setup
     env = playground.env
+
 
     """ STEP-1: Container instantiation"""
     sample_container = bloc.SamplingContainer(exp_spec, playground)
@@ -211,8 +210,86 @@ def test_SamplingContainer_BENCHMARK(gym_continuous_setup):
             sample_container(observation, action, reward)
 
             """ STEP-3: acces container"""
-            if done:
+            if done or (step == exp_spec.timestep_max_per_trajectorie - 1):
                 np_array_obs, np_array_act, np_array_rew = sample_container.return_np_array_and_reset()
+
+                print(
+                    "\n\n----------------------------------------------------------------------------------------"
+                    "\n Trajectorie finished after {} timesteps".format(step + 1))
+                print("observation: {}".format(np_array_obs))
+                print("reward: {}".format(np_array_rew))
+                break
+
+def test_SamplingContainer_CONTINUOUS(gym_continuous_setup):
+    (exp_spec, playground) = gym_continuous_setup
+    env = playground.env
+
+    """ STEP-1: Container instantiation"""
+    sample_container = bloc.SamplingContainer(exp_spec, playground)
+
+
+    """--Simulator code: trajectorie -------------------------------------------------------------------------------"""
+    for traj in range(exp_spec.trajectories_batch_size):
+        observation = env.reset()
+
+        """--Simulator code: time-step------------------------------------------------------------------------------"""
+        for step in range(exp_spec.timestep_max_per_trajectorie):
+            # env.render()  # (!) keep render() turn OFF during unit test
+
+            print(observation)
+
+            action = env.action_space.sample()  # sample a random action from the action space (aka: a random agent)
+            observation, reward, done, info = env.step(action)
+
+            print("\ninfo: {}\n".format(info))
+
+            """ STEP-2: append sample to container"""
+            sample_container(observation, action, reward)
+
+            raise NotImplementedError  # todo: finish implementing test casse
+
+            """ STEP-3: acces container"""
+            if done or (step == exp_spec.timestep_max_per_trajectorie - 1):
+                np_array_obs, np_array_act, np_array_rew = sample_container.return_np_array_and_reset()
+
+                print(
+                    "\n\n----------------------------------------------------------------------------------------"
+                    "\n Trajectorie finished after {} timesteps".format(step + 1))
+                print("observation: {}".format(np_array_obs))
+                print("reward: {}".format(np_array_rew))
+                break
+
+def test_SamplingContainer_DISCRETE(gym_discrete_setup):
+    (exp_spec, playground) = gym_discrete_setup
+    env = playground.env
+
+    """ STEP-1: Container instantiation"""
+    sample_container = bloc.SamplingContainer(exp_spec, playground)
+
+    """--Simulator code: trajectorie -------------------------------------------------------------------------------"""
+    for traj in range(exp_spec.trajectories_batch_size):
+        observation = env.reset()
+
+        """--Simulator code: time-step------------------------------------------------------------------------------"""
+        for step in range(exp_spec.timestep_max_per_trajectorie):
+            # env.render()  # (!) keep render() turn OFF during unit test
+
+            print(observation)
+
+            action = env.action_space.sample()  # sample a random action from the action space (aka: a random agent)
+            observation, reward, done, info = env.step(action)
+
+            print("\ninfo: {}\n".format(info))
+
+            """ STEP-2: append sample to container"""
+            sample_container(observation, action, reward)
+
+            raise NotImplementedError  # todo: finish implementing test casse
+
+            """ STEP-3: acces container"""
+            if done or (step == exp_spec.timestep_max_per_trajectorie - 1):
+                np_array_obs, np_array_act, np_array_rew = sample_container.return_np_array_and_reset()
+
                 print(
                     "\n\n----------------------------------------------------------------------------------------"
                     "\n Trajectorie finished after {} timesteps".format(step + 1))
@@ -229,6 +306,15 @@ def test_epoch_buffer_PASS():
     bloc.epoch_buffer()
     # todo: implement test casse
 
+
+# --- policy_theta ----------------------------------------------------------------------------------------------
+def test_policy_theta_discrete_space_PASS():
+    bloc.policy_theta_discrete_space()
+    # todo: implement test casse
+
+def test_policy_theta_continuous_space_PASS():
+    bloc.policy_theta_continuous_space()
+    # todo: implement test casse
 
 
 # ---- tensor experiment ------------------------------------------------------------------------------------------
