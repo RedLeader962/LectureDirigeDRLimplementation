@@ -13,6 +13,7 @@ tf_cv1 = tf.compat.v1   # shortcut
 
 from vocabulary import rl_name as vocab
 
+
 """
 Start TensorBoard in terminal:
     tensorboard --logdir=DRL-TP1-Policy-Gradient/graph/
@@ -151,7 +152,7 @@ class GymPlayground(object):
 
 
 def build_MLP_computation_graph(input_placeholder: tf.Tensor, output_placeholder: tf.Tensor,
-                                hidden_layer_topology: list,
+                                hidden_layer_topology: list = [32, 32],
                                 hidden_layers_activation: tf.Tensor = tf.tanh,
                                 output_layers_activation: tf.Tensor = tf.sigmoid) -> tf.Tensor:
     """
@@ -160,7 +161,7 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, output_placeholder
 
         input_placeholder | *hidden_layer_topology | output_placeholder
 
-    It's last layer is called the 'logits' (aka: the raw output of the MLP)
+    The last layer is called the 'logits' (aka: the raw output of the MLP)
 
     In the context of deep learning, 'logits' is the equivalent of 'raw output' of our prediction.
     It will later be transform into probabilies using the 'softmax function'
@@ -242,14 +243,25 @@ def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground) -> (tf
     return input_placeholder, output_placeholder
 
 
-def policy_theta_discrete_space(playground: GymPlayground, neural_net_hyperparam: dict):
-    playground = GymPlayground()
-    observation_placeholder, action_placeholder = gym_playground_to_tensorflow_graph_adapter(playground)
-    build_MLP_computation_graph(observation_placeholder, action_placeholder)
+def policy_theta_discrete_space(observation_placeholder: tf.Tensor, action_placeholder: tf.Tensor, experiment_specification: ExperimentSpec):
+    """
+    Policy theta for discrete space --> actions are sampled from a categorical distribution
+    """
+    logits_layer = build_MLP_computation_graph(observation_placeholder, action_placeholder,
+                                               hidden_layer_topology=experiment_specification.nn_h_layer_topo)
+    # convert the logits layer (aka: raw output) to probabilies
+    # actions_probability = tf.nn.softmax(logits_layer)
+    actions_probability = tf.nn.log_softmax(logits_layer)
+    random = tf.random.categorical(actions_probability, num_samples=1)
 
-    raise NotImplementedError   # todo: finish implementation
+    # Remove single-dimensional entries from the shape of the array
+    policy_theta = np.squeeze(random, axis=1)
+    return policy_theta
 
 def policy_theta_continuous_space(playground: GymPlayground, neural_net_hyperparam: dict):
+    """
+    Policy theta for continuous space --> actions are sampled from a gausian distribution
+    """
     raise NotImplementedError   # todo: implement
 
 def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
@@ -387,7 +399,7 @@ class TimestepCollector(object):
 
 
 
-
+# ice-box
 class TrajectoriesBuffer(object):
     """Iterable container by timestep increment for storage & retrieval of component of a sampled trajectory"""
     def __init__(self, max_trajectory_lenght: int, playground: GymPlayground):
@@ -399,38 +411,4 @@ class TrajectoriesBuffer(object):
 def epoch_buffer(trajectory_placeholder):
     raise NotImplementedError   # todo: implement
 
-
-if __name__ == '__main__':
-    """
-    Start TensorBoard in terminal:
-        tensorboard --logdir=DRL-TP1-Policy-Gradient/graph/
-    
-    In browser, go to:
-        http://0.0.0.0:6006/ 
-    """
-    exp_spec = ExperimentSpec()
-    continuous_play = GymPlayground(environment_name='LunarLander-v2')
-
-
-    # (!) fake input data
-    input_data = np.ones((exp_spec.trajectories_batch_size, *continuous_play.OBSERVATION_SPACE_SHAPE))
-    # input_data = [[1, 1, 1], [1, 1, 1]]
-
-    input_placeholder, output_placeholder = gym_playground_to_tensorflow_graph_adapter(continuous_play)
-
-    # todo: we are here
-    """Build a Multi Layer Perceptron (MLP) as the policy parameter theta using a computation graph"""
-    theta = build_MLP_computation_graph(input_placeholder, output_placeholder, exp_spec.nn_h_layer_topo)
-
-    writer = tf_cv1.summary.FileWriter('./graph', tf_cv1.get_default_graph())
-    with tf_cv1.Session() as sess:
-        # initialize random variable in the computation graph
-        sess.run(tf_cv1.global_variables_initializer())
-
-        # execute mlp computation graph with input data
-        a = sess.run(theta, feed_dict={input_placeholder: input_data})
-
-        print(a)
-
-    writer.close()
 

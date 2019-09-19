@@ -138,7 +138,7 @@ def test_integration_Playground_to_adapter_to_build_graph(gym_continuous_setup):
 
 # --- TrajectoriesBuffer & epoch_buffer ---------------------------------------------------------------------------
 
-def test_SamplingContainer_CONTINUOUS(gym_continuous_setup):
+def test_SamplingContainer_CONTINUOUS_BASIC(gym_continuous_setup):
     (exp_spec, playground) = gym_continuous_setup
     env = playground.env
 
@@ -180,7 +180,7 @@ def test_SamplingContainer_CONTINUOUS(gym_continuous_setup):
                 print("reward: {}".format(np_array_rew))
                 break
 
-def test_SamplingContainer_DISCRETE(gym_discrete_setup):
+def test_SamplingContainer_DISCRETE_BASIC(gym_discrete_setup):
     (exp_spec, playground) = gym_discrete_setup
     env = playground.env
 
@@ -220,9 +220,10 @@ def test_SamplingContainer_DISCRETE(gym_discrete_setup):
                 break
 
 
-def test_TrajectoriesBuffer_PASS():
-    bloc.TrajectoriesBuffer()
-    # todo: implement test case
+# def test_TrajectoriesBuffer_ICEBOX(gym_continuous_setup):
+#     exp_spec, playground = gym_continuous_setup
+#     bloc.TrajectoriesBuffer(exp_spec.timestep_max_per_trajectorie, playground)
+#     # todo: implement function & test case
 
 
 def test_epoch_buffer_PASS():
