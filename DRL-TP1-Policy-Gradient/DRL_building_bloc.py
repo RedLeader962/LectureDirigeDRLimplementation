@@ -280,21 +280,57 @@ def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
     # todo --> finish implementing, unit test
     return feed_dict
 
+class TrajectorieContainer(object):
+    def __init__(self, observations: list, actions: list, rewards: list, dtype=None):
+        """
+        Container for events collected at every timestep of a single trajectorie
 
+        Note from numpy about dtype:
+            "This argument can only be used to 'upcast' the array.  For downcasting, use the .astype(t) method."
+        """
+        assert len(observations) == len(actions) == len(rewards)
+        self.observations = np.array(observations, dtype=dtype)
+        self.actions = np.array(actions, dtype=dtype)
+        self.rewards = np.array(rewards, dtype=dtype)
 
-class SamplingContainer(object):
+    def __len__(self):
+        return len(self.observations)
+
+    def __getitem__(self, timestep: int):
+        """
+        Return the values (observation, action, reward) at the given timestep
+        :param timestep: the exact timestep number (not the list index)
+        :type timestep: int
+        :return:  (observation, action, reward) at timestep t
+        :rtype: (np.ndarray, np.ndarray, np.ndarray)
+        """
+        ts = timestep - 1
+        obs = self.observations[ts]
+        act = self.actions[ts]
+        rew = self.rewards[ts]
+        return obs, act, rew
+
+    def unpack(self) -> (np.ndarray, np.ndarray, np.ndarray):
+        """
+        Unpack the full trajectorie as a tuple of numpy array
+        :return: observations, actions, rewards arrays
+        :rtype: (np.ndarray, np.ndarray, np.ndarray)
+        """
+        return self.observations, self.actions, self.rewards
+
+class TimestepCollector(object):
     def __init__(self, experiment_spec: ExperimentSpec, playground: GymPlayground):
         self._experiment_spec = experiment_spec
-        self._playground_spec = playground.get_environment_spec()
+        # self._playground_spec = playground.get_environment_spec()
         self._observations = []
         self._actions = []
         self._rewards = []
         self.step_count = 0
 
-    def __call__(self, observation, action, reward, *args, **kwargs):
+    def __call__(self, observation, action, reward, *args, **kwargs) -> None:
         try:
             assert self.step_count < self._experiment_spec.timestep_max_per_trajectorie, \
-                "Max timestep per trajectorie reached so the SamplingContainer is full."
+                "Max timestep per trajectorie reached so the TimestepCollector is full."
             self._observations.append(observation)
             self._actions.append(action)
             self._rewards.append(reward)
@@ -303,14 +339,18 @@ class SamplingContainer(object):
             raise ae
         return None
 
-    def append(self):
-        raise NotImplementedError   # todo: implement
+    def append(self, observation, action, reward) -> None:
+        """Collect observation, action, reward for one timestep"""
+        self.__call__(observation, action, reward)
+        return None
 
-    def _normalize_container_size(self):
+    def _normalize_the_collected_trajectorie_lenght(self) -> None:
         """
         Complete sampled trajectorie with dummy value to make all sampled trajectories of even lenght
         :return: None
         """
+        raise NotImplementedError   # todo: implement for case batch size > 1
+
         t_timestep = len(self._observations)
         d = 0   # todo --> confirm chosen value do not affect training
         delta_t = self._experiment_spec.max_epoch - t_timestep
@@ -327,7 +367,7 @@ class SamplingContainer(object):
         self.step_count = 0
         return None
 
-    def return_np_array_and_reset(self):
+    def get_collected_trajectorie_and_reset(self) -> TrajectorieContainer:
         """
         Return the sampled trajectorie as 3 np.ndarray (observations, actions, rewards)
         than reset the container ready for the next trajectorie sampling.
@@ -335,17 +375,16 @@ class SamplingContainer(object):
         :return: (np_array_obs, np_array_act, np_array_rew)
         :rtype: (np.ndarray, np.ndarray, np.ndarray)
         """
-        self._normalize_container_size()
 
         # todo --> validate dtype for discrete case
-        np_array_obs = np.array(self._observations, dtype=np.float32)
-        np_array_act = np.array(self._actions, dtype=np.float32)
-        np_array_rew = np.array(self._rewards, dtype=np.float32)
+        trajectorie_container = TrajectorieContainer(self._observations, self._actions, self._rewards)
+
         self._reset()
-        return np_array_obs, np_array_act, np_array_rew
+        return trajectorie_container
 
     def __del__(self):
         self._reset()
+
 
 
 
@@ -355,8 +394,7 @@ class TrajectoriesBuffer(object):
         self.max_trajectory_lenght = max_trajectory_lenght
         self.playground = playground
 
-    def store_at_timestep(self, observation, action, reward):
-        raise NotImplementedError   # todo: implement
+        raise NotImplementedError   # todo: implement --> ice-box: implement for case batch size > 1
 
 def epoch_buffer(trajectory_placeholder):
     raise NotImplementedError   # todo: implement
