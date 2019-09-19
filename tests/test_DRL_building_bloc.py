@@ -220,6 +220,15 @@ def test_SamplingContainer_BENCHMARK(gym_continuous_setup):
                 print("reward: {}".format(np_array_rew))
                 break
 
+def test_SamplingContainer_NORMALIZE_CONTAINER_SIZE(gym_continuous_setup):
+    (exp_spec, playground) = gym_continuous_setup
+    env = playground.env
+
+    """ STEP-1: Container instantiation"""
+    sample_container = bloc.SamplingContainer(exp_spec, playground)
+    raise NotImplementedError  # todo: test case
+    
+    
 def test_SamplingContainer_CONTINUOUS(gym_continuous_setup):
     (exp_spec, playground) = gym_continuous_setup
     env = playground.env
@@ -246,7 +255,7 @@ def test_SamplingContainer_CONTINUOUS(gym_continuous_setup):
             """ STEP-2: append sample to container"""
             sample_container(observation, action, reward)
 
-            raise NotImplementedError  # todo: finish implementing test casse
+            raise NotImplementedError  # todo: finish implementing test case
 
             """ STEP-3: acces container"""
             if done or (step == exp_spec.timestep_max_per_trajectorie - 1):
@@ -284,7 +293,7 @@ def test_SamplingContainer_DISCRETE(gym_discrete_setup):
             """ STEP-2: append sample to container"""
             sample_container(observation, action, reward)
 
-            raise NotImplementedError  # todo: finish implementing test casse
+            raise NotImplementedError  # todo: finish implementing test case
 
             """ STEP-3: acces container"""
             if done or (step == exp_spec.timestep_max_per_trajectorie - 1):
@@ -299,22 +308,28 @@ def test_SamplingContainer_DISCRETE(gym_discrete_setup):
 
 def test_TrajectoriesBuffer_PASS():
     bloc.TrajectoriesBuffer()
-    # todo: implement test casse
+    # todo: implement test case
 
 
 def test_epoch_buffer_PASS():
     bloc.epoch_buffer()
-    # todo: implement test casse
+    # todo: implement test case
 
+
+# --- build_feed_dictionary -------------------------------------------------------------------------------------
+
+def test_build_feed_dictionary_PASS():
+    bloc.build_feed_dictionary()
+    raise NotImplementedError   # todo: implement test case
 
 # --- policy_theta ----------------------------------------------------------------------------------------------
 def test_policy_theta_discrete_space_PASS():
     bloc.policy_theta_discrete_space()
-    # todo: implement test casse
+    # todo: implement test case
 
 def test_policy_theta_continuous_space_PASS():
     bloc.policy_theta_continuous_space()
-    # todo: implement test casse
+    # todo: implement test case
 
 
 # ---- tensor experiment ------------------------------------------------------------------------------------------

@@ -252,6 +252,35 @@ def policy_theta_discrete_space(playground: GymPlayground, neural_net_hyperparam
 def policy_theta_continuous_space(playground: GymPlayground, neural_net_hyperparam: dict):
     raise NotImplementedError   # todo: implement
 
+def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
+    """
+    Build a feed dictionary ready to use in a TensorFlow run session.
+
+    It map TF placeholder to corresponding numpy array of values so be advise, order is important.
+
+    :param placeholders: a list of tensorflow placeholder
+    :type placeholders: [tf.Tensor, ...]
+    :param arrays_of_values: a list of numpy array
+    :type arrays_of_values: [np.ndarray, ...]
+    :return: a feed dictionary
+    :rtype: dict
+    """
+    assert isinstance(placeholders, list), "Wrong input type, placeholders must be a list of tensorflow placeholder"
+    assert isinstance(arrays_of_values, list), "Wrong input type, arrays_of_values must be a list of numpy array"
+    assert len(placeholders) == len(arrays_of_values), "placeholders and arrays_of_values must be of the same lenght"
+    for placeholder in placeholders:
+        assert isinstance(placeholder, tf.Tensor), "Wrong input type, placeholders must be a list of tensorflow placeholder"
+    for ar in arrays_of_values:
+        assert isinstance(ar, np.ndarray), "Wrong input type, arrays_of_values must be a list of numpy array"
+
+    feed_dict = dict
+    for placeholder, array in zip(placeholders, arrays_of_values):
+        feed_dict[placeholder] = array
+
+    # todo --> finish implementing, unit test
+    return feed_dict
+
+
 
 class SamplingContainer(object):
     def __init__(self, experiment_spec: ExperimentSpec, playground: GymPlayground):
@@ -264,7 +293,8 @@ class SamplingContainer(object):
 
     def __call__(self, observation, action, reward, *args, **kwargs):
         try:
-            assert self.step_count < self._experiment_spec.timestep_max_per_trajectorie, "Max timestep per trajectorie reached so the SamplingContainer is full."
+            assert self.step_count < self._experiment_spec.timestep_max_per_trajectorie, \
+                "Max timestep per trajectorie reached so the SamplingContainer is full."
             self._observations.append(observation)
             self._actions.append(action)
             self._rewards.append(reward)
@@ -272,6 +302,9 @@ class SamplingContainer(object):
         except AssertionError as ae:
             raise ae
         return None
+
+    def append(self):
+        raise NotImplementedError   # todo: implement
 
     def _normalize_container_size(self):
         """
@@ -282,9 +315,9 @@ class SamplingContainer(object):
         d = 0   # todo --> confirm chosen value do not affect training
         delta_t = self._experiment_spec.max_epoch - t_timestep
         for t in range(delta_t):
-            self.observations.append(d)
-            self.actions.append(d)
-            self.rewards.append(d)
+            self._observations.append(d)
+            self._actions.append(d)
+            self._rewards.append(d)
         return None
 
     def _reset(self):
@@ -304,6 +337,7 @@ class SamplingContainer(object):
         """
         self._normalize_container_size()
 
+        # todo --> validate dtype for discrete case
         np_array_obs = np.array(self._observations, dtype=np.float32)
         np_array_act = np.array(self._actions, dtype=np.float32)
         np_array_rew = np.array(self._rewards, dtype=np.float32)
