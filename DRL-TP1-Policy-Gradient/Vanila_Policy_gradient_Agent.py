@@ -14,8 +14,14 @@ tf_cv1 = tf.compat.v1   # shortcut
 import DRL_building_bloc as bloc
 from vocabulary import rl_name as vocab
 import pretty_printing
+
 import tensorflow_weak_warning_supressor as no_cpu_compile_warn
 no_cpu_compile_warn.execute()
+
+from vocabulary import rl_name
+vocab = rl_name()
+
+
 
 """
 Start TensorBoard in terminal:
@@ -25,7 +31,7 @@ In browser, go to:
     http://0.0.0.0:6006/ 
 """
 
-def VanilaPolicyGradientAgentSingleTrajectorieBatch(render_env=False):
+def vanila_policy_gradient_agent_discrete(render_env=False):
 
     exp_spec = bloc.ExperimentSpec(trajectories_batch_size=1)
     playground = bloc.GymPlayground(environment_name='LunarLander-v2')
@@ -34,22 +40,23 @@ def VanilaPolicyGradientAgentSingleTrajectorieBatch(render_env=False):
 
     # /---- Build computation graph -----
     # Build a Multi Layer Perceptron (MLP) as the policy parameter theta using a computation graph
+    # Build the Policy_theta computation graph
 
     observation_placeholder, action_placeholder = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
-    # theta_mlp = bloc.build_MLP_computation_graph(observation_placeholder, action_placeholder, exp_spec.nn_h_layer_topo)
-    discrete_policy_theta = bloc.policy_theta_discrete_space(observation_placeholder, action_placeholder.shape, exp_spec)
+    theta_mlp = bloc.build_MLP_computation_graph(observation_placeholder, action_placeholder.shape, exp_spec.nn_h_layer_topo)
+    discrete_policy_theta = bloc.policy_theta_discrete_space(theta_mlp, action_placeholder.shape, playground)
 
     # /---- Container instantiation -----
     timestep_collector = bloc.TimestepCollector(exp_spec, playground)
     # todo --> TrajectoriesBatchContainer
 
-    # /---- Pseudo loss -----
-    # todo --> pseudo loss function
-    loss_op = None
-    raise NotImplementedError   # todo: implement loss_op
-
-    # /---- Optimizer -----
-    optimizer_op = tf.train.AdamOptimizer(learning_rate=exp_spec.learning_rate).minimize(loss_op)
+    # # /---- Pseudo loss -----
+    # # todo --> pseudo loss function
+    # loss_op = None
+    # raise NotImplementedError   # todo: implement loss_op
+    #
+    # # /---- Optimizer -----
+    # optimizer_op = tf.train.AdamOptimizer(learning_rate=exp_spec.learning_rate).minimize(loss_op)
 
 
     # /---- Start computation graph -----
@@ -113,9 +120,11 @@ def VanilaPolicyGradientAgentSingleTrajectorieBatch(render_env=False):
 
             # /---- Compute gradient & update policy -----
             observations, actions, rewards = trajectorie_container.unpack()
-            feed_dictionary = bloc.build_feed_dictionary([observation_placeholder, action_placeholder],
-                                                         [observations, actions])
-            sess.run([loss_op, optimizer_op], feed_dict=feed_dictionary)
+
+            # todo -->
+            # feed_dictionary = bloc.build_feed_dictionary([observation_placeholder, action_placeholder],
+            #                                              [observations, actions])
+            # sess.run([loss_op, optimizer_op], feed_dict=feed_dictionary)
 
     writer.close()
 
@@ -127,6 +136,6 @@ if __name__ == '__main__':
     parser.add_argument('--render_env', type=bool, default=False)
     args = parser.parse_args()
 
-    VanilaPolicyGradientAgentSingleTrajectorieBatch(render_env=args.render_env)
+    vanila_policy_gradient_agent_discrete(render_env=args.render_env)
 
 

@@ -4,14 +4,15 @@ import gym
 import pretty_printing
 import numpy as np
 
-import tensorflow_weak_warning_supressor as no_cpu_compile_warn
-no_cpu_compile_warn.execute()
-
 import tensorflow as tf
 from tensorflow import keras
 tf_cv1 = tf.compat.v1   # shortcut
 
-from vocabulary import rl_name as vocab
+import tensorflow_weak_warning_supressor as no_cpu_compile_warn
+no_cpu_compile_warn.execute()
+
+from vocabulary import rl_name
+vocab = rl_name()
 
 
 """
@@ -211,6 +212,7 @@ def discrete_space_placeholder(space: tuple, name=None):
         space = space[0]
     return tf_cv1.placeholder(dtype=tf.int32, shape=(None, space), name=name)
 
+
 def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground) -> (tf.Tensor, tf.Tensor):
     """
     Configure handle for feeding value to the computation graph
@@ -244,33 +246,40 @@ def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground) -> (tf
     return input_placeholder, output_placeholder
 
 
-def policy_theta_discrete_space(observation_placeholder: tf.Tensor, action_placeholder_shape: tf.TensorShape,
-                                experiment_specification: ExperimentSpec):
+def policy_theta_discrete_space(logits_layer: tf.Tensor, action_placeholder_shape: tf.TensorShape, playground: GymPlayground):
     """
     Policy theta for discrete space --> actions are sampled from a categorical distribution
     """
-    assert isinstance(observation_placeholder, tf.Tensor)
+    assert isinstance(playground.env.action_space, gym.spaces.Discrete)
+    assert isinstance(logits_layer, tf.Tensor)
     assert isinstance(action_placeholder_shape, tf.TensorShape)
-    logits_layer = build_MLP_computation_graph(observation_placeholder, action_placeholder_shape,
-                                               hidden_layer_topology=experiment_specification.nn_h_layer_topo)
-    # convert the logits layer (aka: raw output) to probabilies
-    # actions_probability = tf.nn.softmax(logits_layer)
+    logits_layer.shape.assert_is_compatible_with(action_placeholder_shape)
 
-    actions_probability = tf.nn.log_softmax(logits_layer)
-    random = tf.random.categorical(actions_probability, num_samples=1)
+    with tf.name_scope(vocab.policy_theta_discrete) as scope:
+        # convert the logits layer (aka: raw output) to probabilies
+        actions_probability = tf.nn.log_softmax(logits_layer)
+        random = tf.random.categorical(actions_probability, num_samples=1)
 
-    # random = tf.random.categorical(logits_layer, num_samples=1)
+        # Remove single-dimensional entries from the shape of the array
+        policy_theta = tf.squeeze(random, axis=1)
+        return policy_theta
 
-    # Remove single-dimensional entries from the shape of the array
-    policy_theta = tf.squeeze(random, axis=1)
-    return policy_theta
 
-def policy_theta_continuous_space(playground: GymPlayground, neural_net_hyperparam: dict):
+def policy_theta_continuous_space(logits_layer: tf.Tensor, action_placeholder_shape: tf.TensorShape, playground: GymPlayground):
     """
     Policy theta for continuous space --> actions are sampled from a gausian distribution
     """
-    raise NotImplementedError   # todo: implement
+    assert isinstance(playground.env.action_space, gym.spaces.Box)
+    assert isinstance(logits_layer, tf.Tensor)
+    assert isinstance(action_placeholder_shape, tf.TensorShape)
+    logits_layer.shape.assert_is_compatible_with(action_placeholder_shape)
 
+    with tf.name_scope(vocab.policy_theta_continuous) as scope:
+        raise NotImplementedError   # todo: implement
+
+
+# todo --> finish implementing
+# todo --> unit test
 def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
     """
     Build a feed dictionary ready to use in a TensorFlow run session.
@@ -296,8 +305,8 @@ def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
     for placeholder, array in zip(placeholders, arrays_of_values):
         feed_dict[placeholder] = array
 
-    # todo --> finish implementing, unit test
     return feed_dict
+
 
 class TrajectorieContainer(object):
     def __init__(self, observations: list, actions: list, rewards: list, dtype=None):
