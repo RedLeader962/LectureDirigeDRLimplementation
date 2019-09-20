@@ -35,14 +35,22 @@ def VanilaPolicyGradientAgentSingleTrajectorieBatch(render_env=False):
     # /---- Build computation graph -----
     # Build a Multi Layer Perceptron (MLP) as the policy parameter theta using a computation graph
 
-    obs_ph, act_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
-    # theta_mlp = bloc.build_MLP_computation_graph(obs_ph, act_ph, exp_spec.nn_h_layer_topo)
-    discrete_policy_theta = bloc.policy_theta_discrete_space(obs_ph, act_ph, exp_spec)
-
-
+    observation_placeholder, action_placeholder = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
+    # theta_mlp = bloc.build_MLP_computation_graph(observation_placeholder, action_placeholder, exp_spec.nn_h_layer_topo)
+    discrete_policy_theta = bloc.policy_theta_discrete_space(observation_placeholder, action_placeholder.shape, exp_spec)
 
     # /---- Container instantiation -----
     timestep_collector = bloc.TimestepCollector(exp_spec, playground)
+    # todo --> TrajectoriesBatchContainer
+
+    # /---- Pseudo loss -----
+    # todo --> pseudo loss function
+    loss_op = None
+    raise NotImplementedError   # todo: implement loss_op
+
+    # /---- Optimizer -----
+    optimizer_op = tf.train.AdamOptimizer(learning_rate=exp_spec.learning_rate).minimize(loss_op)
+
 
     # /---- Start computation graph -----
     writer = tf_cv1.summary.FileWriter('./graph', tf_cv1.get_default_graph())
@@ -54,6 +62,7 @@ def VanilaPolicyGradientAgentSingleTrajectorieBatch(render_env=False):
 
             # /---- Simulator: trajectorie -----
             for trajectorie in range(exp_spec.trajectories_batch_size):
+                print("/{}\n:: Trajectorie {} started\n\n".format("-" * 90, trajectorie + 1))
                 observation = env.reset()   # fetch initial observation
 
                 # /---- Simulator: time-step -----
@@ -69,13 +78,16 @@ def VanilaPolicyGradientAgentSingleTrajectorieBatch(render_env=False):
                     #   |   vs
                     #   |       np.expand_dims(observation, axis=0).shape = (1, 8)
                     batch_size_one_observation = np.expand_dims(observation, axis=0)
-                    action = sess.run(discrete_policy_theta, feed_dict={obs_ph: batch_size_one_observation})
+                    action = sess.run(discrete_policy_theta, feed_dict={observation_placeholder: batch_size_one_observation})
 
-                    print(action)
+                    action = np.squeeze(action)
                     observation, reward, done, info = env.step(action)
 
-                    print(observation)
-                    print("\ninfo: {}\n".format(info))
+                    print("E:{} T:{} TS:{} | action[{}] --> reward={}".format(epoch + 1, trajectorie + 1,
+                                                                              step + 1, action, reward))
+
+                    if len(info) is not 0:
+                        print("\ninfo: {}\n".format(info))
 
                     # /---- Collect current timestep events -----
                     timestep_collector.append(observation, action, reward)
@@ -84,16 +96,26 @@ def VanilaPolicyGradientAgentSingleTrajectorieBatch(render_env=False):
                     # /---- end trajectorie -----
                     if done or (step == exp_spec.timestep_max_per_trajectorie - 1):
                         trajectorie_container = timestep_collector.get_collected_trajectorie_and_reset()
-                        np_array_obs, np_array_act, np_array_rew = trajectorie_container.unpack()
+                        observations, actions, rewards = trajectorie_container.unpack()
 
-                        print(
-                            "\n\n----------------------------------------------------------------------------------------"
-                            "\n Trajectorie finished after {} timesteps".format(step + 1))
-                        print("observation: {}".format(np_array_obs))
-                        print("reward: {}".format(np_array_rew))
+                        print("\n:: Trajectorie {} finished after {} timesteps".format(trajectorie + 1, step + 1))
+                        print("\ntrajectorie_container size: {}".format(len(trajectorie_container)))
+                        print("\nobservation: {}".format(observations))
+                        print("\nAction: {}".format(actions))
+                        print("\nreward: {}\n\n".format(rewards))
+                        print("{}/\n\n".format("-" * 90))
 
                         trajectorie_container = timestep_collector.get_collected_trajectorie_and_reset()
                         break
+
+                # /---- Collect trajectorie_container into trajectories_batch_container -----
+
+
+            # /---- Compute gradient & update policy -----
+            observations, actions, rewards = trajectorie_container.unpack()
+            feed_dictionary = bloc.build_feed_dictionary([observation_placeholder, action_placeholder],
+                                                         [observations, actions])
+            sess.run([loss_op, optimizer_op], feed_dict=feed_dictionary)
 
     writer.close()
 

@@ -24,6 +24,7 @@ In browser, go to:
 
 class ExperimentSpec(object):
     def __init__(self, timestep_max_per_trajectorie=20, trajectories_batch_size=10, max_epoch=2, discout_factor=1,
+                 learning_rate=1e-2,
                  neural_net_hidden_layer_topology: list = [32, 32], random_seed=42):
         """
         Gather the specification for a experiement
@@ -36,9 +37,11 @@ class ExperimentSpec(object):
 
         # todo: add a param for the neural net configuration via a dict fed as a argument
         """
-        self.max_epoch = max_epoch
-        self.trajectories_batch_size = trajectories_batch_size
         self.timestep_max_per_trajectorie = timestep_max_per_trajectorie         # horizon
+        self.trajectories_batch_size = trajectories_batch_size
+        self.max_epoch = max_epoch
+        self.discout_factor = discout_factor
+        self.learning_rate = learning_rate
 
         self.nn_h_layer_topo = neural_net_hidden_layer_topology
         self.random_seed = random_seed
@@ -151,15 +154,14 @@ class GymPlayground(object):
         return self.OBSERVATION_SPACE_SHAPE, self.ACTION_SPACE_SHAPE, self.ENVIRONMENT_NAME
 
 
-def build_MLP_computation_graph(input_placeholder: tf.Tensor, output_placeholder: tf.Tensor,
-                                hidden_layer_topology: list = [32, 32],
-                                hidden_layers_activation: tf.Tensor = tf.tanh,
+def build_MLP_computation_graph(input_placeholder: tf.Tensor, action_placeholder_shape: tf.TensorShape,
+                                hidden_layer_topology: list = [32, 32], hidden_layers_activation: tf.Tensor = tf.tanh,
                                 output_layers_activation: tf.Tensor = tf.sigmoid) -> tf.Tensor:
     """
     Builder function for Low Level TensorFlow API.
     Return a Multi Layer Perceptron computatin graph with topology:
 
-        input_placeholder | *hidden_layer_topology | output_placeholder
+        input_placeholder | *hidden_layer_topology | logits_layer
 
     The last layer is called the 'logits' (aka: the raw output of the MLP)
 
@@ -168,8 +170,8 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, output_placeholder
 
     :param input_placeholder:
     :type input_placeholder: tf.Tensor
-    :param output_placeholder:
-    :type output_placeholder: tf.Tensor
+    :param action_placeholder_shape:
+    :type action_placeholder_shape:
     :param hidden_layer_topology:
     :type hidden_layer_topology:
     :param hidden_layers_activation:
@@ -180,7 +182,7 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, output_placeholder
     :rtype: tf.Tensor
     """
     assert isinstance(input_placeholder, tf.Tensor)
-    assert isinstance(output_placeholder, tf.Tensor)
+    assert isinstance(action_placeholder_shape, tf.TensorShape)
     assert isinstance(hidden_layer_topology, list)
 
     with tf.name_scope(vocab.Multi_Layer_Perceptron) as scope:
@@ -194,10 +196,9 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, output_placeholder
         for id in range(len(hidden_layer_topology)):
             h_layer = keras.layers.Dense(hidden_layer_topology[id], activation=hidden_layers_activation, name='{}{}'.format(vocab.hidden_, id + 1))
             parent_layer = h_layer(parent_layer)
-            print(parent_layer) # todo-->remove
 
         # create & connect the ouput layer: the logits
-        logits = keras.layers.Dense(output_placeholder.shape[-1], activation=output_layers_activation, name=vocab.logits)
+        logits = keras.layers.Dense(action_placeholder_shape.dims[-1], activation=output_layers_activation, name=vocab.logits)
 
         return logits(parent_layer)
 
@@ -243,19 +244,25 @@ def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground) -> (tf
     return input_placeholder, output_placeholder
 
 
-def policy_theta_discrete_space(observation_placeholder: tf.Tensor, action_placeholder: tf.Tensor, experiment_specification: ExperimentSpec):
+def policy_theta_discrete_space(observation_placeholder: tf.Tensor, action_placeholder_shape: tf.TensorShape,
+                                experiment_specification: ExperimentSpec):
     """
     Policy theta for discrete space --> actions are sampled from a categorical distribution
     """
-    logits_layer = build_MLP_computation_graph(observation_placeholder, action_placeholder,
+    assert isinstance(observation_placeholder, tf.Tensor)
+    assert isinstance(action_placeholder_shape, tf.TensorShape)
+    logits_layer = build_MLP_computation_graph(observation_placeholder, action_placeholder_shape,
                                                hidden_layer_topology=experiment_specification.nn_h_layer_topo)
     # convert the logits layer (aka: raw output) to probabilies
     # actions_probability = tf.nn.softmax(logits_layer)
+
     actions_probability = tf.nn.log_softmax(logits_layer)
     random = tf.random.categorical(actions_probability, num_samples=1)
 
+    # random = tf.random.categorical(logits_layer, num_samples=1)
+
     # Remove single-dimensional entries from the shape of the array
-    policy_theta = np.squeeze(random, axis=1)
+    policy_theta = tf.squeeze(random, axis=1)
     return policy_theta
 
 def policy_theta_continuous_space(playground: GymPlayground, neural_net_hyperparam: dict):
@@ -313,7 +320,7 @@ class TrajectorieContainer(object):
         Return the values (observation, action, reward) at the given timestep
         :param timestep: the exact timestep number (not the list index)
         :type timestep: int
-        :return:  (observation, action, reward) at timestep t
+        :return:  (observations, actions, rewards) at timestep t
         :rtype: (np.ndarray, np.ndarray, np.ndarray)
         """
         ts = timestep - 1
@@ -325,7 +332,7 @@ class TrajectorieContainer(object):
     def unpack(self) -> (np.ndarray, np.ndarray, np.ndarray):
         """
         Unpack the full trajectorie as a tuple of numpy array
-        :return: observations, actions, rewards arrays
+        :return: (observations, actions, rewards) arrays
         :rtype: (np.ndarray, np.ndarray, np.ndarray)
         """
         return self.observations, self.actions, self.rewards
@@ -384,7 +391,7 @@ class TimestepCollector(object):
         Return the sampled trajectorie as 3 np.ndarray (observations, actions, rewards)
         than reset the container ready for the next trajectorie sampling.
 
-        :return: (np_array_obs, np_array_act, np_array_rew)
+        :return: (observations, actions, rewards)
         :rtype: (np.ndarray, np.ndarray, np.ndarray)
         """
 
@@ -400,7 +407,7 @@ class TimestepCollector(object):
 
 
 # ice-box
-class TrajectoriesBuffer(object):
+class TrajectoriesBatchContainer(object):
     """Iterable container by timestep increment for storage & retrieval of component of a sampled trajectory"""
     def __init__(self, max_trajectory_lenght: int, playground: GymPlayground):
         self.max_trajectory_lenght = max_trajectory_lenght
@@ -408,6 +415,7 @@ class TrajectoriesBuffer(object):
 
         raise NotImplementedError   # todo: implement --> ice-box: implement for case batch size > 1
 
+# ice-box
 def epoch_buffer(trajectory_placeholder):
     raise NotImplementedError   # todo: implement
 
