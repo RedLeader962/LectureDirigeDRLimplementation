@@ -43,8 +43,12 @@ def vanila_policy_gradient_agent_discrete(render_env=False):
     # Build the Policy_theta computation graph
 
     observation_placeholder, action_placeholder = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
-    theta_mlp = bloc.build_MLP_computation_graph(observation_placeholder, action_placeholder.shape, exp_spec.nn_h_layer_topo)
-    discrete_policy_theta = bloc.policy_theta_discrete_space(theta_mlp, action_placeholder.shape, playground)
+
+    # theta_mlp = bloc.build_MLP_computation_graph(observation_placeholder, action_placeholder.shape, exp_spec.nn_h_layer_topo)
+    # discrete_policy_theta, log_probabilities = bloc.policy_theta_discrete_space(theta_mlp, action_placeholder.shape, playground)
+
+    sampled_action, sampled_action_log_probability, feed_action_log_probability = bloc.REINFORCE_agent(
+        observation_placeholder, action_placeholder, playground, exp_spec)
 
     # /---- Container instantiation -----
     timestep_collector = bloc.TimestepCollector(exp_spec, playground)
@@ -85,7 +89,7 @@ def vanila_policy_gradient_agent_discrete(render_env=False):
                     #   |   vs
                     #   |       np.expand_dims(observation, axis=0).shape = (1, 8)
                     batch_size_one_observation = np.expand_dims(observation, axis=0)
-                    action = sess.run(discrete_policy_theta, feed_dict={observation_placeholder: batch_size_one_observation})
+                    action = sess.run(sampled_action, feed_dict={observation_placeholder: batch_size_one_observation})
 
                     action = np.squeeze(action)
                     observation, reward, done, info = env.step(action)

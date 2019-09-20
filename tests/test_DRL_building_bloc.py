@@ -43,6 +43,31 @@ def gym_discrete_setup():
     playground = bloc.GymPlayground('LunarLander-v2')
     return exp_spec, playground
 
+@pytest.fixture
+def gym_and_tf_continuous_setup():
+    """
+    :return: (obs_p, act_p, exp_spec, playground)
+    :rtype: (tf.Tensor, tf.Tensor, ExperimentSpec, GymPlayground)
+    """
+    exp_spec = bloc.ExperimentSpec(timestep_max_per_trajectorie=10, trajectories_batch_size=2, max_epoch=2,
+                                   neural_net_hidden_layer_topology=[2, 2])
+    playground = bloc.GymPlayground('LunarLanderContinuous-v2')
+    obs_p, act_p = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
+    return obs_p, act_p, exp_spec, playground
+
+@pytest.fixture
+def gym_and_tf_discrete_setup():
+    """
+    :return: (obs_p, act_p, exp_spec, playground)
+    :rtype: (tf.Tensor, tf.Tensor, ExperimentSpec, GymPlayground)
+    """
+    exp_spec = bloc.ExperimentSpec(timestep_max_per_trajectorie=10, trajectories_batch_size=2, max_epoch=2,
+                                   neural_net_hidden_layer_topology=[2, 2])
+    playground = bloc.GymPlayground('LunarLander-v2')
+    obs_p, act_p = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
+    return obs_p, act_p, exp_spec, playground
+
+
 
 # --- ExperimentSpec ---------------------------------------------------------------------------------------------
 
@@ -328,60 +353,71 @@ def test_SamplingContainer_DISCRETE_BASIC(gym_discrete_setup):
 
 
 # --- policy_theta ----------------------------------------------------------------------------------------------
-def test_policy_theta_discrete_space_PARAM_FAIL(gym_discrete_setup, tf_setup):
-    in_p, out_p, nn_shape = tf_setup
-    out_p_wrong_shape = tf_cv1.placeholder(tf.float32, shape=(None, out_p.shape[1]+1))
-    exp_spec, playground = gym_discrete_setup
+def test_policy_theta_discrete_space_PARAM_FAIL(gym_and_tf_discrete_setup):
 
-    theta_mlp = bloc.build_MLP_computation_graph(in_p, out_p.shape, exp_spec.nn_h_layer_topo)
+    obs_p, act_p, exp_spec, playground = gym_and_tf_discrete_setup
+    out_p_wrong_shape = tf_cv1.placeholder(tf.float32, shape=(None, act_p.shape[1]+1))
+    theta_mlp = bloc.build_MLP_computation_graph(obs_p, act_p.shape, exp_spec.nn_h_layer_topo)
 
     with pytest.raises(ValueError):
         bloc.policy_theta_discrete_space(theta_mlp, out_p_wrong_shape.shape, playground)
 
-def test_policy_theta_discrete_space_ENV_NOT_DISCRETE(gym_continuous_setup, tf_setup):
-    in_p, out_p, nn_shape = tf_setup
-    out_p_wrong_shape = tf_cv1.placeholder(tf.float32, shape=(None, out_p.shape[1]+1))
-    exp_spec, continuous_playground = gym_continuous_setup
+def test_policy_theta_discrete_space_ENV_NOT_DISCRETE(gym_and_tf_continuous_setup):
+    obs_p, act_p, exp_spec, continuous_playground = gym_and_tf_continuous_setup
 
-    theta_mlp = bloc.build_MLP_computation_graph(in_p, out_p.shape, exp_spec.nn_h_layer_topo)
+    out_p_wrong_shape = tf_cv1.placeholder(tf.float32, shape=(None, act_p.shape[1]+1))
+    theta_mlp = bloc.build_MLP_computation_graph( obs_p, act_p.shape, exp_spec.nn_h_layer_topo)
 
     with pytest.raises(AssertionError):
         bloc.policy_theta_discrete_space(theta_mlp, out_p_wrong_shape.shape, continuous_playground)
 
 
-def test_policy_theta_discrete_space_PASS(gym_discrete_setup, tf_setup):
-    in_p, out_p, nn_shape = tf_setup
-    exp_spec, playground = gym_discrete_setup
-    theta_mlp = bloc.build_MLP_computation_graph(in_p, out_p.shape, exp_spec.nn_h_layer_topo)
+def test_policy_theta_discrete_space_PASS(gym_and_tf_discrete_setup):
 
-    bloc.policy_theta_discrete_space(theta_mlp, out_p.shape, playground)
+    obs_p, act_p, exp_spec, playground = gym_and_tf_discrete_setup
+    theta_mlp = bloc.build_MLP_computation_graph(obs_p, act_p.shape, exp_spec.nn_h_layer_topo)
+    bloc.policy_theta_discrete_space(theta_mlp, act_p.shape, playground)
 
     # todo: implement test case
 
-def test_policy_theta_continuous_space_PARAM_FAIL(gym_continuous_setup, tf_setup):
-    in_p, out_p, nn_shape = tf_setup
-    out_p_wrong_shape = tf_cv1.placeholder(tf.float32, shape=(None, out_p.shape[1]+1))
-    exp_spec, playground = gym_continuous_setup
+def test_policy_theta_continuous_space_PARAM_FAIL(gym_and_tf_continuous_setup):
+    obs_p, act_p, exp_spec, playground = gym_and_tf_continuous_setup
 
-    theta_mlp = bloc.build_MLP_computation_graph(in_p, out_p.shape, exp_spec.nn_h_layer_topo)
+    out_p_wrong_shape = tf_cv1.placeholder(tf.float32, shape=(None, act_p.shape[1]+1))
+    theta_mlp = bloc.build_MLP_computation_graph( obs_p, act_p.shape, exp_spec.nn_h_layer_topo)
 
     with pytest.raises(ValueError):
         bloc.policy_theta_continuous_space(theta_mlp, out_p_wrong_shape.shape, playground)
 
-def test_policy_theta_continuous_space_ENV_NOT_DISCRETE(gym_discrete_setup, tf_setup):
-    in_p, out_p, nn_shape = tf_setup
-    out_p_wrong_shape = tf_cv1.placeholder(tf.float32, shape=(None, out_p.shape[1]+1))
-    exp_spec, discrete_playground = gym_discrete_setup
+def test_policy_theta_continuous_space_ENV_NOT_DISCRETE(gym_and_tf_discrete_setup):
 
-    theta_mlp = bloc.build_MLP_computation_graph(in_p, out_p.shape, exp_spec.nn_h_layer_topo)
+    obs_p, act_p, exp_spec, discrete_playground = gym_and_tf_discrete_setup
+    out_p_wrong_shape = tf_cv1.placeholder(tf.float32, shape=(None, act_p.shape[1]+1))
+    theta_mlp = bloc.build_MLP_computation_graph(obs_p, act_p.shape, exp_spec.nn_h_layer_topo)
 
     with pytest.raises(AssertionError):
         bloc.policy_theta_continuous_space(theta_mlp, out_p_wrong_shape.shape, discrete_playground)
 
 
-# def test_policy_theta_continuous_space_PASS___ICEBOX():
-#     bloc.policy_theta_continuous_space()
-#     # todo: implement test case
+def test_policy_theta_continuous_space_PASS(gym_and_tf_continuous_setup):
+    obs_p, act_p, exp_spec, playground = gym_and_tf_continuous_setup
+
+    theta_mlp = bloc.build_MLP_computation_graph(obs_p, act_p.shape, exp_spec.nn_h_layer_topo)
+
+    bloc.policy_theta_continuous_space(theta_mlp, act_p.shape, playground)
+    # todo: finish test case
+
+# --- REINFORCED_agent -------------------------------------------------------------------------------------------
+def test_REINFORCE_agent_DISCRETE_PASS(gym_and_tf_discrete_setup):
+
+    obs_p, act_p, exp_spec, playground = gym_and_tf_discrete_setup
+    theta_mlp = bloc.build_MLP_computation_graph(obs_p, act_p.shape, exp_spec.nn_h_layer_topo)
+    # discrete_policy_theta, log_probabilities = bloc.policy_theta_discrete_space(theta_mlp, out_p.shape, playground)
+    reinforce_agent = bloc.REINFORCE_agent(obs_p, act_p, playground, exp_spec)
+
+    # todo: finish test case
+
+
 
 # --- feed_dictionary --------------------------------------------------------------------------------------------
 def test_build_feed_dictionary_PASS():

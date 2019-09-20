@@ -256,13 +256,14 @@ def policy_theta_discrete_space(logits_layer: tf.Tensor, action_placeholder_shap
     logits_layer.shape.assert_is_compatible_with(action_placeholder_shape)
 
     with tf.name_scope(vocab.policy_theta_discrete) as scope:
-        # convert the logits layer (aka: raw output) to probabilies
-        actions_probability = tf.nn.log_softmax(logits_layer)
-        random = tf.random.categorical(actions_probability, num_samples=1)
+        # convert the logits layer (aka: raw output) to probabilities
+        log_probabilities = tf.nn.log_softmax(logits_layer)
+        oversize_policy_theta = tf.random.categorical(log_probabilities, num_samples=1)
 
-        # Remove single-dimensional entries from the shape of the array
-        policy_theta = tf.squeeze(random, axis=1)
-        return policy_theta
+        # Remove single-dimensional entries from the shape of the array since we only take one sample from the distribution
+        policy_theta = tf.squeeze(oversize_policy_theta, axis=1, name=scope)
+
+        return policy_theta, log_probabilities
 
 
 def policy_theta_continuous_space(logits_layer: tf.Tensor, action_placeholder_shape: tf.TensorShape, playground: GymPlayground):
@@ -275,7 +276,55 @@ def policy_theta_continuous_space(logits_layer: tf.Tensor, action_placeholder_sh
     logits_layer.shape.assert_is_compatible_with(action_placeholder_shape)
 
     with tf.name_scope(vocab.policy_theta_continuous) as scope:
+        # convert the logits layer (aka: raw output) to probabilities
+        logits_layer = tf.identity(logits_layer, name='mu')
+
         raise NotImplementedError   # todo: implement
+        log_standard_deviation = NotImplemented  # (!) todo
+        standard_deviation = NotImplemented  # (!) todo --> compute standard_deviation
+        logit_layer_shape = tf.shape(logits_layer)
+        policy_theta = logits_layer + tf.random_normal(logit_layer_shape) * standard_deviation
+        return policy_theta, log_standard_deviation
+
+
+def REINFORCE_agent(observation_placeholder: tf.Tensor, action_placeholder: tf.Tensor, playground: GymPlayground,
+                    experiment_spec: ExperimentSpec):
+    """
+    The learning agent. Base on the REINFORCE paper todo: citation
+    (aka: Vanila policy gradient)
+    """
+    theta_mlp = build_MLP_computation_graph(observation_placeholder, action_placeholder.shape,
+                                                 experiment_spec.nn_h_layer_topo)
+
+    if isinstance(playground.env.action_space, gym.spaces.Discrete):
+        policy_theta, log_probabilities = policy_theta_discrete_space(theta_mlp, action_placeholder.shape, playground)
+
+        assert log_probabilities.shape.is_compatible_with(action_placeholder.shape), "the action_placeholder is incompatible with Discrete space, {} != {}".format(action_placeholder.shape, log_probabilities.shape)
+
+        sampled_action = policy_theta
+
+        # compute the log probabiliti from sampled action
+        sampled_action_mask = tf.one_hot(sampled_action, depth=playground.ACTION_SPACE_SHAPE)
+        sampled_action_log_probability = tf.reduce_sum(log_probabilities * sampled_action_mask, axis=1)
+
+        # compute the log probabiliti from action feed to the computetation graph
+        action_mask = tf.one_hot(action_placeholder, depth=playground.ACTION_SPACE_SHAPE)
+        feed_action_log_probability = tf.reduce_sum(log_probabilities * action_mask, axis=1)
+
+    elif isinstance(playground.env.action_space, gym.spaces.Box):
+        policy_theta, log_standard_deviation = policy_theta_continuous_space(theta_mlp, action_placeholder.shape, playground)
+
+        assert policy_theta.shape.is_compatible_with(action_placeholder.shape), "the action_placeholder is incompatible with Continuous space, {} != {}".format(action_placeholder.shape, policy_theta.shape)
+
+        sampled_action = NotImplemented
+        sampled_action_log_probability = NotImplemented
+        feed_action_log_probability = NotImplemented
+        raise NotImplementedError   # todo: implement
+    else:
+        print("\n>>> The given playground {} is of action space type {}. The agent implementation does not support it yet\n\n".format(playground.ENVIRONMENT_NAME, playground.env.action_space))
+        raise NotImplementedError
+
+    return sampled_action, sampled_action_log_probability, feed_action_log_probability
 
 
 # todo --> finish implementing
