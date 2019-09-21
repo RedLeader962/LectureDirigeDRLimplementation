@@ -491,14 +491,15 @@ def reward_to_go(rewards: list):
 
 def discounted_reward_to_go(rewards: list, experiment_spec: ExperimentSpec):
     assert isinstance(rewards, list)
-    lamda = experiment_spec.discout_factor
+    discount = experiment_spec.discout_factor   # lambda
+    assert (0 <= discount) and (discount <= 1)
     backward_rewards = rewards[::-1]
     discounted_reward_to_go = np.zeros_like(rewards)
 
     for r in range(len(rewards)):
         exp = 0
         for i in range(r, len(rewards)):
-            discounted_reward_to_go[i] += lamda**exp * backward_rewards[r]
+            discounted_reward_to_go[i] += discount**exp * backward_rewards[r]
             exp += 1
 
     return discounted_reward_to_go[::-1]

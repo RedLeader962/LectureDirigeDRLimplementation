@@ -452,6 +452,20 @@ def test_dicounted_reward_to_go_PASS(gym_and_tf_continuous_setup):
     assert discounted_reward_to_go[N-1] == N-1, "shape:{} - {}".format(discounted_reward_to_go.shape, discounted_reward_to_go)
     assert discounted_reward_to_go[0] == 136
 
+def test_dicounted_reward_to_go_FAIL(gym_and_tf_continuous_setup):
+    _, _, exp_spec, _ = gym_and_tf_continuous_setup
+    N = 20
+    rewards = [x for x in range(N)]
+
+    exp_spec.discout_factor = 2
+    with pytest.raises(AssertionError):
+        bloc.discounted_reward_to_go(rewards, exp_spec)
+
+    exp_spec.discout_factor = -0.1
+    with pytest.raises(AssertionError):
+        bloc.discounted_reward_to_go(rewards, exp_spec)
+
+
 # ---- tensor experiment -----------------------------------------------------------------------------------------
 
 def test_create_tensor():
