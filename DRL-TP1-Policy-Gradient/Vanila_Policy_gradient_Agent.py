@@ -43,24 +43,21 @@ def vanila_policy_gradient_agent_discrete(render_env=False):
     # Build the Policy_theta computation graph
 
     observation_placeholder, action_placeholder = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
+    q_values_placeholder = tf_cv1.placeholder(tf.float32, shape=(None,), name='q_values_placeholder')
 
     # theta_mlp = bloc.build_MLP_computation_graph(observation_placeholder, action_placeholder.shape, exp_spec.nn_h_layer_topo)
     # discrete_policy_theta, log_probabilities = bloc.policy_theta_discrete_space(theta_mlp, action_placeholder.shape, playground)
 
     sampled_action, theta_mlp, pseudo_loss = bloc.REINFORCE_agent(
-        observation_placeholder, action_placeholder, playground, exp_spec)
+        observation_placeholder, action_placeholder, q_values_placeholder, playground, exp_spec)
 
     # /---- Container instantiation -----
     timestep_collector = bloc.TimestepCollector(exp_spec, playground)
     # todo --> TrajectoriesBatchContainer
 
-    # # /---- Pseudo loss -----
-    # # todo --> pseudo loss function
-    # loss_op = None
-    # raise NotImplementedError   # todo: implement loss_op
-    #
+
     # # /---- Optimizer -----
-    # optimizer_op = tf.train.AdamOptimizer(learning_rate=exp_spec.learning_rate).minimize(loss_op)
+    optimizer_op = tf.train.AdamOptimizer(learning_rate=exp_spec.learning_rate).minimize(pseudo_loss)
 
 
     # /---- Start computation graph -----
@@ -109,11 +106,14 @@ def vanila_policy_gradient_agent_discrete(render_env=False):
                         trajectorie_container = timestep_collector.get_collected_trajectorie_and_reset()
                         observations, actions, rewards = trajectorie_container.unpack()
 
+                        discounted_reward_to_go = bloc.discounted_reward_to_go(list(rewards), exp_spec)
+
                         print("\n:: Trajectorie {} finished after {} timesteps".format(trajectorie + 1, step + 1))
                         print("\ntrajectorie_container size: {}".format(len(trajectorie_container)))
                         print("\nobservation: {}".format(observations))
                         print("\nAction: {}".format(actions))
                         print("\nreward: {}\n\n".format(rewards))
+                        print("\ndiscounted_reward_to_go: {}\n\n".format(discounted_reward_to_go))
                         print("{}/\n\n".format("-" * 90))
 
                         trajectorie_container = timestep_collector.get_collected_trajectorie_and_reset()

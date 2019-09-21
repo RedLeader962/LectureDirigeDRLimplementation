@@ -4,6 +4,7 @@ import copy
 import gym
 import pretty_printing
 import numpy as np
+import abc
 
 import tensorflow as tf
 from tensorflow import keras
@@ -288,7 +289,7 @@ def policy_theta_continuous_space(logits_layer: tf.Tensor, action_placeholder_sh
         return sampled_action, log_standard_deviation
 
 
-def REINFORCE_agent(observation_placeholder: tf.Tensor, action_placeholder: tf.Tensor, playground: GymPlayground,
+def REINFORCE_agent(observation_placeholder: tf.Tensor, action_placeholder: tf.Tensor, q_values_placeholder: tf.Tensor, playground: GymPlayground,
                     experiment_spec: ExperimentSpec):
     """
     The learning agent. Base on the REINFORCE paper todo: citation
@@ -312,7 +313,7 @@ def REINFORCE_agent(observation_placeholder: tf.Tensor, action_placeholder: tf.T
         # action_mask = tf.one_hot(action_placeholder, depth=playground.ACTION_SPACE_SHAPE)
         # feed_action_log_probability = tf.reduce_sum(log_probabilities * action_mask, axis=1)
 
-        pseudo_loss = discrete_pseudo_loss(action_placeholder, theta_mlp)
+        pseudo_loss = discrete_pseudo_loss(action_placeholder, q_values_placeholder, theta_mlp)
 
     elif isinstance(playground.env.action_space, gym.spaces.Box):
         policy_theta, log_standard_deviation = policy_theta_continuous_space(theta_mlp, action_placeholder.shape, playground)
@@ -330,20 +331,63 @@ def REINFORCE_agent(observation_placeholder: tf.Tensor, action_placeholder: tf.T
     return sampled_action, theta_mlp, pseudo_loss # sampled_action_log_probability, feed_action_log_probability
 
 
-def discrete_pseudo_loss(action_placeholder, theta_mlp):
-    q_values = NotImplemented # todo --> implement
 
+def reward_to_go(rewards: list):
+    assert isinstance(rewards, list)
+    np_backward_rewards = np.array(rewards[::-1])
+    reward_to_go = np.cumsum(np_backward_rewards)
+    return reward_to_go[::-1]
+
+def reward_to_go_np(rewards: np.ndarray):
+    assert isinstance(rewards, np.ndarray)
+    np_backward_rewards = np.flip(rewards)
+    reward_to_go = np.cumsum(np_backward_rewards)
+    return np.flip(reward_to_go)
+
+
+def discounted_reward_to_go(rewards: list, experiment_spec: ExperimentSpec):
+    assert isinstance(rewards, list)
+    discount = experiment_spec.discout_factor  # lambda
+    assert (0 <= discount) and (discount <= 1)
+    backward_rewards = rewards[::-1]
+    discounted_reward_to_go = np.zeros_like(rewards)
+
+    for r in range(len(rewards)):
+        exp = 0
+        for i in range(r, len(rewards)):
+            discounted_reward_to_go[i] += discount ** exp * backward_rewards[r]
+            exp += 1
+
+    return discounted_reward_to_go[::-1]
+
+
+def discounted_reward_to_go_np(rewards: np.ndarray, experiment_spec: ExperimentSpec):
+    assert isinstance(rewards, np.ndarray)
+    discount = experiment_spec.discout_factor  # lambda
+    assert (0 <= discount) and (discount <= 1)
+    # backward_rewards = rewards[::-1]
+    np_backward_rewards = np.flip(rewards)
+    discounted_reward_to_go = np.zeros_like(rewards)
+
+    for r in range(len(rewards)):
+        exp = 0
+        for i in range(r, len(rewards)):
+            discounted_reward_to_go[i] += discount ** exp * np_backward_rewards[r]
+            exp += 1
+
+    return np.flip(discounted_reward_to_go)
+
+
+def discrete_pseudo_loss(action_placeholder: tf.Tensor, q_values_placeholder: tf.Tensor, theta_mlp: tf.Tensor):
+    assert action_placeholder.shape.is_compatible_with(theta_mlp.shape), "action_placeholder shape is not compatible with theta_mlp shape, {} != {}".format(action_placeholder, theta_mlp)
 
     with tf.name_scope(vocab.pseudo_loss) as scope:
         negative_likelihoods = tf.nn.softmax_cross_entropy_with_logits_v2(labels=action_placeholder, logits=theta_mlp,
                                                                           name='negative_likelihoods')
 
-        # todo --> finish implement
-
-        # weighted_negative_likelihoods = tf.multiply(negative_likelihoods, q_values)
-        # pseudo_loss = tf.reduce_mean(weighted_negative_likelihoods)
-        # return pseudo_loss
-        return None  # todo --> temp hack3
+        weighted_negative_likelihoods = tf.multiply(negative_likelihoods, q_values_placeholder)
+        pseudo_loss = tf.reduce_mean(weighted_negative_likelihoods)
+        return pseudo_loss
 
 
 # todo --> finish implementing
@@ -481,28 +525,6 @@ class TimestepCollector(object):
     def __del__(self):
         self._reset()
 
-
-def reward_to_go(rewards: list):
-    assert isinstance(rewards, list)
-    np_backward_rewards = np.array(rewards[::-1])
-    reward_to_go = np.cumsum(np_backward_rewards)
-    return reward_to_go[::-1]
-
-
-def discounted_reward_to_go(rewards: list, experiment_spec: ExperimentSpec):
-    assert isinstance(rewards, list)
-    discount = experiment_spec.discout_factor   # lambda
-    assert (0 <= discount) and (discount <= 1)
-    backward_rewards = rewards[::-1]
-    discounted_reward_to_go = np.zeros_like(rewards)
-
-    for r in range(len(rewards)):
-        exp = 0
-        for i in range(r, len(rewards)):
-            discounted_reward_to_go[i] += discount**exp * backward_rewards[r]
-            exp += 1
-
-    return discounted_reward_to_go[::-1]
 
 
 # ice-box

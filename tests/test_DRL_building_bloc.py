@@ -411,9 +411,11 @@ def test_policy_theta_continuous_space_PASS(gym_and_tf_continuous_setup):
 def test_REINFORCE_agent_DISCRETE_PASS(gym_and_tf_discrete_setup):
 
     obs_p, act_p, exp_spec, playground = gym_and_tf_discrete_setup
+    q_values_p = tf_cv1.placeholder(tf.float32, shape=(None,), name='q_values_placeholder')
+
     theta_mlp = bloc.build_MLP_computation_graph(obs_p, act_p.shape, exp_spec.nn_h_layer_topo)
     # discrete_policy_theta, log_probabilities = bloc.policy_theta_discrete_space(theta_mlp, out_p.shape, playground)
-    bloc.REINFORCE_agent(obs_p, act_p, playground, exp_spec)
+    bloc.REINFORCE_agent(obs_p, act_p, q_values_p, playground, exp_spec)
 
     # todo: finish test case
 
@@ -427,7 +429,7 @@ def test_build_feed_dictionary_PASS():
 
 # --- Return function --------------------------------------------------------------------------------------------
 
-def test_reward_to_go_PASS():
+def test_reward_to_go_PASS(gym_and_tf_continuous_setup):
     N = 20
     rewards = [x for x in range(N)]
     reward_to_go = bloc.reward_to_go(rewards)
@@ -435,6 +437,7 @@ def test_reward_to_go_PASS():
     print(reward_to_go)
     assert reward_to_go[N-1] == N-1, "shape:{} - {}".format(reward_to_go.shape, reward_to_go)
     assert isinstance(reward_to_go, np.ndarray)
+
 
 def test_dicounted_reward_to_go_PASS(gym_and_tf_continuous_setup):
     _, _, exp_spec, _ = gym_and_tf_continuous_setup
@@ -464,6 +467,49 @@ def test_dicounted_reward_to_go_FAIL(gym_and_tf_continuous_setup):
     exp_spec.discout_factor = -0.1
     with pytest.raises(AssertionError):
         bloc.discounted_reward_to_go(rewards, exp_spec)
+
+
+def test_reward_to_go_NP_PASS(gym_and_tf_continuous_setup):
+    N = 20
+    rewards = [x for x in range(N)]
+    np_rewards = np.array(rewards)
+    reward_to_go = bloc.reward_to_go_np(np_rewards)
+
+    print(reward_to_go)
+    assert reward_to_go[N-1] == N-1, "shape:{} - {}".format(reward_to_go.shape, reward_to_go)
+    assert isinstance(reward_to_go, np.ndarray)
+
+
+def test_dicounted_reward_to_go_np_PASS(gym_and_tf_continuous_setup):
+    _, _, exp_spec, _ = gym_and_tf_continuous_setup
+    exp_spec.discout_factor = 0.98  # (!)the last assert depend on this value
+    N = 20
+    rewards = [x for x in range(N)]
+    np_rewards = np.array(rewards)
+    reward_to_go = bloc.reward_to_go_np(np_rewards)
+
+    discounted_reward_to_go = bloc.discounted_reward_to_go_np(np_rewards, exp_spec)
+    print("discout_factor: {}\n".format(exp_spec.discout_factor))
+    print("\t{} reward_to_go".format(reward_to_go))
+    print("\t{} discounted_reward_to_go".format(discounted_reward_to_go))
+
+    assert isinstance(discounted_reward_to_go, np.ndarray)
+    assert discounted_reward_to_go[N-1] == N-1, "shape:{} - {}".format(discounted_reward_to_go.shape, discounted_reward_to_go)
+    assert discounted_reward_to_go[0] == 136
+
+def test_dicounted_reward_to_go_np_FAIL(gym_and_tf_continuous_setup):
+    _, _, exp_spec, _ = gym_and_tf_continuous_setup
+    N = 20
+    rewards = [x for x in range(N)]
+    np_rewards = np.array(rewards)
+
+    exp_spec.discout_factor = 2
+    with pytest.raises(AssertionError):
+        bloc.discounted_reward_to_go_np(np_rewards, exp_spec)
+
+    exp_spec.discout_factor = -0.1
+    with pytest.raises(AssertionError):
+        bloc.discounted_reward_to_go_np(np_rewards, exp_spec)
 
 
 # ---- tensor experiment -----------------------------------------------------------------------------------------
