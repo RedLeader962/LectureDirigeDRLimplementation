@@ -194,7 +194,7 @@ def test_SamplingContainer_CONTINUOUS_BASIC(gym_continuous_setup):
 
             """ STEP-3: acces container"""
             if done or (step == exp_spec.timestep_max_per_trajectorie - 1):
-                trajectorie_container = timestep_collector.get_collected_trajectorie_and_reset()
+                trajectorie_container = timestep_collector.get_collected_trajectory_and_reset_collector(discounted_q_values=True)
                 np_array_obs, np_array_act, np_array_rew = trajectorie_container.unpack()
 
                 print(
@@ -233,7 +233,7 @@ def test_SamplingContainer_DISCRETE_BASIC(gym_discrete_setup):
 
             """ STEP-3: acces container"""
             if done or (step == exp_spec.timestep_max_per_trajectorie - 1):
-                trajectorie_container = timestep_collector.get_collected_trajectorie_and_reset()
+                trajectorie_container = timestep_collector.get_collected_trajectory_and_reset_collector(discounted_q_values=True)
                 np_array_obs, np_array_act, np_array_rew = trajectorie_container.unpack()
 
                 print(

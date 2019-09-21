@@ -27,7 +27,7 @@ In browser, go to:
     http://0.0.0.0:6006/ 
 """
 
-def train_REINFORCE_agent_discrete(render_env=False):
+def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=True):
 
     exp_spec = bloc.ExperimentSpec(trajectories_batch_size=1)
     playground = bloc.GymPlayground(environment_name='LunarLander-v2')
@@ -57,22 +57,22 @@ def train_REINFORCE_agent_discrete(render_env=False):
         sess.run(tf_cv1.global_variables_initializer())     # initialize random variable in the computation graph
 
 
-        # /---- Simulator: Epoch -----
+        """ ---- Simulator: Epoch ---- """
         for epoch in range(exp_spec.max_epoch):
 
-            # /---- Simulator: trajectorie -----
-            for trajectorie in range(exp_spec.trajectories_batch_size):
-                print("/{}\n:: Trajectorie {} started\n\n".format("-" * 90, trajectorie + 1))
+            """ ---- Simulator: trajectory ---- """
+            for trajectory in range(exp_spec.trajectories_batch_size):
+                print("/{}\n:: Trajectorie {} started\n\n".format("-" * 90, trajectory + 1))
                 observation = env.reset()   # fetch initial observation
 
-                # /---- Simulator: time-step -----
+                """ ---- Simulator: time-step ---- """
                 for step in range(exp_spec.timestep_max_per_trajectorie):
 
                     if render_env:
                         # keep environment rendering turned OFF during unit test
                         env.render()
 
-                    # /---- act in the environment -----
+                    """ ---- act in the environment ---- """
                     step_observation = bloc.format_single_step_observation(observation)
 
                     action_array = sess.run(sampled_action_op, feed_dict={observation_p: (
@@ -80,39 +80,40 @@ def train_REINFORCE_agent_discrete(render_env=False):
 
                     action = bloc.format_single_step_action(action_array)
                     observation, reward, done, info = env.step(action)
-                    print("E:{} T:{} TS:{} | action[{}] --> reward={}".format(epoch + 1, trajectorie + 1,
+                    print("E:{} T:{} TS:{} | action[{}] --> reward={}".format(epoch + 1, trajectory + 1,
                                                                               step + 1, action, reward))
 
                     if len(info) is not 0:
                         print("\ninfo: {}\n".format(info))
 
-                    # /---- Collect current timestep events -----
+                    """ ---- Collect current timestep events ---- """
                     timestep_collector.append(observation, action, reward)
 
-
-                    # /---- end trajectorie -----
+                    """ ---- end trajectory ---- """
                     if done or (step == exp_spec.timestep_max_per_trajectorie - 1):
-                        trajectorie_container = timestep_collector.get_collected_trajectorie_and_reset()
-                        observations, actions, rewards = trajectorie_container.unpack()
 
-                        discounted_reward_to_go = bloc.discounted_reward_to_go(list(rewards), exp_spec)
+                        trajectory_container = timestep_collector.get_collected_trajectory_and_reset_collector(
+                            discounted_q_values=discounted_reward_to_go)
 
-                        print("\n:: Trajectorie {} finished after {} timesteps".format(trajectorie + 1, step + 1))
-                        print("\ntrajectorie_container size: {}".format(len(trajectorie_container)))
+                        observations, actions, rewards, Q_values = trajectory_container.unpack()
+
+                        # discounted_reward_to_go = bloc.discounted_reward_to_go(list(rewards), exp_spec)
+
+                        print("\n:: Trajectory {} finished after {} timesteps".format(trajectory + 1, step + 1))
+                        print("\ntrajectory_container size: {}".format(len(trajectory_container)))
                         print("\nobservation: {}".format(observations))
                         print("\nAction: {}".format(actions))
                         print("\nreward: {}\n\n".format(rewards))
                         print("\ndiscounted_reward_to_go: {}\n\n".format(discounted_reward_to_go))
                         print("{}/\n\n".format("-" * 90))
 
-                        trajectorie_container = timestep_collector.get_collected_trajectorie_and_reset()
                         break
 
-                # /---- Collect trajectorie_container into trajectories_batch_container -----
+                """ ---- Collect trajectory_container into trajectories_batch_container ---- """
 
 
-            # /---- Compute gradient & update policy -----
-            observations, actions, rewards = trajectorie_container.unpack()
+            """ ---- Compute gradient & update policy ---- """
+            # observations, actions, rewards, Q_values = trajectory_container.unpack()
 
             # todo -->
             # feed_dictionary = bloc.build_feed_dictionary([observation_p, action_p],
@@ -127,6 +128,7 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description="Command line arg for agent traning")
     parser.add_argument('--render_env', type=bool, default=False)
+    parser.add_argument('--discounted_reward_to_go', type=bool, default=True)
     args = parser.parse_args()
 
     train_REINFORCE_agent_discrete(render_env=args.render_env)

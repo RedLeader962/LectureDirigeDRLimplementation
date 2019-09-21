@@ -365,20 +365,20 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
 
 
 # <editor-fold desc="::Reward to go related function ...">
-def reward_to_go(rewards: list):
+def reward_to_go(rewards: list) -> list:
     assert isinstance(rewards, list)
     np_backward_rewards = np.array(rewards[::-1])
     reward_to_go = np.cumsum(np_backward_rewards)
     return reward_to_go[::-1]
 
-def reward_to_go_np(rewards: np.ndarray):
+def reward_to_go_np(rewards: np.ndarray) -> np.ndarray:
     assert isinstance(rewards, np.ndarray)
     np_backward_rewards = np.flip(rewards)
     reward_to_go = np.cumsum(np_backward_rewards)
     return np.flip(reward_to_go)
 
 
-def discounted_reward_to_go(rewards: list, experiment_spec: ExperimentSpec):
+def discounted_reward_to_go(rewards: list, experiment_spec: ExperimentSpec) -> list:
     assert isinstance(rewards, list)
     gamma = experiment_spec.discout_factor
     assert (0 <= gamma) and (gamma <= 1)
@@ -388,13 +388,13 @@ def discounted_reward_to_go(rewards: list, experiment_spec: ExperimentSpec):
     for r in range(len(rewards)):
         exp = 0
         for i in range(r, len(rewards)):
-            discounted_reward_to_go[i] += gamma ** exp * backward_rewards[r]
+            discounted_reward_to_go[i] += gamma**exp * backward_rewards[r]
             exp += 1
 
     return discounted_reward_to_go[::-1]
 
 
-def discounted_reward_to_go_np(rewards: np.ndarray, experiment_spec: ExperimentSpec):
+def discounted_reward_to_go_np(rewards: np.ndarray, experiment_spec: ExperimentSpec) -> np.ndarray:
     assert rewards.ndim == 1, "Current implementation only support array of rank 1"
     assert isinstance(rewards, np.ndarray)
     gamma = experiment_spec.discout_factor
@@ -407,7 +407,7 @@ def discounted_reward_to_go_np(rewards: np.ndarray, experiment_spec: ExperimentS
     for r in range(len(rewards)):
         exp = 0
         for i in range(r, len(rewards)):
-            discounted_reward_to_go[i] += gamma ** exp * np_backward_rewards[r]
+            discounted_reward_to_go[i] += gamma**exp * np_backward_rewards[r]
             exp += 1
 
     return np.flip(discounted_reward_to_go)
@@ -484,18 +484,30 @@ def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
     return feed_dict
 
 
-class TrajectorieContainer(object):
-    def __init__(self, observations: list, actions: list, rewards: list, dtype=None):
+class TrajectoryContainer(object):
+    def __init__(self, observations: list, actions: list, rewards: list, experiment_spec: ExperimentSpec, discounted=True, dtype=None):
         """
         Container for events collected at every timestep of a single trajectorie
 
-        Note from numpy about dtype:
-            "This argument can only be used to 'upcast' the array.  For downcasting, use the .astype(t) method."
+        todo --> validate dtype for discrete case
+
+        Note: about dtype (source: Numpy doc)
+         |      "This argument can only be used to 'upcast' the array.
+         |          For downcasting, use the .astype(t) method."
+
         """
-        assert len(observations) == len(actions) == len(rewards)
+        assert len(observations) == len(actions) == len(rewards), "{} vs {} vs {} !!!".format(observations, actions, rewards)
         self.observations = np.array(observations, dtype=dtype)
         self.actions = np.array(actions, dtype=dtype)
         self.rewards = np.array(rewards, dtype=dtype)
+        self.discounted = discounted
+
+        if discounted:
+            self.Q_values = discounted_reward_to_go_np(self.rewards, experiment_spec=experiment_spec)
+        else:
+            self.Q_values = reward_to_go_np(self.rewards)
+
+        assert len(self.Q_values) == len(self.rewards)
 
     def __len__(self):
         return len(self.observations)
@@ -503,6 +515,7 @@ class TrajectorieContainer(object):
     def __getitem__(self, timestep: int):
         """
         Return the values (observation, action, reward) at the given timestep
+
         :param timestep: the exact timestep number (not the list index)
         :type timestep: int
         :return:  (observations, actions, rewards) at timestep t
@@ -514,24 +527,25 @@ class TrajectorieContainer(object):
         rew = self.rewards[ts]
         return obs, act, rew
 
-    def unpack(self) -> (np.ndarray, np.ndarray, np.ndarray):
+    def unpack(self) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
         """
         Unpack the full trajectorie as a tuple of numpy array
-        :return: (observations, actions, rewards) arrays
-        :rtype: (np.ndarray, np.ndarray, np.ndarray)
+        :return: (observations, actions, rewards, Q_values)
+        :rtype: (np.ndarray, np.ndarray, np.ndarray, np.ndarray)
         """
-        return self.observations, self.actions, self.rewards
+        return self.observations, self.actions, self.rewards, self.Q_values
 
 class TimestepCollector(object):
     """
     Batch collector for time step
     """
     def __init__(self, experiment_spec: ExperimentSpec, playground: GymPlayground):
-        self._experiment_spec = experiment_spec
+        self._exp_spec = experiment_spec
         # self._playground_spec = playground.get_environment_spec()
         self._observations = []
         self._actions = []
         self._rewards = []
+        self._q_values = []
         self.step_count = 0
 
     def __call__(self, observation: np.ndarray, action, reward: float, *args, **kwargs) -> None:
@@ -542,7 +556,7 @@ class TimestepCollector(object):
         :type reward: float
         """
         try:
-            assert self.step_count < self._experiment_spec.timestep_max_per_trajectorie, \
+            assert self.step_count < self._exp_spec.timestep_max_per_trajectorie, \
                 "Max timestep per trajectorie reached so the TimestepCollector is full."
             self._observations.append(observation)
             self._actions.append(action)
@@ -563,13 +577,14 @@ class TimestepCollector(object):
         self.__call__(observation, action, reward)
         return None
 
-    # Deprecated!!!
-    def _normalize_the_collected_trajectorie_lenght(self) -> None:
+    # Deprecated!!! --> wrong business logic.
+    #   |   Concatenate all trajectories in a single event type array ex: observations,  ...
+    def _normalize_the_collected_trajectory_lenght(self) -> None:
         """
         Complete sampled trajectorie with dummy value to make all sampled trajectories of even lenght
         :return: None
         """
-        raise NotImplementedError   # todo: implement for case batch size > 1
+        raise NotImplementedError   # todo:
 
         t_timestep = len(self._observations)
         d = 0   # todo --> confirm chosen value do not affect training
@@ -587,20 +602,19 @@ class TimestepCollector(object):
         self.step_count = 0
         return None
 
-    def get_collected_trajectorie_and_reset(self) -> TrajectorieContainer:
+    def get_collected_trajectory_and_reset_collector(self, discounted_q_values=True) -> TrajectoryContainer:
         """
-        Return the sampled trajectorie as 3 np.ndarray (observations, actions, rewards)
-        than reset the container ready for the next trajectorie sampling.
+            1.  Return the sampled trajectory in a TrajectoryContainer
+            2.  Reset the container ready for the next trajectorie sampling.
 
-        :return: (observations, actions, rewards)
-        :rtype: (np.ndarray, np.ndarray, np.ndarray)
+        :return: A TrajectoryContainer with the full trajectory
+        :rtype: TrajectoryContainer
         """
-
         # todo --> validate dtype for discrete case
-        trajectorie_container = TrajectorieContainer(self._observations, self._actions, self._rewards)
-
+        trajectory_container = TrajectoryContainer(self._observations, self._actions, self._rewards, self._exp_spec,
+                                                   discounted=discounted_q_values)
         self._reset()
-        return trajectorie_container
+        return trajectory_container
 
     def __del__(self):
         self._reset()
