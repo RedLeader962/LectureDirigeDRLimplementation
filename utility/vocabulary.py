@@ -6,6 +6,7 @@ _rl_vocab_list = [
     'trajectorie', 'timestep', 'epoch', 'horizon',
     'observation', 'action', 'policy', 'transition_dynamic', 'reward', 'reward_to_go', 'G',
     'policy_theta_discrete', 'policy_theta_continuous',
+    'pseudo_loss', 'likelihood', 'negative_likelihood'
     'V_pi', 'Q_pi', 'A_pi',
     'discout_factor',                           # gamma
     'baseline',

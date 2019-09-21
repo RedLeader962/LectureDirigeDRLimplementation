@@ -47,7 +47,7 @@ def vanila_policy_gradient_agent_discrete(render_env=False):
     # theta_mlp = bloc.build_MLP_computation_graph(observation_placeholder, action_placeholder.shape, exp_spec.nn_h_layer_topo)
     # discrete_policy_theta, log_probabilities = bloc.policy_theta_discrete_space(theta_mlp, action_placeholder.shape, playground)
 
-    sampled_action, sampled_action_log_probability, feed_action_log_probability = bloc.REINFORCE_agent(
+    sampled_action, theta_mlp, pseudo_loss = bloc.REINFORCE_agent(
         observation_placeholder, action_placeholder, playground, exp_spec)
 
     # /---- Container instantiation -----

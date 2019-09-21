@@ -1,4 +1,5 @@
 # coding=utf-8
+import copy
 
 import gym
 import pretty_printing
@@ -261,9 +262,9 @@ def policy_theta_discrete_space(logits_layer: tf.Tensor, action_placeholder_shap
         oversize_policy_theta = tf.random.categorical(log_probabilities, num_samples=1)
 
         # Remove single-dimensional entries from the shape of the array since we only take one sample from the distribution
-        policy_theta = tf.squeeze(oversize_policy_theta, axis=1, name=scope)
+        sampled_action = tf.squeeze(oversize_policy_theta, axis=1)
 
-        return policy_theta, log_probabilities
+        return sampled_action, log_probabilities
 
 
 def policy_theta_continuous_space(logits_layer: tf.Tensor, action_placeholder_shape: tf.TensorShape, playground: GymPlayground):
@@ -283,8 +284,8 @@ def policy_theta_continuous_space(logits_layer: tf.Tensor, action_placeholder_sh
         log_standard_deviation = NotImplemented  # (!) todo
         standard_deviation = NotImplemented  # (!) todo --> compute standard_deviation
         logit_layer_shape = tf.shape(logits_layer)
-        policy_theta = logits_layer + tf.random_normal(logit_layer_shape) * standard_deviation
-        return policy_theta, log_standard_deviation
+        sampled_action = logits_layer + tf.random_normal(logit_layer_shape) * standard_deviation
+        return sampled_action, log_standard_deviation
 
 
 def REINFORCE_agent(observation_placeholder: tf.Tensor, action_placeholder: tf.Tensor, playground: GymPlayground,
@@ -303,13 +304,15 @@ def REINFORCE_agent(observation_placeholder: tf.Tensor, action_placeholder: tf.T
 
         sampled_action = policy_theta
 
-        # compute the log probabiliti from sampled action
-        sampled_action_mask = tf.one_hot(sampled_action, depth=playground.ACTION_SPACE_SHAPE)
-        sampled_action_log_probability = tf.reduce_sum(log_probabilities * sampled_action_mask, axis=1)
+        # # compute the log probabilitie from sampled action
+        # sampled_action_mask = tf.one_hot(sampled_action, depth=playground.ACTION_SPACE_SHAPE)
+        # sampled_action_log_probability = tf.reduce_sum(log_probabilities * sampled_action_mask, axis=1)
+        #
+        # # compute the log probabilitie from action feed to the computetation graph
+        # action_mask = tf.one_hot(action_placeholder, depth=playground.ACTION_SPACE_SHAPE)
+        # feed_action_log_probability = tf.reduce_sum(log_probabilities * action_mask, axis=1)
 
-        # compute the log probabiliti from action feed to the computetation graph
-        action_mask = tf.one_hot(action_placeholder, depth=playground.ACTION_SPACE_SHAPE)
-        feed_action_log_probability = tf.reduce_sum(log_probabilities * action_mask, axis=1)
+        pseudo_loss = discrete_pseudo_loss(action_placeholder, theta_mlp)
 
     elif isinstance(playground.env.action_space, gym.spaces.Box):
         policy_theta, log_standard_deviation = policy_theta_continuous_space(theta_mlp, action_placeholder.shape, playground)
@@ -324,7 +327,23 @@ def REINFORCE_agent(observation_placeholder: tf.Tensor, action_placeholder: tf.T
         print("\n>>> The given playground {} is of action space type {}. The agent implementation does not support it yet\n\n".format(playground.ENVIRONMENT_NAME, playground.env.action_space))
         raise NotImplementedError
 
-    return sampled_action, sampled_action_log_probability, feed_action_log_probability
+    return sampled_action, theta_mlp, pseudo_loss # sampled_action_log_probability, feed_action_log_probability
+
+
+def discrete_pseudo_loss(action_placeholder, theta_mlp):
+    q_values = NotImplemented # todo --> implement
+
+
+    with tf.name_scope(vocab.pseudo_loss) as scope:
+        negative_likelihoods = tf.nn.softmax_cross_entropy_with_logits_v2(labels=action_placeholder, logits=theta_mlp,
+                                                                          name='negative_likelihoods')
+
+        # todo --> finish implement
+
+        # weighted_negative_likelihoods = tf.multiply(negative_likelihoods, q_values)
+        # pseudo_loss = tf.reduce_mean(weighted_negative_likelihoods)
+        # return pseudo_loss
+        return None  # todo --> temp hack3
 
 
 # todo --> finish implementing
@@ -462,6 +481,27 @@ class TimestepCollector(object):
     def __del__(self):
         self._reset()
 
+
+def reward_to_go(rewards: list):
+    assert isinstance(rewards, list)
+    np_backward_rewards = np.array(rewards[::-1])
+    reward_to_go = np.cumsum(np_backward_rewards)
+    return reward_to_go[::-1]
+
+
+def discounted_reward_to_go(rewards: list, experiment_spec: ExperimentSpec):
+    assert isinstance(rewards, list)
+    lamda = experiment_spec.discout_factor
+    backward_rewards = rewards[::-1]
+    discounted_reward_to_go = np.zeros_like(rewards)
+
+    for r in range(len(rewards)):
+        exp = 0
+        for i in range(r, len(rewards)):
+            discounted_reward_to_go[i] += lamda**exp * backward_rewards[r]
+            exp += 1
+
+    return discounted_reward_to_go[::-1]
 
 
 # ice-box
