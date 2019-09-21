@@ -248,9 +248,17 @@ def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground) -> (tf
     return input_placeholder, output_placeholder
 
 
-def policy_theta_discrete_space(logits_layer: tf.Tensor, action_placeholder_shape: tf.TensorShape, playground: GymPlayground):
-    """
-    Policy theta for discrete space --> actions are sampled from a categorical distribution
+def policy_theta_discrete_space(logits_layer: tf.Tensor, action_placeholder_shape: tf.TensorShape, playground: GymPlayground) -> (tf.Tensor, tf.Tensor):
+    """Policy theta for discrete space --> actions are sampled from a categorical distribution
+
+    :param logits_layer:
+    :type logits_layer: tf.Tensor
+    :param action_placeholder_shape:
+    :type action_placeholder_shape: tf.TensorShape
+    :param playground:
+    :type playground: GymPlayground
+    :return: (sampled_action_op, log_probabilities_op)
+    :rtype: (tf.Tensor, tf.Tensor)
     """
     assert isinstance(playground.env.action_space, gym.spaces.Discrete)
     assert isinstance(logits_layer, tf.Tensor)
@@ -259,13 +267,13 @@ def policy_theta_discrete_space(logits_layer: tf.Tensor, action_placeholder_shap
 
     with tf.name_scope(vocab.policy_theta_discrete) as scope:
         # convert the logits layer (aka: raw output) to probabilities
-        log_probabilities = tf.nn.log_softmax(logits_layer)
-        oversize_policy_theta = tf.random.categorical(log_probabilities, num_samples=1)
+        log_probabilities_op = tf.nn.log_softmax(logits_layer)
+        oversize_policy_theta = tf.random.categorical(log_probabilities_op, num_samples=1)
 
         # Remove single-dimensional entries from the shape of the array since we only take one sample from the distribution
-        sampled_action = tf.squeeze(oversize_policy_theta, axis=1)
+        sampled_action_op = tf.squeeze(oversize_policy_theta, axis=1)
 
-        return sampled_action, log_probabilities
+        return sampled_action_op, log_probabilities_op
 
 
 def policy_theta_continuous_space(logits_layer: tf.Tensor, action_placeholder_shape: tf.TensorShape, playground: GymPlayground):
@@ -289,49 +297,74 @@ def policy_theta_continuous_space(logits_layer: tf.Tensor, action_placeholder_sh
         return sampled_action, log_standard_deviation
 
 
-def REINFORCE_agent(observation_placeholder: tf.Tensor, action_placeholder: tf.Tensor, q_values_placeholder: tf.Tensor, playground: GymPlayground,
-                    experiment_spec: ExperimentSpec):
+def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.Tensor, Q_values_placeholder: tf.Tensor, playground: GymPlayground, experiment_spec: ExperimentSpec) -> (tf.Tensor, tf.Tensor, tf.Tensor):
     """
-    The learning agent. Base on the REINFORCE paper todo: citation
+    The learning agent. Base on the REINFORCE paper todo --> add citation
     (aka: Vanila policy gradient)
+
+    todo --> implement for continuous space
+
+    :param observation_placeholder:
+    :type observation_placeholder: tf.Tensor
+    :param action_placeholder:
+    :type action_placeholder: tf.Tensor
+    :param Q_values_placeholder:
+    :type Q_values_placeholder: tf.Tensor
+    :param playground:
+    :type playground: GymPlayground
+    :param experiment_spec:
+    :type experiment_spec: ExperimentSpec
+    :return: (sampled_action_op, theta_mlp_op, pseudo_loss_op)
+    :rtype: (tf.Tensor, tf.Tensor, tf.Tensor)
     """
-    theta_mlp = build_MLP_computation_graph(observation_placeholder, action_placeholder.shape,
+    theta_mlp_op = build_MLP_computation_graph(observation_placeholder, action_placeholder.shape,
                                                  experiment_spec.nn_h_layer_topo)
 
+    # /---- discrete case -----
     if isinstance(playground.env.action_space, gym.spaces.Discrete):
-        policy_theta, log_probabilities = policy_theta_discrete_space(theta_mlp, action_placeholder.shape, playground)
 
-        assert log_probabilities.shape.is_compatible_with(action_placeholder.shape), "the action_placeholder is incompatible with Discrete space, {} != {}".format(action_placeholder.shape, log_probabilities.shape)
+        policy_theta, log_probabilities = policy_theta_discrete_space(theta_mlp_op, action_placeholder.shape, playground)
 
-        sampled_action = policy_theta
+        assert log_probabilities.shape.is_compatible_with(action_placeholder.shape), "the action_placeholder is " \
+            "incompatible with Discrete space, {} != {}".format(action_placeholder.shape, log_probabilities.shape)
 
+        sampled_action_op = policy_theta
+
+
+        # <editor-fold desc="::log probabilities computation graph --> Ice-Box ...">
         # # compute the log probabilitie from sampled action
-        # sampled_action_mask = tf.one_hot(sampled_action, depth=playground.ACTION_SPACE_SHAPE)
+        # sampled_action_mask = tf.one_hot(sampled_action_op, depth=playground.ACTION_SPACE_SHAPE)
         # sampled_action_log_probability = tf.reduce_sum(log_probabilities * sampled_action_mask, axis=1)
         #
         # # compute the log probabilitie from action feed to the computetation graph
         # action_mask = tf.one_hot(action_placeholder, depth=playground.ACTION_SPACE_SHAPE)
         # feed_action_log_probability = tf.reduce_sum(log_probabilities * action_mask, axis=1)
+        # </editor-fold>
 
-        pseudo_loss = discrete_pseudo_loss(action_placeholder, q_values_placeholder, theta_mlp)
+        pseudo_loss_op = discrete_pseudo_loss(action_placeholder, Q_values_placeholder, theta_mlp_op)
 
+    # /---- continuous case -----
     elif isinstance(playground.env.action_space, gym.spaces.Box):
-        policy_theta, log_standard_deviation = policy_theta_continuous_space(theta_mlp, action_placeholder.shape, playground)
+        policy_theta, log_standard_deviation = policy_theta_continuous_space(theta_mlp_op, action_placeholder.shape, playground)
 
-        assert policy_theta.shape.is_compatible_with(action_placeholder.shape), "the action_placeholder is incompatible with Continuous space, {} != {}".format(action_placeholder.shape, policy_theta.shape)
+        assert policy_theta.shape.is_compatible_with(action_placeholder.shape), "the action_placeholder is " \
+            "incompatible with Continuous space, {} != {}".format(action_placeholder.shape, policy_theta.shape)
 
-        sampled_action = NotImplemented
+        raise NotImplementedError   # todo: implement
+        sampled_action_op = NotImplemented
         sampled_action_log_probability = NotImplemented
         feed_action_log_probability = NotImplemented
-        raise NotImplementedError   # todo: implement
+
+    # /---- other gym environment -----
     else:
         print("\n>>> The given playground {} is of action space type {}. The agent implementation does not support it yet\n\n".format(playground.ENVIRONMENT_NAME, playground.env.action_space))
         raise NotImplementedError
 
-    return sampled_action, theta_mlp, pseudo_loss # sampled_action_log_probability, feed_action_log_probability
+    return sampled_action_op, theta_mlp_op, pseudo_loss_op  # sampled_action_log_probability, feed_action_log_probability
 
 
 
+# <editor-fold desc="::Reward to go related function ...">
 def reward_to_go(rewards: list):
     assert isinstance(rewards, list)
     np_backward_rewards = np.array(rewards[::-1])
@@ -347,51 +380,88 @@ def reward_to_go_np(rewards: np.ndarray):
 
 def discounted_reward_to_go(rewards: list, experiment_spec: ExperimentSpec):
     assert isinstance(rewards, list)
-    discount = experiment_spec.discout_factor  # lambda
-    assert (0 <= discount) and (discount <= 1)
+    gamma = experiment_spec.discout_factor
+    assert (0 <= gamma) and (gamma <= 1)
     backward_rewards = rewards[::-1]
     discounted_reward_to_go = np.zeros_like(rewards)
 
     for r in range(len(rewards)):
         exp = 0
         for i in range(r, len(rewards)):
-            discounted_reward_to_go[i] += discount ** exp * backward_rewards[r]
+            discounted_reward_to_go[i] += gamma ** exp * backward_rewards[r]
             exp += 1
 
     return discounted_reward_to_go[::-1]
 
 
 def discounted_reward_to_go_np(rewards: np.ndarray, experiment_spec: ExperimentSpec):
+    assert rewards.ndim == 1, "Current implementation only support array of rank 1"
     assert isinstance(rewards, np.ndarray)
-    discount = experiment_spec.discout_factor  # lambda
-    assert (0 <= discount) and (discount <= 1)
-    # backward_rewards = rewards[::-1]
+    gamma = experiment_spec.discout_factor
+    assert (0 <= gamma) and (gamma <= 1)
+
     np_backward_rewards = np.flip(rewards)
     discounted_reward_to_go = np.zeros_like(rewards)
 
+    # todo --> refactor using a gamma mask and matrix product & sum, instead of loop
     for r in range(len(rewards)):
         exp = 0
         for i in range(r, len(rewards)):
-            discounted_reward_to_go[i] += discount ** exp * np_backward_rewards[r]
+            discounted_reward_to_go[i] += gamma ** exp * np_backward_rewards[r]
             exp += 1
 
     return np.flip(discounted_reward_to_go)
+# </editor-fold>
 
 
-def discrete_pseudo_loss(action_placeholder: tf.Tensor, q_values_placeholder: tf.Tensor, theta_mlp: tf.Tensor):
+def discrete_pseudo_loss(action_placeholder: tf.Tensor, Q_values_placeholder: tf.Tensor, theta_mlp: tf.Tensor) -> tf.Tensor:
+    """
+    Pseudo loss for discrete action space only using Softmax cross entropy with logits
+
+    :param action_placeholder:
+    :type action_placeholder: tf.Tensor
+    :param Q_values_placeholder:
+    :type Q_values_placeholder: tf.Tensor
+    :param theta_mlp:
+    :type theta_mlp: tf.Tensor
+    :return: pseudo_loss_op
+    :rtype: tf.Tensor
+    """
     assert action_placeholder.shape.is_compatible_with(theta_mlp.shape), "action_placeholder shape is not compatible with theta_mlp shape, {} != {}".format(action_placeholder, theta_mlp)
 
     with tf.name_scope(vocab.pseudo_loss) as scope:
-        negative_likelihoods = tf.nn.softmax_cross_entropy_with_logits_v2(labels=action_placeholder, logits=theta_mlp,
+        negative_likelihoods = tf.nn.softmax_cross_entropy_with_logits_v2(logits=theta_mlp, labels=action_placeholder,
                                                                           name='negative_likelihoods')
 
-        weighted_negative_likelihoods = tf.multiply(negative_likelihoods, q_values_placeholder)
-        pseudo_loss = tf.reduce_mean(weighted_negative_likelihoods)
-        return pseudo_loss
+        # note: tf.stop_gradient(Q_values_placeholder) prevent the backpropagation into the Q_values_placeholder
+        #   |   witch contain rewards_to_go. It treat the values of the tensor as constant during backpropagation.
+        weighted_negative_likelihoods = tf.multiply(negative_likelihoods, tf.stop_gradient(Q_values_placeholder))
+        pseudo_loss_op = tf.reduce_mean(weighted_negative_likelihoods)
+        return pseudo_loss_op
 
 
-# todo --> finish implementing
-# todo --> unit test
+def policy_optimizer(pseudo_loss_op: tf.Tensor, exp_spec: ExperimentSpec) -> tf.Tensor:
+    """
+    Define the optimizing methode for training the REINFORE agent
+
+    :param exp_spec:
+    :type exp_spec: ExperimentSpec
+    :param pseudo_loss_op:
+    :type pseudo_loss_op: tf.Tensor
+    :return: policy_optimizer_op
+    :rtype: tf.Tensor
+    """
+    return tf.train.AdamOptimizer(learning_rate=exp_spec.learning_rate).minimize(pseudo_loss_op)
+
+def format_single_step_observation(observation):
+    """ Single trajectorie batch size hack for the computation graph observation placeholder
+                observation.shape = (8,)
+            vs
+                np.expand_dims(observation, axis=0).shape = (1, 8)
+    """
+    batch_size_one_observation = np.expand_dims(observation, axis=0)
+    return batch_size_one_observation
+
 def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
     """
     Build a feed dictionary ready to use in a TensorFlow run session.
@@ -405,6 +475,8 @@ def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
     :return: a feed dictionary
     :rtype: dict
     """
+    # todo --> finish implementing
+    # todo --> unit test
     assert isinstance(placeholders, list), "Wrong input type, placeholders must be a list of tensorflow placeholder"
     assert isinstance(arrays_of_values, list), "Wrong input type, arrays_of_values must be a list of numpy array"
     assert len(placeholders) == len(arrays_of_values), "placeholders and arrays_of_values must be of the same lenght"
@@ -475,6 +547,7 @@ class TimestepCollector(object):
             self._actions.append(action)
             self._rewards.append(reward)
             self.step_count += 1
+
         except AssertionError as ae:
             raise ae
         return None
@@ -526,18 +599,19 @@ class TimestepCollector(object):
         self._reset()
 
 
-
-# ice-box
+# <editor-fold desc="::Ice-box ">
 class TrajectoriesBatchContainer(object):
     """Iterable container by timestep increment for storage & retrieval of component of a sampled trajectory"""
+    # ice-box
     def __init__(self, max_trajectory_lenght: int, playground: GymPlayground):
         self.max_trajectory_lenght = max_trajectory_lenght
         self.playground = playground
 
         raise NotImplementedError   # todo: implement --> ice-box: implement for case batch size > 1
 
-# ice-box
 def epoch_buffer(trajectory_placeholder):
+    # ice-box
     raise NotImplementedError   # todo: implement
+# </editor-fold>
 
 

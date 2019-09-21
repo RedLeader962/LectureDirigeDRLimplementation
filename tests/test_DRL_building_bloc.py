@@ -415,7 +415,7 @@ def test_REINFORCE_agent_DISCRETE_PASS(gym_and_tf_discrete_setup):
 
     theta_mlp = bloc.build_MLP_computation_graph(obs_p, act_p.shape, exp_spec.nn_h_layer_topo)
     # discrete_policy_theta, log_probabilities = bloc.policy_theta_discrete_space(theta_mlp, out_p.shape, playground)
-    bloc.REINFORCE_agent(obs_p, act_p, q_values_p, playground, exp_spec)
+    bloc.REINFORCE_policy(obs_p, act_p, q_values_p, playground, exp_spec)
 
     # todo: finish test case
 
@@ -510,6 +510,12 @@ def test_dicounted_reward_to_go_np_FAIL(gym_and_tf_continuous_setup):
     exp_spec.discout_factor = -0.1
     with pytest.raises(AssertionError):
         bloc.discounted_reward_to_go_np(np_rewards, exp_spec)
+
+    exp_spec.discout_factor = -0.5
+    ones_2D = np.ones((4, 2))
+    with pytest.raises(AssertionError):
+        bloc.discounted_reward_to_go_np(ones_2D, exp_spec)
+
 
 
 # ---- tensor experiment -----------------------------------------------------------------------------------------

@@ -1,25 +1,22 @@
 # coding=utf-8
-# from __future__ import absolute_import, division, print_function, unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
-import os
-import sys
+# region ::Import statement ...
 
-import gym
 import numpy as np
 
 import tensorflow as tf
-from tensorflow import keras
+
 tf_cv1 = tf.compat.v1   # shortcut
 
 import DRL_building_bloc as bloc
-from vocabulary import rl_name as vocab
-import pretty_printing
 
 import tensorflow_weak_warning_supressor as no_cpu_compile_warn
 no_cpu_compile_warn.execute()
 
 from vocabulary import rl_name
 vocab = rl_name()
+# endregion
 
 
 
@@ -31,36 +28,31 @@ In browser, go to:
     http://0.0.0.0:6006/ 
 """
 
-def vanila_policy_gradient_agent_discrete(render_env=False):
+def train_REINFORCE_agent_discrete(render_env=False):
 
     exp_spec = bloc.ExperimentSpec(trajectories_batch_size=1)
     playground = bloc.GymPlayground(environment_name='LunarLander-v2')
 
     env = playground.env
 
-    # /---- Build computation graph -----
-    # Build a Multi Layer Perceptron (MLP) as the policy parameter theta using a computation graph
-    # Build the Policy_theta computation graph
+    """ --- Build computation graph ---
+        Build a Multi Layer Perceptron (MLP) as the policy parameter theta using a computation graph
+        Build the Policy_theta computation graph
+    """
+    observation_p, action_p = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
+    Q_values_p = tf_cv1.placeholder(tf.float32, shape=(None,), name='q_values_placeholder')
 
-    observation_placeholder, action_placeholder = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
-    q_values_placeholder = tf_cv1.placeholder(tf.float32, shape=(None,), name='q_values_placeholder')
+    sampled_action_op, theta_mlp_op, pseudo_loss_op = bloc.REINFORCE_policy(observation_p, action_p, Q_values_p,
+                                                                   playground, exp_spec)
 
-    # theta_mlp = bloc.build_MLP_computation_graph(observation_placeholder, action_placeholder.shape, exp_spec.nn_h_layer_topo)
-    # discrete_policy_theta, log_probabilities = bloc.policy_theta_discrete_space(theta_mlp, action_placeholder.shape, playground)
-
-    sampled_action, theta_mlp, pseudo_loss = bloc.REINFORCE_agent(
-        observation_placeholder, action_placeholder, q_values_placeholder, playground, exp_spec)
-
-    # /---- Container instantiation -----
+    """ ---- Container instantiation ---- """
     timestep_collector = bloc.TimestepCollector(exp_spec, playground)
-    # todo --> TrajectoriesBatchContainer
+
+    """ ---- Optimizer ---- """
+    policy_optimizer_op = bloc.policy_optimizer(pseudo_loss_op, exp_spec)
 
 
-    # # /---- Optimizer -----
-    optimizer_op = tf.train.AdamOptimizer(learning_rate=exp_spec.learning_rate).minimize(pseudo_loss)
-
-
-    # /---- Start computation graph -----
+    """ ---- Warm-up the computation graph and start learning! ---- """
     writer = tf_cv1.summary.FileWriter('./graph', tf_cv1.get_default_graph())
     with tf_cv1.Session() as sess:
         sess.run(tf_cv1.global_variables_initializer())     # initialize random variable in the computation graph
@@ -81,24 +73,21 @@ def vanila_policy_gradient_agent_discrete(render_env=False):
                         env.render()
 
                     # /---- act in the environment -----
-                    # note: Single trajectorie batch size hack for computation graph observation placeholder
-                    #   |       observation.shape = (8,)
-                    #   |   vs
-                    #   |       np.expand_dims(observation, axis=0).shape = (1, 8)
-                    batch_size_one_observation = np.expand_dims(observation, axis=0)
-                    action = sess.run(sampled_action, feed_dict={observation_placeholder: batch_size_one_observation})
+                    step_observation = bloc.format_single_step_observation(observation)
 
-                    action = np.squeeze(action)
+                    action = sess.run(sampled_action_op, feed_dict={observation_p: (
+                        step_observation)})
+
+                    action_sq = np.squeeze(action)
                     observation, reward, done, info = env.step(action)
-
                     print("E:{} T:{} TS:{} | action[{}] --> reward={}".format(epoch + 1, trajectorie + 1,
-                                                                              step + 1, action, reward))
+                                                                              step + 1, action_sq, reward))
 
                     if len(info) is not 0:
                         print("\ninfo: {}\n".format(info))
 
                     # /---- Collect current timestep events -----
-                    timestep_collector.append(observation, action, reward)
+                    timestep_collector.append(observation, action_sq, reward)
 
 
                     # /---- end trajectorie -----
@@ -126,9 +115,9 @@ def vanila_policy_gradient_agent_discrete(render_env=False):
             observations, actions, rewards = trajectorie_container.unpack()
 
             # todo -->
-            # feed_dictionary = bloc.build_feed_dictionary([observation_placeholder, action_placeholder],
+            # feed_dictionary = bloc.build_feed_dictionary([observation_p, action_p],
             #                                              [observations, actions])
-            # sess.run([loss_op, optimizer_op], feed_dict=feed_dictionary)
+            # sess.run([loss_op, policy_optimizer_op], feed_dict=feed_dictionary)
 
     writer.close()
 
@@ -140,6 +129,6 @@ if __name__ == '__main__':
     parser.add_argument('--render_env', type=bool, default=False)
     args = parser.parse_args()
 
-    vanila_policy_gradient_agent_discrete(render_env=args.render_env)
+    train_REINFORCE_agent_discrete(render_env=args.render_env)
 
 
