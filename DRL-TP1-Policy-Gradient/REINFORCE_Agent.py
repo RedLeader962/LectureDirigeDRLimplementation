@@ -3,9 +3,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 # region ::Import statement ...
 
-import numpy as np
-
 import tensorflow as tf
+
 
 tf_cv1 = tf.compat.v1   # shortcut
 
@@ -57,6 +56,7 @@ def train_REINFORCE_agent_discrete(render_env=False):
     with tf_cv1.Session() as sess:
         sess.run(tf_cv1.global_variables_initializer())     # initialize random variable in the computation graph
 
+
         # /---- Simulator: Epoch -----
         for epoch in range(exp_spec.max_epoch):
 
@@ -75,19 +75,19 @@ def train_REINFORCE_agent_discrete(render_env=False):
                     # /---- act in the environment -----
                     step_observation = bloc.format_single_step_observation(observation)
 
-                    action = sess.run(sampled_action_op, feed_dict={observation_p: (
+                    action_array = sess.run(sampled_action_op, feed_dict={observation_p: (
                         step_observation)})
 
-                    action_sq = np.squeeze(action)
+                    action = bloc.format_single_step_action(action_array)
                     observation, reward, done, info = env.step(action)
                     print("E:{} T:{} TS:{} | action[{}] --> reward={}".format(epoch + 1, trajectorie + 1,
-                                                                              step + 1, action_sq, reward))
+                                                                              step + 1, action, reward))
 
                     if len(info) is not 0:
                         print("\ninfo: {}\n".format(info))
 
                     # /---- Collect current timestep events -----
-                    timestep_collector.append(observation, action_sq, reward)
+                    timestep_collector.append(observation, action, reward)
 
 
                     # /---- end trajectorie -----

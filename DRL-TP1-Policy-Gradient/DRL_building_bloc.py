@@ -453,14 +453,6 @@ def policy_optimizer(pseudo_loss_op: tf.Tensor, exp_spec: ExperimentSpec) -> tf.
     """
     return tf.train.AdamOptimizer(learning_rate=exp_spec.learning_rate).minimize(pseudo_loss_op)
 
-def format_single_step_observation(observation):
-    """ Single trajectorie batch size hack for the computation graph observation placeholder
-                observation.shape = (8,)
-            vs
-                np.expand_dims(observation, axis=0).shape = (1, 8)
-    """
-    batch_size_one_observation = np.expand_dims(observation, axis=0)
-    return batch_size_one_observation
 
 def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
     """
@@ -531,6 +523,9 @@ class TrajectorieContainer(object):
         return self.observations, self.actions, self.rewards
 
 class TimestepCollector(object):
+    """
+    Batch collector for time step
+    """
     def __init__(self, experiment_spec: ExperimentSpec, playground: GymPlayground):
         self._experiment_spec = experiment_spec
         # self._playground_spec = playground.get_environment_spec()
@@ -539,7 +534,13 @@ class TimestepCollector(object):
         self._rewards = []
         self.step_count = 0
 
-    def __call__(self, observation, action, reward, *args, **kwargs) -> None:
+    def __call__(self, observation: np.ndarray, action, reward: float, *args, **kwargs) -> None:
+        """ Collect observation, action, reward for one timestep
+
+        :type observation: np.ndarray
+        :type action: int or float
+        :type reward: float
+        """
         try:
             assert self.step_count < self._experiment_spec.timestep_max_per_trajectorie, \
                 "Max timestep per trajectorie reached so the TimestepCollector is full."
@@ -552,11 +553,17 @@ class TimestepCollector(object):
             raise ae
         return None
 
-    def append(self, observation, action, reward) -> None:
-        """Collect observation, action, reward for one timestep"""
+    def append(self, observation: np.ndarray, action, reward: float) -> None:
+        """ Collect observation, action, reward for one timestep
+
+        :type observation: np.ndarray
+        :type action: int or float
+        :type reward: float
+        """
         self.__call__(observation, action, reward)
         return None
 
+    # Deprecated!!!
     def _normalize_the_collected_trajectorie_lenght(self) -> None:
         """
         Complete sampled trajectorie with dummy value to make all sampled trajectories of even lenght
@@ -615,3 +622,26 @@ def epoch_buffer(trajectory_placeholder):
 # </editor-fold>
 
 
+def format_single_step_observation(observation: np.ndarray):
+    """ Single trajectorie batch size hack for the computation graph observation placeholder
+                observation.shape = (8,)
+            vs
+                np.expand_dims(observation, axis=0).shape = (1, 8)
+    """
+    assert observation.ndim == 1, "Watch out!! observation array is of wrong dimension {}".format(observation.shape)
+    batch_size_one_observation = np.expand_dims(observation, axis=0)
+    return batch_size_one_observation
+
+
+def format_single_step_action(action_array: np.ndarray):
+    # todo --> unitest
+    try:
+        action = action_array[0]
+    except:
+        if isinstance(action_array, np.ndarray):
+            assert action_array.ndim == 1, "action_array is of dimension > 1: {}".format(action_array.ndim)
+        else:
+            action = action_array
+        assert isinstance(action, int), "something is wrong with the 'format_single_step_action'. " \
+                                        "Should output a int instead of {}".format(action)
+    return action
