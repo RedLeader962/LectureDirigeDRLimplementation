@@ -1,5 +1,7 @@
 # coding=utf-8
-import copy
+
+import tensorflow_weak_warning_supressor as no_cpu_compile_warn
+no_cpu_compile_warn.execute()
 
 import gym
 import pretty_printing
@@ -10,8 +12,6 @@ import tensorflow as tf
 from tensorflow import keras
 tf_cv1 = tf.compat.v1   # shortcut
 
-import tensorflow_weak_warning_supressor as no_cpu_compile_warn
-no_cpu_compile_warn.execute()
 
 from vocabulary import rl_name
 vocab = rl_name()
@@ -28,7 +28,7 @@ In browser, go to:
 class ExperimentSpec(object):
     def __init__(self, timestep_max_per_trajectorie=20, trajectories_batch_size=10, max_epoch=2, discout_factor=1,
                  learning_rate=1e-2,
-                 neural_net_hidden_layer_topology: list = [32, 32], random_seed=42):
+                 neural_net_hidden_layer_topology: tuple = (32, 32), random_seed=42):
         """
         Gather the specification for a experiement
         
@@ -52,7 +52,7 @@ class ExperimentSpec(object):
         # todo: self.output_layer_activation_function
         # todo: any NN usefull param
 
-        assert isinstance(neural_net_hidden_layer_topology, list)
+        assert isinstance(neural_net_hidden_layer_topology, tuple)
 
     def get_agent_training_spec(self):
         """
@@ -158,7 +158,7 @@ class GymPlayground(object):
 
 
 def build_MLP_computation_graph(input_placeholder: tf.Tensor, action_placeholder_shape: tf.TensorShape,
-                                hidden_layer_topology: list = [32, 32], hidden_layers_activation: tf.Tensor = tf.tanh,
+                                hidden_layer_topology: tuple = (32, 32), hidden_layers_activation: tf.Tensor = tf.tanh,
                                 output_layers_activation: tf.Tensor = tf.sigmoid) -> tf.Tensor:
     """
     Builder function for Low Level TensorFlow API.
@@ -186,7 +186,7 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, action_placeholder
     """
     assert isinstance(input_placeholder, tf.Tensor)
     assert isinstance(action_placeholder_shape, tf.TensorShape)
-    assert isinstance(hidden_layer_topology, list)
+    assert isinstance(hidden_layer_topology, tuple)
 
     with tf.name_scope(vocab.Multi_Layer_Perceptron) as scope:
         # Create input layer
@@ -226,6 +226,7 @@ def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground) -> (tf
     :rtype: (tf.Tensor, tf.Tensor)
     """
     assert isinstance(playground, GymPlayground), "\n\n>>> gym_playground_to_tensorflow_graph_adapter() expected a builded GymPlayground.\n\n"
+
 
     if isinstance(playground.env.observation_space, gym.spaces.Box):
         """observation space is continuous"""
@@ -268,7 +269,7 @@ def policy_theta_discrete_space(logits_layer: tf.Tensor, action_placeholder_shap
     with tf.name_scope(vocab.policy_theta_discrete) as scope:
         # convert the logits layer (aka: raw output) to probabilities
         log_probabilities_op = tf.nn.log_softmax(logits_layer)
-        oversize_policy_theta = tf.random.categorical(log_probabilities_op, num_samples=1)
+        oversize_policy_theta = tf.random.categorical(logits_layer, num_samples=1)
 
         # Remove single-dimensional entries from the shape of the array since we only take one sample from the distribution
         sampled_action_op = tf.squeeze(oversize_policy_theta, axis=1)
@@ -317,6 +318,7 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
     :return: (sampled_action_op, theta_mlp_op, pseudo_loss_op)
     :rtype: (tf.Tensor, tf.Tensor, tf.Tensor)
     """
+
     theta_mlp_op = build_MLP_computation_graph(observation_placeholder, action_placeholder.shape,
                                                  experiment_spec.nn_h_layer_topo)
 
@@ -324,11 +326,10 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
     if isinstance(playground.env.action_space, gym.spaces.Discrete):
 
         policy_theta, log_probabilities = policy_theta_discrete_space(theta_mlp_op, action_placeholder.shape, playground)
+        sampled_action_op = policy_theta
 
         assert log_probabilities.shape.is_compatible_with(action_placeholder.shape), "the action_placeholder is " \
             "incompatible with Discrete space, {} != {}".format(action_placeholder.shape, log_probabilities.shape)
-
-        sampled_action_op = policy_theta
 
 
         # <editor-fold desc="::log probabilities computation graph --> Ice-Box ...">
@@ -427,6 +428,7 @@ def discrete_pseudo_loss(action_placeholder: tf.Tensor, Q_values_placeholder: tf
     :return: pseudo_loss_op
     :rtype: tf.Tensor
     """
+
     assert action_placeholder.shape.is_compatible_with(theta_mlp.shape), "action_placeholder shape is not compatible with theta_mlp shape, {} != {}".format(action_placeholder, theta_mlp)
 
     with tf.name_scope(vocab.pseudo_loss) as scope:
@@ -435,7 +437,7 @@ def discrete_pseudo_loss(action_placeholder: tf.Tensor, Q_values_placeholder: tf
 
         # note: tf.stop_gradient(Q_values_placeholder) prevent the backpropagation into the Q_values_placeholder
         #   |   witch contain rewards_to_go. It treat the values of the tensor as constant during backpropagation.
-        weighted_negative_likelihoods = tf.multiply(negative_likelihoods, tf.stop_gradient(Q_values_placeholder))
+        weighted_negative_likelihoods = tf.multiply(Q_values_placeholder, negative_likelihoods)
         pseudo_loss_op = tf.reduce_mean(weighted_negative_likelihoods)
         return pseudo_loss_op
 
@@ -451,7 +453,7 @@ def policy_optimizer(pseudo_loss_op: tf.Tensor, exp_spec: ExperimentSpec) -> tf.
     :return: policy_optimizer_op
     :rtype: tf.Tensor
     """
-    return tf.train.AdamOptimizer(learning_rate=exp_spec.learning_rate).minimize(pseudo_loss_op)
+    return tf_cv1.train.AdamOptimizer(learning_rate=exp_spec.learning_rate).minimize(pseudo_loss_op, name=vocab.optimizer)
 
 
 def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
@@ -477,7 +479,7 @@ def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
     for ar in arrays_of_values:
         assert isinstance(ar, np.ndarray), "Wrong input type, arrays_of_values must be a list of numpy array"
 
-    feed_dict = dict
+    feed_dict = dict()
     for placeholder, array in zip(placeholders, arrays_of_values):
         feed_dict[placeholder] = array
 
@@ -535,6 +537,17 @@ class TrajectoryContainer(object):
         """
         return self.observations, self.actions, self.rewards, self.Q_values
 
+    def __repr__(self):
+        str = "\n::trajectory_container/\n"
+        str += ".observations=\n{}\n\n".format(self.observations)
+        str += ".actions=\n{}\n\n".format(self.actions)
+        str += ".rewards=\n{}\n\n".format(self.rewards)
+        str += ".discounted --> {}\n".format(self.discounted)
+        str += ".Q_values=\n{}\n\n".format(self.Q_values)
+        str += "len(trajectory_container) --> {} ::\n\n".format(self.__len__())
+        return str
+
+
 class TimestepCollector(object):
     """
     Batch collector for time step
@@ -586,13 +599,13 @@ class TimestepCollector(object):
         """
         raise NotImplementedError   # todo:
 
-        t_timestep = len(self._observations)
         d = 0   # todo --> confirm chosen value do not affect training
         delta_t = self._experiment_spec.max_epoch - t_timestep
         for t in range(delta_t):
             self._observations.append(d)
             self._actions.append(d)
             self._rewards.append(d)
+        t_timestep = len(self._observations)
         return None
 
     def _reset(self):
@@ -649,13 +662,17 @@ def format_single_step_observation(observation: np.ndarray):
 
 def format_single_step_action(action_array: np.ndarray):
     # todo --> unitest
+    action = None
     try:
         action = action_array[0]
     except:
+
         if isinstance(action_array, np.ndarray):
             assert action_array.ndim == 1, "action_array is of dimension > 1: {}".format(action_array.ndim)
+            action = np.squeeze(action_array)
         else:
             action = action_array
         assert isinstance(action, int), "something is wrong with the 'format_single_step_action'. " \
                                         "Should output a int instead of {}".format(action)
-    return action
+    finally:
+        return action

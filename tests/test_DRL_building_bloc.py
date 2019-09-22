@@ -20,7 +20,7 @@ def tf_setup():
     """
     in_p = tf_cv1.placeholder(tf.float32, shape=(None, 8))
     out_p = tf_cv1.placeholder(tf.float32, shape=(None, 2))
-    nn_shape = [2, 2]
+    nn_shape = (2, 2)
     return in_p, out_p, nn_shape
 
 @pytest.fixture
@@ -29,7 +29,7 @@ def gym_continuous_setup():
     :return: (exp_spec, playground)
     :rtype: (ExperimentSpec, GymPlayground)
     """
-    exp_spec = bloc.ExperimentSpec(timestep_max_per_trajectorie=10, trajectories_batch_size=2, max_epoch=2, neural_net_hidden_layer_topology=[2, 2])
+    exp_spec = bloc.ExperimentSpec(timestep_max_per_trajectorie=10, trajectories_batch_size=2, max_epoch=2, neural_net_hidden_layer_topology=(2, 2))
     playground = bloc.GymPlayground('LunarLanderContinuous-v2')
     return exp_spec, playground
 
@@ -39,7 +39,7 @@ def gym_discrete_setup():
     :return: (exp_spec, playground)
     :rtype: (ExperimentSpec, GymPlayground)
     """
-    exp_spec = bloc.ExperimentSpec(timestep_max_per_trajectorie=10, trajectories_batch_size=2, max_epoch=2, neural_net_hidden_layer_topology=[2, 2])
+    exp_spec = bloc.ExperimentSpec(timestep_max_per_trajectorie=10, trajectories_batch_size=2, max_epoch=2, neural_net_hidden_layer_topology=(2, 2))
     playground = bloc.GymPlayground('LunarLander-v2')
     return exp_spec, playground
 
@@ -50,7 +50,7 @@ def gym_and_tf_continuous_setup():
     :rtype: (tf.Tensor, tf.Tensor, ExperimentSpec, GymPlayground)
     """
     exp_spec = bloc.ExperimentSpec(timestep_max_per_trajectorie=10, trajectories_batch_size=2, max_epoch=2,
-                                   neural_net_hidden_layer_topology=[2, 2])
+                                   neural_net_hidden_layer_topology=(2, 2))
     playground = bloc.GymPlayground('LunarLanderContinuous-v2')
     obs_p, act_p = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
     return obs_p, act_p, exp_spec, playground
@@ -62,7 +62,7 @@ def gym_and_tf_discrete_setup():
     :rtype: (tf.Tensor, tf.Tensor, ExperimentSpec, GymPlayground)
     """
     exp_spec = bloc.ExperimentSpec(timestep_max_per_trajectorie=10, trajectories_batch_size=2, max_epoch=2,
-                                   neural_net_hidden_layer_topology=[2, 2])
+                                   neural_net_hidden_layer_topology=(2, 2))
     playground = bloc.GymPlayground('LunarLander-v2')
     obs_p, act_p = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
     return obs_p, act_p, exp_spec, playground
@@ -73,7 +73,7 @@ def gym_and_tf_discrete_setup():
 
 def test_ExperimentSpec_init_ENV_TOPOLOGY_FAIL():
     with pytest.raises(Exception):
-        bloc.ExperimentSpec(neural_net_hidden_layer_topology=(1,))
+        bloc.ExperimentSpec(neural_net_hidden_layer_topology=[1,])
 
 
 # ---- playground ------------------------------------------------------------------------------------------------
@@ -128,12 +128,12 @@ def test_build_MLP_computation_graph_io(tf_setup):
 def test_build_MLP_computation_graph_with_DISCRETE_adapter(gym_discrete_setup):
     _, playground = gym_discrete_setup
     input_placeholder, out_placeholder = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
-    bloc.build_MLP_computation_graph(input_placeholder, out_placeholder.shape, hidden_layer_topology=[2, 2])
+    bloc.build_MLP_computation_graph(input_placeholder, out_placeholder.shape, hidden_layer_topology=(2,2))
 
 def test_build_MLP_computation_graph_with_CONTINUOUS_adapter(gym_continuous_setup):
     _, playground = gym_continuous_setup
     input_placeholder, out_placeholder = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
-    bloc.build_MLP_computation_graph(input_placeholder, out_placeholder.shape, hidden_layer_topology=[2, 2])
+    bloc.build_MLP_computation_graph(input_placeholder, out_placeholder.shape, hidden_layer_topology=(2,2))
 
 
 def test_integration_Playground_to_adapter_to_build_graph(gym_continuous_setup):
@@ -190,12 +190,10 @@ def test_SamplingContainer_CONTINUOUS_BASIC(gym_continuous_setup):
             """ STEP-2: append sample to container"""
             timestep_collector.append(observation, action, reward)
 
-
-
             """ STEP-3: acces container"""
             if done or (step == exp_spec.timestep_max_per_trajectorie - 1):
                 trajectorie_container = timestep_collector.get_collected_trajectory_and_reset_collector(discounted_q_values=True)
-                np_array_obs, np_array_act, np_array_rew = trajectorie_container.unpack()
+                np_array_obs, np_array_act, np_array_rew, Q_values = trajectorie_container.unpack()
 
                 print(
                     "\n\n----------------------------------------------------------------------------------------"
@@ -234,7 +232,7 @@ def test_SamplingContainer_DISCRETE_BASIC(gym_discrete_setup):
             """ STEP-3: acces container"""
             if done or (step == exp_spec.timestep_max_per_trajectorie - 1):
                 trajectorie_container = timestep_collector.get_collected_trajectory_and_reset_collector(discounted_q_values=True)
-                np_array_obs, np_array_act, np_array_rew = trajectorie_container.unpack()
+                np_array_obs, np_array_act, np_array_rew, Q_values = trajectorie_container.unpack()
 
                 print(
                     "\n\n----------------------------------------------------------------------------------------"
@@ -422,9 +420,22 @@ def test_REINFORCE_agent_DISCRETE_PASS(gym_and_tf_discrete_setup):
 
 
 # --- feed_dictionary --------------------------------------------------------------------------------------------
-def test_build_feed_dictionary_PASS():
-    bloc.build_feed_dictionary()
-    raise NotImplementedError   # todo: implement test case
+def test_build_feed_dictionary_PASS(gym_and_tf_discrete_setup):
+    obs_p, act_p, exp_spec, playground = gym_and_tf_discrete_setup
+
+    l_ph = [obs_p, act_p]
+    l_ar = [np.array(obs_p._shape_as_list()), np.array(act_p._shape_as_list())]
+
+    bloc.build_feed_dictionary(l_ph, l_ar)
+
+
+def test_build_feed_dictionary_FAIL(gym_and_tf_discrete_setup):
+    obs_p, act_p, exp_spec, playground = gym_and_tf_discrete_setup
+
+    l_ph = [obs_p, act_p]
+    l_ar = [np.array(obs_p._shape_as_list())]
+    with pytest.raises(AssertionError):
+        bloc.build_feed_dictionary(l_ph, l_ar)
 
 
 # --- Return function --------------------------------------------------------------------------------------------

@@ -3,12 +3,13 @@
 from collections import namedtuple
 
 _rl_vocab_list = [
+    'Discrete', 'Continuous',
     'trajectorie', 'timestep', 'epoch', 'horizon',
     'observation', 'action', 'policy', 'transition_dynamic', 'reward', 'reward_to_go', 'G',
     'policy_theta_discrete', 'policy_theta_continuous',
     'pseudo_loss', 'likelihood', 'negative_likelihood'
     'V_pi', 'Q_pi', 'A_pi',
-    'discout_factor',                           # gamma
+    'discout_factor',
     'baseline',
     'objective', 'loss', 'inference', 'optimizer',
     'learning_rate',
@@ -37,7 +38,7 @@ A standardize vocabulary to use when refering node in a computation graph
             Placeholder tensor only has one output, thus the :0 part.
             
 """
-rl_name = namedtuple('RLvocabulary', _rl_vocab_list, defaults=_rl_vocab_list) #.__call__()
+rl_name = namedtuple('RLvocabulary', _rl_vocab_list, defaults=_rl_vocab_list)
 
 
 

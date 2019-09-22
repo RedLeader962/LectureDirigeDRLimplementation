@@ -17,8 +17,6 @@ def execute():
 
 
 
-
-
     """
     Disable "I tensorflow/core/platform/cpu_feature_guard.cc:140] 
              Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA."
