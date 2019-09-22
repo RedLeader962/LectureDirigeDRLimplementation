@@ -106,8 +106,8 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
                 feed_dictionary = bloc.build_feed_dictionary([observation_ph, action_ph, Q_values_ph],
                                                              [observations, actions, Q_values])
 
-                sess.run([pseudo_loss], feed_dict=feed_dictionary)
-                sess.run([policy_optimizer_op])
+                sess.run([pseudo_loss, policy_optimizer_op], feed_dict=feed_dictionary)
+                # sess.run([policy_optimizer_op])
 
     writer.close()
 
@@ -120,6 +120,6 @@ if __name__ == '__main__':
     parser.add_argument('--discounted_reward_to_go', type=bool, default=True)
     args = parser.parse_args()
 
-    train_REINFORCE_agent_discrete(render_env=args.render_env)
+    train_REINFORCE_agent_discrete(render_env=args.render_env, discounted_reward_to_go=args.discounted_reward_to_go)
 
 

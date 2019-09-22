@@ -269,7 +269,9 @@ def policy_theta_discrete_space(logits_layer: tf.Tensor, playground: GymPlaygrou
     with tf.name_scope(vocab.policy_theta_discrete) as scope:
         # convert the logits layer (aka: raw output) to probabilities
         log_probabilities = tf.nn.log_softmax(logits_layer)
-        oversize_policy_theta = tf.random.categorical(logits_layer, num_samples=1)
+        oversize_policy_theta = tf.random.categorical(logits_layer, num_samples=1,
+                                                      # dtype=tf.int32
+                                                      )
 
         # Remove single-dimensional entries from the shape of the array since we only take one sample from the distribution
         sampled_action = tf.squeeze(oversize_policy_theta, axis=1)
@@ -339,7 +341,7 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
         # feed_action_log_probability = tf.reduce_sum(log_probabilities * action_mask, axis=1)
         # </editor-fold>
 
-        pseudo_loss = discrete_pseudo_loss(action_placeholder, Q_values_placeholder, theta_mlp)
+        pseudo_loss = discrete_pseudo_loss(theta_mlp, action_placeholder, Q_values_placeholder, playground)
 
     # /---- continuous case -----
     elif isinstance(playground.env.action_space, gym.spaces.Box):
@@ -412,16 +414,18 @@ def discounted_reward_to_go_np(rewards: np.ndarray, experiment_spec: ExperimentS
 # </editor-fold>
 
 
-def discrete_pseudo_loss(action_placeholder: tf.Tensor, Q_values_placeholder: tf.Tensor, theta_mlp: tf.Tensor) -> tf.Tensor:
+def discrete_pseudo_loss(theta_mlp: tf.Tensor, action_placeholder: tf.Tensor, Q_values_placeholder: tf.Tensor, playground: GymPlayground) -> tf.Tensor:
     """
     Pseudo loss for discrete action space only using Softmax cross entropy with logits
 
+    :param playground:
+    :type playground:
+    :param theta_mlp:
+    :type theta_mlp:
     :param action_placeholder:
     :type action_placeholder: tf.Tensor
     :param Q_values_placeholder:
     :type Q_values_placeholder: tf.Tensor
-    :param theta_mlp:
-    :type theta_mlp: tf.Tensor
     :return: pseudo_loss
     :rtype: tf.Tensor
     """
@@ -429,28 +433,32 @@ def discrete_pseudo_loss(action_placeholder: tf.Tensor, Q_values_placeholder: tf
     assert action_placeholder.shape.is_compatible_with(Q_values_placeholder.shape), "action_placeholder shape is not compatible with Q_values_placeholder shape, {} != {}".format(action_placeholder, Q_values_placeholder)
 
     with tf.name_scope(vocab.pseudo_loss) as scope:
-        negative_likelihoods = tf.nn.softmax_cross_entropy_with_logits_v2(logits=theta_mlp, labels=action_placeholder,
-                                                                          name='negative_likelihoods')
 
         # note: tf.stop_gradient(Q_values_placeholder) prevent the backpropagation into the Q_values_placeholder
         #   |   witch contain rewards_to_go. It treat the values of the tensor as constant during backpropagation.
-        weighted_negative_likelihoods = tf.multiply(Q_values_placeholder, negative_likelihoods)
-        pseudo_loss = tf.reduce_mean(weighted_negative_likelihoods)
+
+        action_mask = tf.one_hot(action_placeholder, playground.ACTION_CHOICES)
+        log_probabilities_matrix = tf.multiply(action_mask, tf.nn.log_softmax(theta_mlp))
+        log_probabilities = tf.reduce_sum(log_probabilities_matrix, axis=1)
+        weighted_likelihoods = tf.multiply(
+            tf.stop_gradient(Q_values_placeholder),
+            log_probabilities)
+        pseudo_loss = tf.reduce_mean(weighted_likelihoods)
         return pseudo_loss
 
 
-def policy_optimizer(pseudo_loss_op: tf.Tensor, exp_spec: ExperimentSpec) -> tf.Tensor:
+def policy_optimizer(pseudo_loss: tf.Tensor, exp_spec: ExperimentSpec) -> tf.Operation:
     """
     Define the optimizing methode for training the REINFORE agent
 
     :param exp_spec:
     :type exp_spec: ExperimentSpec
-    :param pseudo_loss_op:
-    :type pseudo_loss_op: tf.Tensor
+    :param pseudo_loss:
+    :type pseudo_loss: tf.Tensor
     :return: policy_optimizer_op
-    :rtype: tf.Tensor
+    :rtype: tf.Operation
     """
-    return tf_cv1.train.AdamOptimizer(learning_rate=exp_spec.learning_rate).minimize(pseudo_loss_op, name=vocab.optimizer)
+    return tf_cv1.train.AdamOptimizer(learning_rate=exp_spec.learning_rate).minimize(pseudo_loss, name=vocab.optimizer)
 
 
 def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
