@@ -193,11 +193,11 @@ def test_SamplingContainer_CONTINUOUS_BASIC(gym_continuous_setup):
             print("\ninfo: {}\n".format(info))
 
             """ STEP-2: append sample to container"""
-            timestep_collector.append(observation, action, reward)
+            timestep_collector.collect(observation, action, reward)
 
             """ STEP-3: acces container"""
             if done or (step == exp_spec.timestep_max_per_trajectorie - 1):
-                trajectorie_container = timestep_collector.get_collected_trajectory_and_reset_collector(discounted_q_values=True)
+                trajectorie_container = timestep_collector.get_collected_timestep_and_reset_collector(discounted_q_values=True)
                 np_array_obs, np_array_act, np_array_rew, Q_values, trajectory_return, trajectory_lenght = trajectorie_container.unpack()
 
                 print(
@@ -276,7 +276,7 @@ def test_SamplingContainer_CONTINUOUS_BASIC(gym_continuous_setup):
 #             print("\ninfo: {}\n".format(info))
 #
 #             """ STEP-2: append sample to container"""
-#             timestep_collector.append(observation, action, reward)
+#             timestep_collector.collect(observation, action, reward)
 #
 #             """ STEP-3: acces container"""
 #             if done or (step == exp_spec.timestep_max_per_trajectorie - 1):
@@ -316,11 +316,11 @@ def test_SamplingContainer_DISCRETE_BASIC(gym_discrete_setup):
             print("\ninfo: {}\n".format(info))
 
             """ STEP-2: append sample to container"""
-            timestep_collector.append(observation, action, reward)
+            timestep_collector.collect(observation, action, reward)
 
             """ STEP-3: acces container"""
             if done or (step == exp_spec.timestep_max_per_trajectorie - 1):
-                trajectorie_container = timestep_collector.get_collected_trajectory_and_reset_collector(discounted_q_values=True)
+                trajectorie_container = timestep_collector.get_collected_timestep_and_reset_collector(discounted_q_values=True)
                 np_array_obs, np_array_act, np_array_rew, Q_values, trajectory_return, trajectory_lenght = trajectorie_container.unpack()
 
                 print(

@@ -93,14 +93,14 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
                         print("\ninfo: {}\n".format(info))
 
                     """ ---- Agent: Collect current timestep events ---- """
-                    timestep_collector.append(observation, action, reward)
+                    timestep_collector.collect(observation, action, reward)
 
                     """ ---- Simulator: end trajectory ---- """
                     if done or (step == exp_spec.timestep_max_per_trajectorie - 1):
                         break
 
                 """ ---- Agent: Compute gradient & update policy ---- """
-                trajectory_container = timestep_collector.get_collected_trajectory_and_reset_collector(
+                trajectory_container = timestep_collector.get_collected_timestep_and_reset_collector(
                     discounted_q_values=discounted_reward_to_go)
 
                 print("\n\n\t ↳::Trajectory {} finished after {} timesteps\n".format(trajectory + 1, step + 1))
@@ -113,6 +113,8 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
                                                              [observations, actions, Q_values])
 
                 trajectory_loss, _ = sess.run([pseudo_loss, policy_optimizer_op], feed_dict=feed_dictionary)
+
+
 
     writer.close()
 

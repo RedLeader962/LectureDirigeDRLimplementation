@@ -497,7 +497,7 @@ def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
 class TrajectoryContainer(object):
     def __init__(self, observations: list, actions: list, rewards: list, experiment_spec: ExperimentSpec, discounted=True, dtype=None):
         """
-        Container for events collected at every timestep of a single trajectorie
+        Container for storage & retrieval events collected at every timestep of a single trajectorie
 
         todo --> validate dtype for discrete case
 
@@ -564,7 +564,7 @@ class TrajectoryContainer(object):
 
 class TimestepCollector(object):
     """
-    Batch collector for time step
+    Batch collector for time step events agregation
     """
     def __init__(self, experiment_spec: ExperimentSpec, playground: GymPlayground):
         self._exp_spec = experiment_spec
@@ -594,7 +594,7 @@ class TimestepCollector(object):
             raise ae
         return None
 
-    def append(self, observation: np.ndarray, action, reward: float) -> None:
+    def collect(self, observation: np.ndarray, action, reward: float) -> None:
         """ Collect observation, action, reward for one timestep
 
         :type observation: np.ndarray
@@ -604,24 +604,6 @@ class TimestepCollector(object):
         self.__call__(observation, action, reward)
         return None
 
-    # Deprecated!!! --> wrong business logic.
-    #   |   Concatenate all trajectories in a single event type array ex: observations,  ...
-    def _normalize_the_collected_trajectory_lenght(self) -> None:
-        """
-        Complete sampled trajectorie with dummy value to make all sampled trajectories of even lenght
-        :return: None
-        """
-        raise NotImplementedError   # todo:
-
-        d = 0   # todo --> confirm chosen value do not affect training
-        delta_t = self._experiment_spec.max_epoch - t_timestep
-        for t in range(delta_t):
-            self._observations.append(d)
-            self._actions.append(d)
-            self._rewards.append(d)
-        t_timestep = len(self._observations)
-        return None
-
     def _reset(self):
         self._observations.clear()
         self._actions.clear()
@@ -629,7 +611,7 @@ class TimestepCollector(object):
         self.step_count = 0
         return None
 
-    def get_collected_trajectory_and_reset_collector(self, discounted_q_values=True) -> TrajectoryContainer:
+    def get_collected_timestep_and_reset_collector(self, discounted_q_values=True) -> TrajectoryContainer:
         """
             1.  Return the sampled trajectory in a TrajectoryContainer
             2.  Reset the container ready for the next trajectorie sampling.
@@ -647,14 +629,11 @@ class TimestepCollector(object):
         self._reset()
 
 class EpochContainer(object):
-    """Container for storage & retrieval of epoch components (aka a batch of sampled trajectories"""
+    """Container for storage & retrieval of batch of sampled trajectories"""
     def __init__(self, experiment_spec: ExperimentSpec):
         self.experiment_spec = experiment_spec
-        self.epoch_obss = []
-        self.epoch_acts = []
-        self.epoch_Qvalues = []
-        self.epoch_returns = []
-        self.epoch_trajs_len = []
+        self.trajectories = []
+        self.timestep_total = 0
         self._number_of_collected_trajectory = 0
 
         # note: Optimization consideration --> why collect numpy ndarray in python list?
@@ -662,16 +641,12 @@ class EpochContainer(object):
         #   |       to a ndarray than it is to append ndarray to each other
 
     def __call__(self, trajectory: TrajectoryContainer,  *args, **kwargs) -> None:
-        traj_observation, traj_actions, traj_Qvalues, traj_return, traj_lenght = trajectory.unpack()
-        self.epoch_obss.append(traj_observation)
-        self.epoch_acts.append(traj_actions)
-        self.epoch_Qvalues.append(traj_Qvalues)
-        self.epoch_returns.append(traj_return)
-        self.epoch_trajs_len.append(traj_lenght)
+        self.trajectories.append(trajectory)
+        self.timestep_total += trajectory.__len__()
         self._number_of_collected_trajectory += 1
         return None
 
-    def append(self, trajectory: TrajectoryContainer) -> None:
+    def collect(self, trajectory: TrajectoryContainer) -> None:
         self.__call__(trajectory)
         return None
 
@@ -679,23 +654,99 @@ class EpochContainer(object):
         return self._number_of_collected_trajectory
 
     def total_timestep_collected(self) -> int:
-        return sum(self.epoch_trajs_len)
+        return self.timestep_total
 
     def unpack(self) -> (list, list, list, list, list, int, int):
         """
-        Unpack the full epoch batch of collected trajectories in list of numpy ndarray
+        Unpack the full epoch batch of collected trajectories in lists of numpy ndarray
 
         todo: (implement & test) precompute ndarray concatenation in a single ndarray
           |             [ndarray, ... , ndarray] --> big ndarray
 
-        :return: (epoch_observations, epoch_actions, epoch_Qvalues, epoch_trajectories_returns, trajectories_lenghts, nb_of_collected_trajectories, total_timestep_collected)
+        :return: (trjs_observations, trjs_actions, trjs_Qvalues, trjs_returns, trjs_lenghts, nb_of_collected_trjs, timestep_total)
         :rtype: (list, list, list, list, list, int, int)
         """
-        properties = (
-            self.epoch_obss, self.epoch_acts, self.epoch_Qvalues, self.epoch_returns,
-            self.epoch_trajs_len, self.__len__(), self.total_timestep_collected()
-        )
-        return properties
+
+        trjs_observations = []
+        trjs_actions = []
+        trjs_reward = []
+        trjs_Qvalues = []
+        trjs_returns = []
+        trjs_lenghts = []
+
+        """TrajectoryContainer unpacking reference:
+           
+                       (observations, actions, rewards, Q_values, 
+                                trajectory_return, trajectory_lenght) = TrajectoryContainer.unpack()
+        """
+        for trj in self.trajectories:
+            trajectory = trj.unpack()
+
+            trjs_observations.append(trajectory[0])
+            trjs_actions.append(trajectory[1])
+            # trjs_reward.append(trajectory[2])
+            trjs_Qvalues.append(trajectory[3])
+            trjs_returns.append(trajectory[4])
+            trjs_lenghts.append(trajectory[5])
+
+        # Reset the container
+        self._reset()
+        return trjs_observations, trjs_actions, trjs_Qvalues, trjs_returns, trjs_lenghts, self.__len__(), self.total_timestep_collected()
+
+    def _reset(self) -> None:
+        self.trajectories = []
+        self.timestep_total = 0
+        self._number_of_collected_trajectory = 0
+        return None
+
+
+
+class EpochCollector(object):
+    def __init__(self, experiment_spec: ExperimentSpec):
+        self.epoch_container = EpochContainer(experiment_spec=experiment_spec)
+        
+    def collect(self, trajectory: TrajectoryContainer) -> None:
+        self.epoch_container(trajectory)
+        return None
+
+    def get_collected_trajectories_and_reset_collector(self) -> {list, list, list, list, list, int, int}:
+        """
+            Step:
+                    1. Concatenate each trajectory component in a long ndarray
+                    2. Compute the relevant metric
+                    3. Return the computed value in a dictionarie
+                    4. Reset the container ready for the next batch.
+
+        :key: trjs_obss', 'trjs_acts', 'trjs_Qvalues', 'trjs_returns', 'trjs_len', 'epoch_average_return', 'epoch_average_lenghts'
+
+        :return: a dictionarie of concatenated trajectories component
+        :rtype: dict
+        """
+        trajectories_lists = self.epoch_container.unpack()
+        _, _, _, _, _, nb_trjs, timestep_total = trajectories_lists
+        component_name = ('trjs_obss', 'trjs_acts', 'trjs_Qvalues', 'trjs_returns', 'trjs_len')
+
+        """EpochContainer unpacking reference:
+        
+                (trjs_observations, trjs_actions, trjs_Qvalues, trjs_returns, 
+                            trjs_lenghts, nb_of_collected_trjs, timestep_total) = epoch_container.unpack()
+        """
+
+        # For each component, convert his list of trajectories to a long ndarray of trajectories:
+        trajectories_dict = {K: np.array(V).copy() for K, V in zip(component_name, trajectories_lists[:-2])}
+
+        # Compute metric:
+        trajectories_dict['epoch_average_return'] = np.mean(trajectories_dict['trjs_returns'])
+        trajectories_dict['epoch_average_lenghts'] = np.mean(trajectories_dict['trjs_returns'])
+
+        return trajectories_dict
+
+    def get_number_of_trajectories_collected(self):
+        return self.epoch_container.__len__()
+
+    def get_total_timestep_collected(self) -> int:
+        return self.epoch_container.total_timestep_collected()
+
 
 
 def format_single_step_observation(observation: np.ndarray):
