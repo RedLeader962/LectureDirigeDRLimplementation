@@ -73,8 +73,8 @@ for i_episode in range(2):
     observation = env.reset()
     """------------------------------------------------------------------------Simulator code: episode---(end)--"""
 
-    observations = np.zeros((playground.OBSERVATION_SPACE_SHAPE, exp_spec.timestep_max_per_trajectorie))
-    actions = np.zeros((playground.ACTION_SPACE_SHAPE, exp_spec.timestep_max_per_trajectorie))
+    observations = np.zeros((playground.OBSERVATION_SPACE, exp_spec.timestep_max_per_trajectorie))
+    actions = np.zeros((playground.ACTION_CHOICES, exp_spec.timestep_max_per_trajectorie))
     rewards = np.zeros(exp_spec.timestep_max_per_trajectorie)
 
     """--Simulator code: time-step------------------------------------------------------------------------------"""

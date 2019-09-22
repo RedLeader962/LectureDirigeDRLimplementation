@@ -119,7 +119,6 @@ class GymPlayground(object):
         """
 
         self.ENVIRONMENT_NAME = environment_name
-        # self.env = None
 
         try:
             self.env = gym.make(self.ENVIRONMENT_NAME)
@@ -129,12 +128,15 @@ class GymPlayground(object):
 
         if isinstance(self.env.action_space, gym.spaces.Box):
             print("\n\n>>> Action space is Contiuous")
-            self.ACTION_SPACE_SHAPE = self.env.action_space.shape
+            self.ACTION_SPACE = self.env.action_space
+            dimension = self.ACTION_SPACE.shape
+            self.ACTION_CHOICES = [*dimension][-1]
         else:
             print("\n\n>>> Action space is Discrete")
-            self.ACTION_SPACE_SHAPE = self.env.action_space.n
+            self.ACTION_SPACE = self.env.action_space
+            self.ACTION_CHOICES = self.ACTION_SPACE.n
 
-        self.OBSERVATION_SPACE_SHAPE = self.env.observation_space.shape
+        self.OBSERVATION_SPACE = self.env.observation_space
 
         if self.ENVIRONMENT_NAME == 'LunarLanderContinuous-v2':
             action_space_doc = "\tAction is two floats [main engine, left-right engines].\n" \
@@ -151,14 +153,14 @@ class GymPlayground(object):
     def get_environment_spec(self):
         """
         Return specification related to the gym environment
-        :return: (OBSERVATION_SPACE_SHAPE, ACTION_SPACE_SHAPE, ENVIRONMENT_NAME)
+        :return: (OBSERVATION_SPACE, ACTION_SPACE, ACTION_CHOICES, ENVIRONMENT_NAME)
         :rtype: tuple
         """
-        return self.OBSERVATION_SPACE_SHAPE, self.ACTION_SPACE_SHAPE, self.ENVIRONMENT_NAME
+        return self.OBSERVATION_SPACE, self.ACTION_SPACE, self.ACTION_CHOICES, self.ENVIRONMENT_NAME
 
 
-def build_MLP_computation_graph(input_placeholder: tf.Tensor, action_placeholder_shape: tf.TensorShape,
-                                hidden_layer_topology: tuple = (32, 32), hidden_layers_activation: tf.Tensor = tf.tanh,
+def build_MLP_computation_graph(input_placeholder: tf.Tensor, playground: GymPlayground, hidden_layer_topology: tuple = (32, 32),
+                                hidden_layers_activation: tf.Tensor = tf.tanh,
                                 output_layers_activation: tf.Tensor = tf.sigmoid) -> tf.Tensor:
     """
     Builder function for Low Level TensorFlow API.
@@ -171,10 +173,10 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, action_placeholder
     In the context of deep learning, 'logits' is the equivalent of 'raw output' of our prediction.
     It will later be transform into probabilies using the 'softmax function'
 
+    :param playground:
+    :type playground:
     :param input_placeholder:
     :type input_placeholder: tf.Tensor
-    :param action_placeholder_shape:
-    :type action_placeholder_shape:
     :param hidden_layer_topology:
     :type hidden_layer_topology:
     :param hidden_layers_activation:
@@ -185,7 +187,7 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, action_placeholder
     :rtype: tf.Tensor
     """
     assert isinstance(input_placeholder, tf.Tensor)
-    assert isinstance(action_placeholder_shape, tf.TensorShape)
+    assert isinstance(playground, GymPlayground)
     assert isinstance(hidden_layer_topology, tuple)
 
     with tf.name_scope(vocab.Multi_Layer_Perceptron) as scope:
@@ -201,18 +203,19 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, action_placeholder
             parent_layer = h_layer(parent_layer)
 
         # create & connect the ouput layer: the logits
-        logits = keras.layers.Dense(action_placeholder_shape.dims[-1], activation=output_layers_activation, name=vocab.logits)
+        logits = keras.layers.Dense(playground.ACTION_CHOICES, activation=output_layers_activation, name=vocab.logits)
 
         return logits(parent_layer)
 
 
-def continuous_space_placeholder(space, name=None):
-    return tf_cv1.placeholder(dtype=tf.float32, shape=(None, *space), name=name)
+def continuous_space_placeholder(space: gym.spaces.Box, name=None) -> tf.Tensor:
+    assert isinstance(space, gym.spaces.Box)
+    space_shape = space.shape
+    return tf_cv1.placeholder(dtype=tf.float32, shape=(None, *space_shape), name=name)
 
-def discrete_space_placeholder(space: tuple, name=None):
-    if isinstance(space, tuple):
-        space = space[0]
-    return tf_cv1.placeholder(dtype=tf.int32, shape=(None, space), name=name)
+def discrete_space_placeholder(space: gym.spaces.Discrete, name=None) -> tf.Tensor:
+    assert isinstance(space, gym.spaces.Discrete)
+    return tf_cv1.placeholder(dtype=tf.int32, shape=(None,), name=name)
 
 
 def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground) -> (tf.Tensor, tf.Tensor):
@@ -230,19 +233,19 @@ def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground) -> (tf
 
     if isinstance(playground.env.observation_space, gym.spaces.Box):
         """observation space is continuous"""
-        input_placeholder = continuous_space_placeholder(playground.OBSERVATION_SPACE_SHAPE, name=vocab.input_placeholder)
+        input_placeholder = continuous_space_placeholder(playground.OBSERVATION_SPACE, name=vocab.input_placeholder)
     elif isinstance(playground.env.action_space, gym.spaces.Discrete):
         """observation space is discrete"""
-        input_placeholder = discrete_space_placeholder(playground.OBSERVATION_SPACE_SHAPE, name=vocab.input_placeholder)
+        input_placeholder = discrete_space_placeholder(playground.OBSERVATION_SPACE, name=vocab.input_placeholder)
     else:
         raise NotImplementedError
 
     if isinstance(playground.env.action_space, gym.spaces.Box):
         """action space is continuous"""
-        output_placeholder = continuous_space_placeholder(playground.ACTION_SPACE_SHAPE, name=vocab.output_placeholder)
+        output_placeholder = continuous_space_placeholder(playground.ACTION_SPACE, name=vocab.output_placeholder)
     elif isinstance(playground.env.action_space, gym.spaces.Discrete):
         """action space is discrete"""
-        output_placeholder = discrete_space_placeholder(playground.ACTION_SPACE_SHAPE, name=vocab.output_placeholder)
+        output_placeholder = discrete_space_placeholder(playground.ACTION_SPACE, name=vocab.output_placeholder)
     else:
         raise NotImplementedError
 
@@ -263,8 +266,8 @@ def policy_theta_discrete_space(logits_layer: tf.Tensor, action_placeholder_shap
     """
     assert isinstance(playground.env.action_space, gym.spaces.Discrete)
     assert isinstance(logits_layer, tf.Tensor)
-    assert isinstance(action_placeholder_shape, tf.TensorShape)
-    logits_layer.shape.assert_is_compatible_with(action_placeholder_shape)
+    # assert isinstance(action_placeholder_shape, tf.TensorShape)
+    # logits_layer.shape.assert_is_compatible_with(action_placeholder_shape)
 
     with tf.name_scope(vocab.policy_theta_discrete) as scope:
         # convert the logits layer (aka: raw output) to probabilities
@@ -277,6 +280,7 @@ def policy_theta_discrete_space(logits_layer: tf.Tensor, action_placeholder_shap
         return sampled_action, log_probabilities
 
 
+# todo --> refactor signature
 def policy_theta_continuous_space(logits_layer: tf.Tensor, action_placeholder_shape: tf.TensorShape, playground: GymPlayground):
     """
     Policy theta for continuous space --> actions are sampled from a gausian distribution
@@ -319,8 +323,7 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
     :rtype: (tf.Tensor, tf.Tensor, tf.Tensor)
     """
 
-    theta_mlp = build_MLP_computation_graph(observation_placeholder, action_placeholder.shape,
-                                                 experiment_spec.nn_h_layer_topo)
+    theta_mlp = build_MLP_computation_graph(observation_placeholder, playground, experiment_spec.nn_h_layer_topo)
 
     # /---- discrete case -----
     if isinstance(playground.env.action_space, gym.spaces.Discrete):
@@ -334,11 +337,11 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
 
         # <editor-fold desc="::log probabilities computation graph --> Ice-Box ...">
         # # compute the log probabilitie from sampled action
-        # sampled_action_mask = tf.one_hot(sampled_action, depth=playground.ACTION_SPACE_SHAPE)
+        # sampled_action_mask = tf.one_hot(sampled_action, depth=playground.ACTION_CHOICES)
         # sampled_action_log_probability = tf.reduce_sum(log_probabilities * sampled_action_mask, axis=1)
         #
         # # compute the log probabilitie from action feed to the computetation graph
-        # action_mask = tf.one_hot(action_placeholder, depth=playground.ACTION_SPACE_SHAPE)
+        # action_mask = tf.one_hot(action_placeholder, depth=playground.ACTION_CHOICES)
         # feed_action_log_probability = tf.reduce_sum(log_probabilities * action_mask, axis=1)
         # </editor-fold>
 
@@ -366,7 +369,7 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
 
 
 # <editor-fold desc="::Reward to go related function ...">
-def reward_to_go(rewards: list) -> list:
+def reward_to_go(rewards: list) -> np.ndarray:
     assert isinstance(rewards, list)
     np_backward_rewards = np.array(rewards[::-1])
     reward_to_go = np.cumsum(np_backward_rewards)
@@ -379,7 +382,7 @@ def reward_to_go_np(rewards: np.ndarray) -> np.ndarray:
     return np.flip(reward_to_go)
 
 
-def discounted_reward_to_go(rewards: list, experiment_spec: ExperimentSpec) -> list:
+def discounted_reward_to_go(rewards: list, experiment_spec: ExperimentSpec) -> np.ndarray:
     assert isinstance(rewards, list)
     gamma = experiment_spec.discout_factor
     assert (0 <= gamma) and (gamma <= 1)
