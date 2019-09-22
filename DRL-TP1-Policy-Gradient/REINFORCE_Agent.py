@@ -41,14 +41,14 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
     observation_ph, action_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
     Q_values_ph = tf_cv1.placeholder(tf.float32, shape=(None,), name='q_values_placeholder')
 
-    sampled_action_op, theta_mlp_op, pseudo_loss_op = bloc.REINFORCE_policy(observation_ph, action_ph, Q_values_ph,
+    sampled_action, theta_mlp, pseudo_loss = bloc.REINFORCE_policy(observation_ph, action_ph, Q_values_ph,
                                                                    playground, exp_spec)
 
     """ ---- Container instantiation ---- """
     timestep_collector = bloc.TimestepCollector(exp_spec, playground)
 
     """ ---- Optimizer ---- """
-    policy_optimizer_op = bloc.policy_optimizer(pseudo_loss_op, exp_spec)
+    policy_optimizer_op = bloc.policy_optimizer(pseudo_loss, exp_spec)
 
 
     """ ---- Warm-up the computation graph and start learning! ---- """
@@ -74,7 +74,7 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
                     """ ---- Agent: act in the environment ---- """
                     step_observation = bloc.format_single_step_observation(observation)
 
-                    action_array = sess.run(sampled_action_op, feed_dict={observation_ph: (
+                    action_array = sess.run(sampled_action, feed_dict={observation_ph: (
                         step_observation)})
 
                     action = bloc.format_single_step_action(action_array)
@@ -106,8 +106,8 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
                 feed_dictionary = bloc.build_feed_dictionary([observation_ph, action_ph, Q_values_ph],
                                                              [observations, actions, Q_values])
 
-                sess.run([pseudo_loss_op], feed_dict=feed_dictionary)
-                sess.run([policy_optimizer_op], feed_dict=feed_dictionary)
+                sess.run([pseudo_loss], feed_dict=feed_dictionary)
+                sess.run([policy_optimizer_op])
 
     writer.close()
 

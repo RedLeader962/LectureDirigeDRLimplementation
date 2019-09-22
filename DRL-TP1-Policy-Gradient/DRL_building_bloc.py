@@ -258,7 +258,7 @@ def policy_theta_discrete_space(logits_layer: tf.Tensor, action_placeholder_shap
     :type action_placeholder_shape: tf.TensorShape
     :param playground:
     :type playground: GymPlayground
-    :return: (sampled_action_op, log_probabilities_op)
+    :return: (sampled_action, log_probabilities)
     :rtype: (tf.Tensor, tf.Tensor)
     """
     assert isinstance(playground.env.action_space, gym.spaces.Discrete)
@@ -268,13 +268,13 @@ def policy_theta_discrete_space(logits_layer: tf.Tensor, action_placeholder_shap
 
     with tf.name_scope(vocab.policy_theta_discrete) as scope:
         # convert the logits layer (aka: raw output) to probabilities
-        log_probabilities_op = tf.nn.log_softmax(logits_layer)
+        log_probabilities = tf.nn.log_softmax(logits_layer)
         oversize_policy_theta = tf.random.categorical(logits_layer, num_samples=1)
 
         # Remove single-dimensional entries from the shape of the array since we only take one sample from the distribution
-        sampled_action_op = tf.squeeze(oversize_policy_theta, axis=1)
+        sampled_action = tf.squeeze(oversize_policy_theta, axis=1)
 
-        return sampled_action_op, log_probabilities_op
+        return sampled_action, log_probabilities
 
 
 def policy_theta_continuous_space(logits_layer: tf.Tensor, action_placeholder_shape: tf.TensorShape, playground: GymPlayground):
@@ -315,18 +315,18 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
     :type playground: GymPlayground
     :param experiment_spec:
     :type experiment_spec: ExperimentSpec
-    :return: (sampled_action_op, theta_mlp_op, pseudo_loss_op)
+    :return: (sampled_action, theta_mlp, pseudo_loss)
     :rtype: (tf.Tensor, tf.Tensor, tf.Tensor)
     """
 
-    theta_mlp_op = build_MLP_computation_graph(observation_placeholder, action_placeholder.shape,
+    theta_mlp = build_MLP_computation_graph(observation_placeholder, action_placeholder.shape,
                                                  experiment_spec.nn_h_layer_topo)
 
     # /---- discrete case -----
     if isinstance(playground.env.action_space, gym.spaces.Discrete):
 
-        policy_theta, log_probabilities = policy_theta_discrete_space(theta_mlp_op, action_placeholder.shape, playground)
-        sampled_action_op = policy_theta
+        policy_theta, log_probabilities = policy_theta_discrete_space(theta_mlp, action_placeholder.shape, playground)
+        sampled_action = policy_theta
 
         assert log_probabilities.shape.is_compatible_with(action_placeholder.shape), "the action_placeholder is " \
             "incompatible with Discrete space, {} != {}".format(action_placeholder.shape, log_probabilities.shape)
@@ -334,7 +334,7 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
 
         # <editor-fold desc="::log probabilities computation graph --> Ice-Box ...">
         # # compute the log probabilitie from sampled action
-        # sampled_action_mask = tf.one_hot(sampled_action_op, depth=playground.ACTION_SPACE_SHAPE)
+        # sampled_action_mask = tf.one_hot(sampled_action, depth=playground.ACTION_SPACE_SHAPE)
         # sampled_action_log_probability = tf.reduce_sum(log_probabilities * sampled_action_mask, axis=1)
         #
         # # compute the log probabilitie from action feed to the computetation graph
@@ -342,17 +342,17 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
         # feed_action_log_probability = tf.reduce_sum(log_probabilities * action_mask, axis=1)
         # </editor-fold>
 
-        pseudo_loss_op = discrete_pseudo_loss(action_placeholder, Q_values_placeholder, theta_mlp_op)
+        pseudo_loss = discrete_pseudo_loss(action_placeholder, Q_values_placeholder, theta_mlp)
 
     # /---- continuous case -----
     elif isinstance(playground.env.action_space, gym.spaces.Box):
-        policy_theta, log_standard_deviation = policy_theta_continuous_space(theta_mlp_op, action_placeholder.shape, playground)
+        policy_theta, log_standard_deviation = policy_theta_continuous_space(theta_mlp, action_placeholder.shape, playground)
 
         assert policy_theta.shape.is_compatible_with(action_placeholder.shape), "the action_placeholder is " \
             "incompatible with Continuous space, {} != {}".format(action_placeholder.shape, policy_theta.shape)
 
         raise NotImplementedError   # todo: implement
-        sampled_action_op = NotImplemented
+        sampled_action = NotImplemented
         sampled_action_log_probability = NotImplemented
         feed_action_log_probability = NotImplemented
 
@@ -361,7 +361,7 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
         print("\n>>> The given playground {} is of action space type {}. The agent implementation does not support it yet\n\n".format(playground.ENVIRONMENT_NAME, playground.env.action_space))
         raise NotImplementedError
 
-    return sampled_action_op, theta_mlp_op, pseudo_loss_op  # sampled_action_log_probability, feed_action_log_probability
+    return sampled_action, theta_mlp, pseudo_loss  # sampled_action_log_probability, feed_action_log_probability
 
 
 
@@ -425,7 +425,7 @@ def discrete_pseudo_loss(action_placeholder: tf.Tensor, Q_values_placeholder: tf
     :type Q_values_placeholder: tf.Tensor
     :param theta_mlp:
     :type theta_mlp: tf.Tensor
-    :return: pseudo_loss_op
+    :return: pseudo_loss
     :rtype: tf.Tensor
     """
 
@@ -438,8 +438,8 @@ def discrete_pseudo_loss(action_placeholder: tf.Tensor, Q_values_placeholder: tf
         # note: tf.stop_gradient(Q_values_placeholder) prevent the backpropagation into the Q_values_placeholder
         #   |   witch contain rewards_to_go. It treat the values of the tensor as constant during backpropagation.
         weighted_negative_likelihoods = tf.multiply(Q_values_placeholder, negative_likelihoods)
-        pseudo_loss_op = tf.reduce_mean(weighted_negative_likelihoods)
-        return pseudo_loss_op
+        pseudo_loss = tf.reduce_mean(weighted_negative_likelihoods)
+        return pseudo_loss
 
 
 def policy_optimizer(pseudo_loss_op: tf.Tensor, exp_spec: ExperimentSpec) -> tf.Tensor:
