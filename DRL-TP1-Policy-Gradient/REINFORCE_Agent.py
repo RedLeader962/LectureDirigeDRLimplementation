@@ -45,8 +45,8 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
     observation_ph, action_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
     Q_values_ph = tf_cv1.placeholder(tf.float32, shape=(None,), name='q_values_placeholder')
 
-    sampled_action, theta_mlp, pseudo_loss = bloc.REINFORCE_policy(observation_ph, action_ph, Q_values_ph,
-                                                                   playground, exp_spec)
+    sampled_action, theta_mlp, pseudo_loss = bloc.REINFORCE_policy(observation_ph, action_ph, Q_values_ph, exp_spec,
+                                                                   playground)
 
     """ ---- Container instantiation ---- """
     timestep_collector = bloc.TimestepCollector(exp_spec, playground)
@@ -61,15 +61,15 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
         tf.set_random_seed(exp_spec.random_seed)
         sess.run(tf_cv1.global_variables_initializer())     # initialize random variable in the computation graph
 
-        """ ---- Simulator: Epoch ---- """
+        """ ---- Simulator: Epochs ---- """
         for epoch in range(exp_spec.max_epoch):
 
-            """ ---- Simulator: trajectory ---- """
+            """ ---- Simulator: trajectories ---- """
             for trajectory in range(exp_spec.trajectories_batch_size):
                 print("\n:: Epoch: {} {}\n\t ↳:: Trajectorie {} started\n".format( epoch+1, "-" * 67, trajectory + 1))
                 observation = env.reset()   # fetch initial observation
 
-                """ ---- Simulator: time-step ---- """
+                """ ---- Simulator: time-steps ---- """
                 for step in range(exp_spec.timestep_max_per_trajectorie):
 
                     if render_env:
@@ -105,13 +105,12 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
                 # print(trajectory_container)
                 print("{} E:{} Tr:{} END ::\n\n".format("-" * 63, epoch + 1, trajectory + 1))
 
-
-                observations, actions, rewards, Q_values = trajectory_container.unpack()
+                observations, actions, rewards, Q_values, trajectory_return, trajectory_lenght = trajectory_container.unpack()
 
                 feed_dictionary = bloc.build_feed_dictionary([observation_ph, action_ph, Q_values_ph],
                                                              [observations, actions, Q_values])
 
-                sess.run([pseudo_loss, policy_optimizer_op], feed_dict=feed_dictionary)
+                trajectory_loss, _ = sess.run([pseudo_loss, policy_optimizer_op], feed_dict=feed_dictionary)
 
     writer.close()
 

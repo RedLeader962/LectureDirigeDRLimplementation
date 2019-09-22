@@ -283,6 +283,7 @@ def policy_theta_discrete_space(logits_layer: tf.Tensor, playground: GymPlaygrou
 def policy_theta_continuous_space(logits_layer: tf.Tensor, playground: GymPlayground):
     """
     Policy theta for continuous space --> actions are sampled from a gausian distribution
+    status: ice-box until next sprint
     """
     assert isinstance(playground.env.action_space, gym.spaces.Box)
     assert isinstance(logits_layer, tf.Tensor)
@@ -292,7 +293,7 @@ def policy_theta_continuous_space(logits_layer: tf.Tensor, playground: GymPlaygr
         # convert the logits layer (aka: raw output) to probabilities
         logits_layer = tf.identity(logits_layer, name='mu')
 
-        # # raise NotImplementedError   # todo: implement
+        raise NotImplementedError   # todo: implement
         # log_standard_deviation = NotImplemented  # (!) todo
         # standard_deviation = NotImplemented  # (!) todo --> compute standard_deviation
         # logit_layer_shape = tf.shape(logits_layer)
@@ -300,7 +301,8 @@ def policy_theta_continuous_space(logits_layer: tf.Tensor, playground: GymPlaygr
         # return sampled_action, log_standard_deviation
 
 
-def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.Tensor, Q_values_placeholder: tf.Tensor, playground: GymPlayground, experiment_spec: ExperimentSpec) -> (tf.Tensor, tf.Tensor, tf.Tensor):
+def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.Tensor, Q_values_placeholder: tf.Tensor,
+                     experiment_spec: ExperimentSpec, playground: GymPlayground) -> (tf.Tensor, tf.Tensor, tf.Tensor):
     """
     The learning agent. Base on the REINFORCE paper todo --> add citation
     (aka: Vanila policy gradient)
@@ -403,6 +405,7 @@ def discounted_reward_to_go_np(rewards: np.ndarray, experiment_spec: ExperimentS
 
     np_backward_rewards = np.flip(rewards)
     discounted_reward_to_go = np.zeros_like(rewards)
+    # todo --> Since flip return a view, test if iterate on a pre flip ndarray and than post flip before return would be cleaner
 
     # todo --> refactor using a gamma mask and matrix product & sum, instead of loop
     for r in range(len(rewards)):
@@ -509,6 +512,7 @@ class TrajectoryContainer(object):
         self.actions = np.array(actions, dtype=dtype)
         self.rewards = np.array(rewards, dtype=dtype)
         self.discounted = discounted
+        self.trajectory_return = np.sum(self.rewards)
 
         if discounted:
             self.Q_values = discounted_reward_to_go_np(self.rewards, experiment_spec=experiment_spec)
@@ -535,13 +539,17 @@ class TrajectoryContainer(object):
         rew = self.rewards[ts]
         return obs, act, rew
 
-    def unpack(self) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
+    def unpack(self) -> (np.ndarray, np.ndarray, np.ndarray, [np.ndarray, np.ndarray], np.float, int):
         """
         Unpack the full trajectorie as a tuple of numpy array
-        :return: (observations, actions, rewards, Q_values)
-        :rtype: (np.ndarray, np.ndarray, np.ndarray, np.ndarray)
+
+            Note: Q_values is a numpy ndarray view
+
+        :return: (observations, actions, rewards, Q_values, trajectory_return, trajectory_lenght)
+        :rtype: (np.ndarray, np.ndarray, np.ndarray, [np.ndarray, np.ndarray], np.float, int)
         """
-        return self.observations, self.actions, self.rewards, self.Q_values
+        return self.observations, self.actions, self.rewards, \
+               self.Q_values, self.trajectory_return, self.__len__()
 
     def __repr__(self):
         str = "\n::trajectory_container/\n"
@@ -550,7 +558,8 @@ class TrajectoryContainer(object):
         str += ".rewards=\n{}\n\n".format(self.rewards)
         str += ".discounted --> {}\n".format(self.discounted)
         str += ".Q_values=\n{}\n\n".format(self.Q_values)
-        str += "len(trajectory_container) --> {} ::\n\n".format(self.__len__())
+        str += ".trajectory_return=\n{}\n\n".format(self.trajectory_return)
+        str += "len(trajectory) --> {} ::\n\n".format(self.__len__())
         return str
 
 
@@ -638,21 +647,56 @@ class TimestepCollector(object):
     def __del__(self):
         self._reset()
 
+class EpochContainer(object):
+    """Container for storage & retrieval of epoch components (aka a batch of sampled trajectories"""
+    def __init__(self, experiment_spec: ExperimentSpec):
+        self.experiment_spec = experiment_spec
+        self.epoch_obss = []
+        self.epoch_acts = []
+        self.epoch_Qvalues = []
+        self.epoch_returns = []
+        self.epoch_trajs_len = []
+        self._number_of_collected_trajectory = 0
 
-# <editor-fold desc="::Ice-box ">
-class TrajectoriesBatchContainer(object):
-    """Iterable container by timestep increment for storage & retrieval of component of a sampled trajectory"""
-    # ice-box
-    def __init__(self, max_trajectory_lenght: int, playground: GymPlayground):
-        self.max_trajectory_lenght = max_trajectory_lenght
-        self.playground = playground
+        # note: Optimization consideration --> why collect numpy ndarray in python list?
+        #   |   It's a order of magnitude faster to collect ndarray in a list and then convert the list
+        #   |       to a ndarray than it is to append ndarray to each other
 
-        raise NotImplementedError   # todo: implement --> ice-box: implement for case batch size > 1
+    def __call__(self, trajectory: TrajectoryContainer,  *args, **kwargs) -> None:
+        traj_observation, traj_actions, traj_Qvalues, traj_return, traj_lenght = trajectory.unpack()
+        self.epoch_obss.append(traj_observation)
+        self.epoch_acts.append(traj_actions)
+        self.epoch_Qvalues.append(traj_Qvalues)
+        self.epoch_returns.append(traj_return)
+        self.epoch_trajs_len.append(traj_lenght)
+        self._number_of_collected_trajectory += 1
+        return None
 
-def epoch_buffer(trajectory_placeholder):
-    # ice-box
-    raise NotImplementedError   # todo: implement
-# </editor-fold>
+    def append(self, trajectory: TrajectoryContainer) -> None:
+        self.__call__(trajectory)
+        return None
+
+    def __len__(self):
+        return self._number_of_collected_trajectory
+
+    def total_timestep_collected(self) -> int:
+        return sum(self.epoch_trajs_len)
+
+    def unpack(self) -> (list, list, list, list, list, int, int):
+        """
+        Unpack the full epoch batch of collected trajectories in list of numpy ndarray
+
+        todo: (implement & test) precompute ndarray concatenation in a single ndarray
+          |             [ndarray, ... , ndarray] --> big ndarray
+
+        :return: (epoch_observations, epoch_actions, epoch_Qvalues, epoch_trajectories_returns, trajectories_lenghts, nb_of_collected_trajectories, total_timestep_collected)
+        :rtype: (list, list, list, list, list, int, int)
+        """
+        properties = (
+            self.epoch_obss, self.epoch_acts, self.epoch_Qvalues, self.epoch_returns,
+            self.epoch_trajs_len, self.__len__(), self.total_timestep_collected()
+        )
+        return properties
 
 
 def format_single_step_observation(observation: np.ndarray):
