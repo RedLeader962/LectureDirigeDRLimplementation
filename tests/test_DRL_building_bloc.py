@@ -9,6 +9,9 @@ from tensorflow import keras
 tf_cv1 = tf.compat.v1   # shortcut
 
 import DRL_building_bloc as bloc
+from vocabulary import rl_name
+vocab = rl_name()
+
 
 # ---- setup & teardown -------------------------------------------------------------------------------------------
 
@@ -387,8 +390,8 @@ def test_REINFORCE_agent_DISCRETE_PASS(gym_and_tf_discrete_setup):
     obs_p, act_p, exp_spec, playground = gym_and_tf_discrete_setup
     q_values_p = tf_cv1.placeholder(tf.float32, shape=(None,), name='q_values_placeholder')
 
-    theta_mlp = bloc.build_MLP_computation_graph(obs_p, playground, exp_spec.nn_h_layer_topo)
-    bloc.REINFORCE_policy(obs_p, act_p, q_values_p, exp_spec, playground)
+    reinforce_policy = bloc.REINFORCE_policy(obs_p, act_p, q_values_p, exp_spec, playground)
+    sampled_action, theta_mlp, pseudo_loss = reinforce_policy
 
     # todo: finish test case
 
@@ -517,3 +520,8 @@ def test_create_tensor():
         run_result = sess.run([ops_a, print_ops])
 
         print(">>> run result: {}\n\n".format(run_result))
+
+
+def test_vocab_PASS():
+    print(vocab)
+

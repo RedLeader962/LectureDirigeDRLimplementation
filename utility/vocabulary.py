@@ -3,10 +3,13 @@
 from collections import namedtuple
 
 _rl_vocab_list = [
+    'REINFORCE', 'ActorCritic', 'DQN',
     'Discrete', 'Continuous',
     'trajectorie', 'timestep', 'epoch', 'horizon',
-    'observation', 'action', 'policy', 'transition_dynamic', 'reward', 'reward_to_go', 'G',
-    'policy_theta_discrete', 'policy_theta_continuous',
+    'observation', 'action', 'policy', 'transition_dynamic', 'reward', 'reward_to_go', 'Qvalues', 'G',
+    'policy_theta', 'policy_theta_D', 'policy_theta_C',
+    'theta_NeuralNet',
+    'sampled_action', 'sampled_action_log_pr', 'action_space_log_pr',
     'pseudo_loss', 'likelihood', 'negative_likelihood'
     'V_pi', 'Q_pi', 'A_pi',
     'discout_factor',
@@ -15,7 +18,7 @@ _rl_vocab_list = [
     'learning_rate',
     'entropy', 'KL',
     'Multi_Layer_Perceptron',
-    'input_placeholder', 'output_placeholder',
+    'input_placeholder', 'output_placeholder', 'Qvalues_placeholder',
     'input_layer', 'hidden_', 'output_layer', 'logits'
 ]
 

@@ -43,12 +43,14 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
         Build the Policy_theta computation graph
     """
     observation_ph, action_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
-    Q_values_ph = tf_cv1.placeholder(tf.float32, shape=(None,), name='q_values_placeholder')
 
-    sampled_action, theta_mlp, pseudo_loss = bloc.REINFORCE_policy(observation_ph, action_ph, Q_values_ph, exp_spec,
-                                                                   playground)
+    # todo --> refactor: push inside gym_playground_to_tensorflow_graph_adapter
+    Q_values_ph = tf_cv1.placeholder(tf.float32, shape=(None,), name=vocab.Qvalues_placeholder)
 
-    """ ---- Container instantiation ---- """
+    reinforce_policy = bloc.REINFORCE_policy(observation_ph, action_ph, Q_values_ph, exp_spec, playground)
+    sampled_action, theta_mlp, pseudo_loss = reinforce_policy
+
+    """ ---- Collector instantiation ---- """
     timestep_collector = bloc.TimestepCollector(exp_spec, playground)
 
     """ ---- Optimizer ---- """
@@ -57,8 +59,8 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
 
     """ ---- Warm-up the computation graph and start learning! ---- """
     writer = tf_cv1.summary.FileWriter('./graph', tf_cv1.get_default_graph())
+    tf_cv1.set_random_seed(exp_spec.random_seed)
     with tf_cv1.Session() as sess:
-        tf.set_random_seed(exp_spec.random_seed)
         sess.run(tf_cv1.global_variables_initializer())     # initialize random variable in the computation graph
 
         """ ---- Simulator: Epochs ---- """

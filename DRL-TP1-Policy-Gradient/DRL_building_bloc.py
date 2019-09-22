@@ -159,9 +159,10 @@ class GymPlayground(object):
         return self.OBSERVATION_SPACE, self.ACTION_SPACE, self.ACTION_CHOICES, self.ENVIRONMENT_NAME
 
 
-def build_MLP_computation_graph(input_placeholder: tf.Tensor, playground: GymPlayground, hidden_layer_topology: tuple = (32, 32),
-                                hidden_layers_activation: tf.Tensor = tf.tanh,
-                                output_layers_activation: tf.Tensor = tf.sigmoid) -> tf.Tensor:
+def build_MLP_computation_graph(input_placeholder: tf.Tensor, playground: GymPlayground,
+                                hidden_layer_topology: tuple = (32, 32), hidden_layers_activation: tf.Tensor = tf.tanh,
+                                output_layers_activation: tf.Tensor = tf.sigmoid,
+                                name_scope=vocab.Multi_Layer_Perceptron) -> tf.Tensor:
     """
     Builder function for Low Level TensorFlow API.
     Return a Multi Layer Perceptron computatin graph with topology:
@@ -183,6 +184,8 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, playground: GymPla
     :type hidden_layers_activation:
     :param output_layers_activation:
     :type output_layers_activation:
+    :param name_scope:
+    :type name_scope:
     :return: a well construct computation graph
     :rtype: tf.Tensor
     """
@@ -190,7 +193,7 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, playground: GymPla
     assert isinstance(playground, GymPlayground)
     assert isinstance(hidden_layer_topology, tuple)
 
-    with tf.name_scope(vocab.Multi_Layer_Perceptron) as scope:
+    with tf.name_scope(name_scope) as scope:
         # Create input layer
         ops = keras.layers.Dense(hidden_layer_topology[0], input_shape=input_placeholder.shape,
                                   activation=hidden_layers_activation, name=vocab.input_layer)
@@ -267,15 +270,20 @@ def policy_theta_discrete_space(logits_layer: tf.Tensor, playground: GymPlaygrou
     assert isinstance(logits_layer, tf.Tensor)
     assert logits_layer.shape.as_list()[-1] == playground.ACTION_CHOICES
 
-    with tf.name_scope(vocab.policy_theta_discrete) as scope:
+    with tf.name_scope(vocab.policy_theta_D) as scope:
         # convert the logits layer (aka: raw output) to probabilities
         log_probabilities = tf.nn.log_softmax(logits_layer)
-        oversize_policy_theta = tf.random.categorical(logits_layer, num_samples=1,
-                                                      # dtype=tf.int32
-                                                      )
+        oversize_policy_theta = tf.random.categorical(logits_layer, num_samples=1)
 
         # Remove single-dimensional entries from the shape of the array since we only take one sample from the distribution
         sampled_action = tf.squeeze(oversize_policy_theta, axis=1)
+
+        # # Compute the log probabilitie from sampled action
+        # # todo --> sampled_action_log_probability unit test
+        # sampled_action_mask = tf.one_hot(sampled_action, depth=playground.ACTION_CHOICES)
+        # log_probabilities_matrix = tf.multiply(sampled_action_mask, log_probabilities)
+        # sampled_action_log_probability = tf.reduce_sum(log_probabilities_matrix, axis=1)
+
 
         return sampled_action, log_probabilities
 
@@ -289,7 +297,7 @@ def policy_theta_continuous_space(logits_layer: tf.Tensor, playground: GymPlaygr
     assert isinstance(logits_layer, tf.Tensor)
     assert logits_layer.shape.as_list()[-1] == playground.ACTION_CHOICES
 
-    with tf.name_scope(vocab.policy_theta_continuous) as scope:
+    with tf.name_scope(vocab.policy_theta_C) as scope:
         # convert the logits layer (aka: raw output) to probabilities
         logits_layer = tf.identity(logits_layer, name='mu')
 
@@ -302,12 +310,11 @@ def policy_theta_continuous_space(logits_layer: tf.Tensor, playground: GymPlaygr
 
 
 def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.Tensor, Q_values_placeholder: tf.Tensor,
-                     experiment_spec: ExperimentSpec, playground: GymPlayground) -> (tf.Tensor, tf.Tensor, tf.Tensor):
+                     experiment_spec: ExperimentSpec, playground: GymPlayground) -> (tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor):
     """
-    The learning agent. Base on the REINFORCE paper todo --> add citation
-    (aka: Vanila policy gradient)
-
-    todo --> implement for continuous space
+    The learning agent. Base on the REINFORCE paper (aka: Vanila policy gradient)
+    todo --> add references
+    todo --> implement for continuous space (status: Ice-box until next sprint)
 
     :param observation_placeholder:
     :type observation_placeholder: tf.Tensor
@@ -319,51 +326,41 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
     :type playground: GymPlayground
     :param experiment_spec:
     :type experiment_spec: ExperimentSpec
-    :return: (sampled_action, theta_mlp, pseudo_loss)
-    :rtype: (tf.Tensor, tf.Tensor, tf.Tensor)
+    :return: (sampled_action, theta_mlp, pseudo_loss, sampled_action_log_probability)
+    :rtype: (tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor)
     """
 
-    theta_mlp = build_MLP_computation_graph(observation_placeholder, playground, experiment_spec.nn_h_layer_topo)
+    with tf.name_scope(vocab.REINFORCE) as scope:
 
-    # /---- discrete case -----
-    if isinstance(playground.env.action_space, gym.spaces.Discrete):
+        theta_mlp = build_MLP_computation_graph(observation_placeholder, playground,
+                                                experiment_spec.nn_h_layer_topo, name_scope=vocab.theta_NeuralNet)
 
-        policy_theta, log_probabilities = policy_theta_discrete_space(theta_mlp, playground)
-        sampled_action = policy_theta
+        # /---- discrete case -----
+        if isinstance(playground.env.action_space, gym.spaces.Discrete):
+            assert observation_placeholder.shape.as_list()[-1] == playground.OBSERVATION_SPACE.shape[0], \
+                "the observation_placeholder is incompatible with environment, " \
+                "{} != {}".format(observation_placeholder.shape.as_list()[-1], playground.OBSERVATION_SPACE.shape[0])
 
-        assert observation_placeholder.shape.as_list()[-1] == playground.OBSERVATION_SPACE.shape[0], "the observation_placeholder is incompatible with environment, {} != {}".format(observation_placeholder.shape.as_list()[-1], playground.OBSERVATION_SPACE.shape[0])
+            sampled_action, log_probabilities = policy_theta_discrete_space(theta_mlp, playground)
 
+            pseudo_loss = discrete_pseudo_loss(theta_mlp, action_placeholder, Q_values_placeholder, playground)
 
-        # <editor-fold desc="::log probabilities computation graph --> Ice-Box ...">
-        # # compute the log probabilitie from sampled action
-        # sampled_action_mask = tf.one_hot(sampled_action, depth=playground.ACTION_CHOICES)
-        # sampled_action_log_probability = tf.reduce_sum(log_probabilities * sampled_action_mask, axis=1)
-        #
-        # # compute the log probabilitie from action feed to the computetation graph
-        # action_mask = tf.one_hot(action_placeholder, depth=playground.ACTION_CHOICES)
-        # feed_action_log_probability = tf.reduce_sum(log_probabilities * action_mask, axis=1)
-        # </editor-fold>
+        # /---- continuous case -----
+        elif isinstance(playground.env.action_space, gym.spaces.Box):
+            raise NotImplementedError   # todo: implement
 
-        pseudo_loss = discrete_pseudo_loss(theta_mlp, action_placeholder, Q_values_placeholder, playground)
+            policy_theta, log_standard_deviation = policy_theta_continuous_space(theta_mlp, playground)
 
-    # /---- continuous case -----
-    elif isinstance(playground.env.action_space, gym.spaces.Box):
-        policy_theta, log_standard_deviation = policy_theta_continuous_space(theta_mlp, playground)
+            sampled_action = NotImplemented
+            sampled_action_log_probability = NotImplemented
 
-        assert policy_theta.shape.is_compatible_with(action_placeholder.shape), "the action_placeholder is " \
-            "incompatible with Continuous space, {} != {}".format(action_placeholder.shape, policy_theta.shape)
+        # /---- other gym environment -----
+        else:
+            print("\n>>> The agent implementation does not support environment space "
+                  "{} yet.\n\n".format(playground.env.action_space))
+            raise NotImplementedError
 
-        raise NotImplementedError   # todo: implement
-        sampled_action = NotImplemented
-        sampled_action_log_probability = NotImplemented
-        feed_action_log_probability = NotImplemented
-
-    # /---- other gym environment -----
-    else:
-        print("\n>>> The given playground {} is of action space type {}. The agent implementation does not support it yet\n\n".format(playground.ENVIRONMENT_NAME, playground.env.action_space))
-        raise NotImplementedError
-
-    return sampled_action, theta_mlp, pseudo_loss  # sampled_action_log_probability, feed_action_log_probability
+    return sampled_action, theta_mlp, pseudo_loss
 
 
 
@@ -438,15 +435,17 @@ def discrete_pseudo_loss(theta_mlp: tf.Tensor, action_placeholder: tf.Tensor, Q_
 
     with tf.name_scope(vocab.pseudo_loss) as scope:
 
-        # note: tf.stop_gradient(Q_values_placeholder) prevent the backpropagation into the Q_values_placeholder
-        #   |   witch contain rewards_to_go. It treat the values of the tensor as constant during backpropagation.
-
+        # Step 1: Compute the log probabilitie of the current policy over the action space
         action_mask = tf.one_hot(action_placeholder, playground.ACTION_CHOICES)
         log_probabilities_matrix = tf.multiply(action_mask, tf.nn.log_softmax(theta_mlp))
         log_probabilities = tf.reduce_sum(log_probabilities_matrix, axis=1)
+
+        # Step 2: Compute the pseudo loss
+        # note: tf.stop_gradient(Q_values_placeholder) prevent the backpropagation into the Q_values_placeholder
+        #   |   witch contain rewards_to_go. It treat the values of the tensor as constant during backpropagation.
+
         weighted_likelihoods = tf.multiply(
-            tf.stop_gradient(Q_values_placeholder),
-            log_probabilities)
+            tf.stop_gradient(Q_values_placeholder), log_probabilities)
         pseudo_loss = tf.reduce_mean(weighted_likelihoods)
         return pseudo_loss
 
