@@ -355,12 +355,12 @@ def test_SamplingContainer_DISCRETE_BASIC(gym_discrete_setup):
 # --- policy_theta ----------------------------------------------------------------------------------------------
 def test_policy_theta_discrete_space_PARAM_FAIL(gym_and_tf_discrete_setup):
 
-    obs_p, act_p, exp_spec, playground = gym_and_tf_discrete_setup
-    out_p_wrong_shape = tf_cv1.placeholder(tf.float32, shape=(None, 43))
-    theta_mlp = bloc.build_MLP_computation_graph(obs_p, playground, exp_spec.nn_h_layer_topo)
+    _ , act_p, exp_spec, playground = gym_and_tf_discrete_setup
+    obs_p_wrong_shape = tf_cv1.placeholder(tf.float32, shape=(None, 3))
+    theta_mlp = bloc.build_MLP_computation_graph(obs_p_wrong_shape, playground, exp_spec.nn_h_layer_topo)
 
-    with pytest.raises(ValueError):
-        bloc.policy_theta_discrete_space(theta_mlp, out_p_wrong_shape.shape, playground)
+    with pytest.raises(AssertionError):
+        bloc.policy_theta_discrete_space(obs_p_wrong_shape, playground)
 
 def test_policy_theta_discrete_space_ENV_NOT_DISCRETE(gym_and_tf_continuous_setup):
     obs_p, act_p, exp_spec, continuous_playground = gym_and_tf_continuous_setup
@@ -369,34 +369,32 @@ def test_policy_theta_discrete_space_ENV_NOT_DISCRETE(gym_and_tf_continuous_setu
     theta_mlp = bloc.build_MLP_computation_graph(obs_p, continuous_playground, exp_spec.nn_h_layer_topo)
 
     with pytest.raises(AssertionError):
-        bloc.policy_theta_discrete_space(theta_mlp, out_p_wrong_shape.shape, continuous_playground)
+        bloc.policy_theta_discrete_space(theta_mlp, continuous_playground)
 
 
 def test_policy_theta_discrete_space_PASS(gym_and_tf_discrete_setup):
 
     obs_p, act_p, exp_spec, playground = gym_and_tf_discrete_setup
     theta_mlp = bloc.build_MLP_computation_graph(obs_p, playground, exp_spec.nn_h_layer_topo)
-    bloc.policy_theta_discrete_space(theta_mlp, act_p.shape, playground)
-
+    bloc.policy_theta_discrete_space(theta_mlp, playground)
     # todo: implement test case
 
 def test_policy_theta_continuous_space_PARAM_FAIL(gym_and_tf_continuous_setup):
-    obs_p, act_p, exp_spec, playground = gym_and_tf_continuous_setup
+    _, act_p, exp_spec, playground = gym_and_tf_continuous_setup
 
-    out_p_wrong_shape = tf_cv1.placeholder(tf.float32, shape=(None, act_p.shape[1]+1))
-    theta_mlp = bloc.build_MLP_computation_graph(obs_p, playground, exp_spec.nn_h_layer_topo)
+    obs_p_wrong_shape = tf_cv1.placeholder(tf.float32, shape=(None, 43))
 
-    with pytest.raises(ValueError):
-        bloc.policy_theta_continuous_space(theta_mlp, out_p_wrong_shape.shape, playground)
+    with pytest.raises(AssertionError):
+        bloc.policy_theta_continuous_space(obs_p_wrong_shape, playground)
 
 def test_policy_theta_continuous_space_ENV_NOT_DISCRETE(gym_and_tf_discrete_setup):
 
     obs_p, act_p, exp_spec, discrete_playground = gym_and_tf_discrete_setup
-    out_p_wrong_shape = tf_cv1.placeholder(tf.float32, shape=(None, act_p.shape[1]+1))
+    obs_p_wrong_shape = tf_cv1.placeholder(tf.float32, shape=(None, 43))
     theta_mlp = bloc.build_MLP_computation_graph(obs_p, discrete_playground, exp_spec.nn_h_layer_topo)
 
     with pytest.raises(AssertionError):
-        bloc.policy_theta_continuous_space(theta_mlp, out_p_wrong_shape.shape, discrete_playground)
+        bloc.policy_theta_continuous_space(theta_mlp, discrete_playground)
 
 
 def test_policy_theta_continuous_space_PASS(gym_and_tf_continuous_setup):
@@ -404,7 +402,7 @@ def test_policy_theta_continuous_space_PASS(gym_and_tf_continuous_setup):
 
     theta_mlp = bloc.build_MLP_computation_graph(obs_p, playground, exp_spec.nn_h_layer_topo)
 
-    bloc.policy_theta_continuous_space(theta_mlp, act_p.shape, playground)
+    bloc.policy_theta_continuous_space(theta_mlp, playground)
     # todo: finish test case
 
 # --- REINFORCED_agent -------------------------------------------------------------------------------------------

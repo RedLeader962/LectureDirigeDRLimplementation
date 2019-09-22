@@ -252,13 +252,11 @@ def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground) -> (tf
     return input_placeholder, output_placeholder
 
 
-def policy_theta_discrete_space(logits_layer: tf.Tensor, action_placeholder_shape: tf.TensorShape, playground: GymPlayground) -> (tf.Tensor, tf.Tensor):
+def policy_theta_discrete_space(logits_layer: tf.Tensor, playground: GymPlayground) -> (tf.Tensor, tf.Tensor):
     """Policy theta for discrete space --> actions are sampled from a categorical distribution
 
     :param logits_layer:
     :type logits_layer: tf.Tensor
-    :param action_placeholder_shape:
-    :type action_placeholder_shape: tf.TensorShape
     :param playground:
     :type playground: GymPlayground
     :return: (sampled_action, log_probabilities)
@@ -266,8 +264,7 @@ def policy_theta_discrete_space(logits_layer: tf.Tensor, action_placeholder_shap
     """
     assert isinstance(playground.env.action_space, gym.spaces.Discrete)
     assert isinstance(logits_layer, tf.Tensor)
-    # assert isinstance(action_placeholder_shape, tf.TensorShape)
-    # logits_layer.shape.assert_is_compatible_with(action_placeholder_shape)
+    assert logits_layer.shape.as_list()[-1] == playground.ACTION_CHOICES
 
     with tf.name_scope(vocab.policy_theta_discrete) as scope:
         # convert the logits layer (aka: raw output) to probabilities
@@ -280,26 +277,24 @@ def policy_theta_discrete_space(logits_layer: tf.Tensor, action_placeholder_shap
         return sampled_action, log_probabilities
 
 
-# todo --> refactor signature
-def policy_theta_continuous_space(logits_layer: tf.Tensor, action_placeholder_shape: tf.TensorShape, playground: GymPlayground):
+def policy_theta_continuous_space(logits_layer: tf.Tensor, playground: GymPlayground):
     """
     Policy theta for continuous space --> actions are sampled from a gausian distribution
     """
     assert isinstance(playground.env.action_space, gym.spaces.Box)
     assert isinstance(logits_layer, tf.Tensor)
-    assert isinstance(action_placeholder_shape, tf.TensorShape)
-    logits_layer.shape.assert_is_compatible_with(action_placeholder_shape)
+    assert logits_layer.shape.as_list()[-1] == playground.ACTION_CHOICES
 
     with tf.name_scope(vocab.policy_theta_continuous) as scope:
         # convert the logits layer (aka: raw output) to probabilities
         logits_layer = tf.identity(logits_layer, name='mu')
 
-        raise NotImplementedError   # todo: implement
-        log_standard_deviation = NotImplemented  # (!) todo
-        standard_deviation = NotImplemented  # (!) todo --> compute standard_deviation
-        logit_layer_shape = tf.shape(logits_layer)
-        sampled_action = logits_layer + tf.random_normal(logit_layer_shape) * standard_deviation
-        return sampled_action, log_standard_deviation
+        # # raise NotImplementedError   # todo: implement
+        # log_standard_deviation = NotImplemented  # (!) todo
+        # standard_deviation = NotImplemented  # (!) todo --> compute standard_deviation
+        # logit_layer_shape = tf.shape(logits_layer)
+        # sampled_action = logits_layer + tf.random_normal(logit_layer_shape) * standard_deviation
+        # return sampled_action, log_standard_deviation
 
 
 def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.Tensor, Q_values_placeholder: tf.Tensor, playground: GymPlayground, experiment_spec: ExperimentSpec) -> (tf.Tensor, tf.Tensor, tf.Tensor):
@@ -328,11 +323,10 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
     # /---- discrete case -----
     if isinstance(playground.env.action_space, gym.spaces.Discrete):
 
-        policy_theta, log_probabilities = policy_theta_discrete_space(theta_mlp, action_placeholder.shape, playground)
+        policy_theta, log_probabilities = policy_theta_discrete_space(theta_mlp, playground)
         sampled_action = policy_theta
 
-        assert log_probabilities.shape.is_compatible_with(action_placeholder.shape), "the action_placeholder is " \
-            "incompatible with Discrete space, {} != {}".format(action_placeholder.shape, log_probabilities.shape)
+        assert observation_placeholder.shape.as_list()[-1] == playground.OBSERVATION_SPACE.shape[0], "the observation_placeholder is incompatible with environment, {} != {}".format(observation_placeholder.shape.as_list()[-1], playground.OBSERVATION_SPACE.shape[0])
 
 
         # <editor-fold desc="::log probabilities computation graph --> Ice-Box ...">
@@ -349,7 +343,7 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
 
     # /---- continuous case -----
     elif isinstance(playground.env.action_space, gym.spaces.Box):
-        policy_theta, log_standard_deviation = policy_theta_continuous_space(theta_mlp, action_placeholder.shape, playground)
+        policy_theta, log_standard_deviation = policy_theta_continuous_space(theta_mlp, playground)
 
         assert policy_theta.shape.is_compatible_with(action_placeholder.shape), "the action_placeholder is " \
             "incompatible with Continuous space, {} != {}".format(action_placeholder.shape, policy_theta.shape)
@@ -432,7 +426,7 @@ def discrete_pseudo_loss(action_placeholder: tf.Tensor, Q_values_placeholder: tf
     :rtype: tf.Tensor
     """
 
-    assert action_placeholder.shape.is_compatible_with(theta_mlp.shape), "action_placeholder shape is not compatible with theta_mlp shape, {} != {}".format(action_placeholder, theta_mlp)
+    assert action_placeholder.shape.is_compatible_with(Q_values_placeholder.shape), "action_placeholder shape is not compatible with Q_values_placeholder shape, {} != {}".format(action_placeholder, Q_values_placeholder)
 
     with tf.name_scope(vocab.pseudo_loss) as scope:
         negative_likelihoods = tf.nn.softmax_cross_entropy_with_logits_v2(logits=theta_mlp, labels=action_placeholder,
