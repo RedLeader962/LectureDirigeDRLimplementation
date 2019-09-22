@@ -32,6 +32,10 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
     exp_spec = bloc.ExperimentSpec(trajectories_batch_size=1)
     playground = bloc.GymPlayground(environment_name='LunarLander-v2')
 
+    exp_spec.max_epoch = 10
+    exp_spec.timestep_max_per_trajectorie = 200
+    exp_spec.trajectories_batch_size=1
+
     env = playground.env
 
     """ --- Build computation graph ---
@@ -54,6 +58,7 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
     """ ---- Warm-up the computation graph and start learning! ---- """
     writer = tf_cv1.summary.FileWriter('./graph', tf_cv1.get_default_graph())
     with tf_cv1.Session() as sess:
+        tf.set_random_seed(exp_spec.random_seed)
         sess.run(tf_cv1.global_variables_initializer())     # initialize random variable in the computation graph
 
         """ ---- Simulator: Epoch ---- """
@@ -61,7 +66,7 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
 
             """ ---- Simulator: trajectory ---- """
             for trajectory in range(exp_spec.trajectories_batch_size):
-                print("\n:: Epoch: {} {}\n\t ↳:: Trajectorie {} started\n".format( epoch+1, "-" * 80, trajectory + 1))
+                print("\n:: Epoch: {} {}\n\t ↳:: Trajectorie {} started\n".format( epoch+1, "-" * 67, trajectory + 1))
                 observation = env.reset()   # fetch initial observation
 
                 """ ---- Simulator: time-step ---- """
@@ -79,7 +84,7 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
 
                     action = bloc.format_single_step_action(action_array)
                     observation, reward, done, info = env.step(action)
-                    print("\t\t\tE:{} Tr:{} TS:{}\t|\taction[{}]\t--> \treward={}".format(epoch + 1, trajectory + 1,
+                    print("\t\t E:{} Tr:{} TS:{}\t|\taction[{}]\t--> \treward={}".format(epoch + 1, trajectory + 1,
                                                                               step + 1, action, reward))
 
                     if len(info) is not 0:
@@ -97,8 +102,8 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
                     discounted_q_values=discounted_reward_to_go)
 
                 print("\n\n\t ↳::Trajectory {} finished after {} timesteps\n".format(trajectory + 1, step + 1))
-                print(trajectory_container)
-                print("{} E:{} Tr:{} END ::\n\n".format("-" * 76, epoch + 1, trajectory + 1))
+                # print(trajectory_container)
+                print("{} E:{} Tr:{} END ::\n\n".format("-" * 63, epoch + 1, trajectory + 1))
 
 
                 observations, actions, rewards, Q_values = trajectory_container.unpack()
@@ -107,7 +112,6 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
                                                              [observations, actions, Q_values])
 
                 sess.run([pseudo_loss, policy_optimizer_op], feed_dict=feed_dictionary)
-                # sess.run([policy_optimizer_op])
 
     writer.close()
 

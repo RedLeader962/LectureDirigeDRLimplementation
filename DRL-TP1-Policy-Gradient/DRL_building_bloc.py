@@ -213,6 +213,7 @@ def continuous_space_placeholder(space: gym.spaces.Box, name=None) -> tf.Tensor:
     space_shape = space.shape
     return tf_cv1.placeholder(dtype=tf.float32, shape=(None, *space_shape), name=name)
 
+
 def discrete_space_placeholder(space: gym.spaces.Discrete, name=None) -> tf.Tensor:
     assert isinstance(space, gym.spaces.Discrete)
     return tf_cv1.placeholder(dtype=tf.int32, shape=(None,), name=name)
