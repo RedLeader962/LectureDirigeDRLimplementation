@@ -79,6 +79,25 @@ def test_ExperimentSpec_init_ENV_TOPOLOGY_FAIL():
         bloc.ExperimentSpec(neural_net_hidden_layer_topology=[1,])
 
 
+def test_set_experiment_spec_PASS(gym_discrete_setup):
+    (exp_spec, playground) = gym_discrete_setup
+
+    parma_dict = {
+        'timestep_max_per_trajectorie': 10,
+        'trajectories_batch_size':10,
+        'max_epoch': 10,
+        'discout_factor': 0.5,
+        'learning_rate': 10,
+        'nn_h_layer_topo': (10, 10),
+        'random_seed': 10,
+        'hidden_layers_activation': tf.tanh,
+        'output_layers_activation': tf.tanh
+    }
+
+    exp_spec.set_experiment_spec(parma_dict)
+
+
+
 # ---- playground ------------------------------------------------------------------------------------------------
 
 def test_Playground_init_ENV_FAIL():

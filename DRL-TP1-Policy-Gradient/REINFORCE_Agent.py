@@ -16,6 +16,8 @@ vocab = rl_name()
 # endregion
 
 
+ENV_RENDER = True   # (!) Environment rendering manual selection. Comment this line
+
 
 """
 Start TensorBoard in terminal:
@@ -25,17 +27,28 @@ In browser, go to:
     http://0.0.0.0:6006/ 
 """
 
-def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=True):
+def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=True):
 
     exp_spec = bloc.ExperimentSpec(trajectories_batch_size=1)
+    parma_dict = {
+        'timestep_max_per_trajectorie': 2000,
+        'trajectories_batch_size': 60,
+        'max_epoch': 400,
+        'discout_factor': 0.98,
+        'learning_rate': 1e-2,
+        'nn_h_layer_topo': (32, 32),
+        'random_seed': 42,
+        'hidden_layers_activation': tf.tanh,
+        'output_layers_activation': tf.tanh,
+    }
+    exp_spec.set_experiment_spec(parma_dict)
+
     playground = bloc.GymPlayground(environment_name='LunarLander-v2')
-
-    exp_spec.max_epoch = 200
-    exp_spec.timestep_max_per_trajectorie = 2000
-    exp_spec.trajectories_batch_size = 50
-    exp_spec.learning_rate = 0.98
-
     env = playground.env
+
+
+    if render_env is None:
+        render_env = ENV_RENDER
 
     # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
     # *                                                                                                               *
@@ -82,10 +95,11 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
             for trj in range(exp_spec.trajectories_batch_size):
                 observation = env.reset()   # fetch initial observation
 
+
                 """ ---- Simulator: time-steps ---- """
                 for step in range(exp_spec.timestep_max_per_trajectorie):
 
-                    if render_env:
+                    if render_env and epoch%10 == 0:
                         env.render()    # (!) keep environment rendering turned OFF during unit test
 
                     """ ---- Agent: act in the environment ---- """

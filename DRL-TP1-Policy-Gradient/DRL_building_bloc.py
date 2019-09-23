@@ -40,16 +40,22 @@ class ExperimentSpec(object):
         self.timestep_max_per_trajectorie = timestep_max_per_trajectorie         # horizon
         self.trajectories_batch_size = trajectories_batch_size
         self.max_epoch = max_epoch
-        self.discout_factor = discout_factor
+        self.discout_factor: float = discout_factor
         self.learning_rate = learning_rate
 
         self.nn_h_layer_topo = neural_net_hidden_layer_topology
         self.random_seed = random_seed
-        # todo: self.hidden_layer_activation_function
-        # todo: self.output_layer_activation_function
+        self.hidden_layers_activation: tf.Tensor = tf.tanh
+        self.output_layers_activation: tf.Tensor = tf.sigmoid
+
+        self.log_every_step = 1000
         # todo: any NN usefull param
 
-        assert isinstance(neural_net_hidden_layer_topology, tuple)
+        self.assert_param()
+
+    def assert_param(self):
+        assert (0 <= self.discout_factor) and (self.discout_factor <= 1)
+        assert isinstance(self.nn_h_layer_topo, tuple)
 
     def get_agent_training_spec(self):
         """
@@ -57,7 +63,13 @@ class ExperimentSpec(object):
         :return: ( trajectories_batch_size, max_epoch, timestep_max_per_trajectorie )
         :rtype: (int, int, int)
         """
-        return self.trajectories_batch_size, self.max_epoch, self.timestep_max_per_trajectorie
+        return {
+            'timestep_max_per_trajectorie': self.timestep_max_per_trajectorie,
+            'trajectories_batch_size': self.trajectories_batch_size,
+            'max_epoch': self.max_epoch,
+            'discout_factor': self.discout_factor,
+            'learning_rate': self.learning_rate,
+        }
 
     def get_neural_net_spec(self):
         """
@@ -65,7 +77,26 @@ class ExperimentSpec(object):
         :return:
         :rtype:
         """
-        return self.nn_h_layer_topo, self.random_seed
+        return {
+            'nn_h_layer_topo': self.nn_h_layer_topo,
+            'random_seed': self.random_seed ,
+            'hidden_layers_activation': self.hidden_layers_activation,
+            'output_layers_activation': self.output_layers_activation,
+        }
+
+    def set_experiment_spec(self, dict_param: dict):
+
+        for str_k, v in dict_param.items():
+            str_k: str
+            self.__setattr__(str_k, v)
+
+        self.assert_param()
+
+        print("The new experiment specificaton are:")
+        print(self.get_agent_training_spec())
+        print(self.get_neural_net_spec())
+        return None
+
 
 class GymPlayground(object):
     def __init__(self, environment_name='LunarLanderContinuous-v2'):
@@ -771,7 +802,7 @@ class TrajectoriesCollector(object):
         return container
 
 
-# todo --> validate, possible source of graph data input error
+# todo:validate --> possible source of graph data input error:
 def format_single_step_observation(observation: np.ndarray):
     """ Single trajectorie batch size hack for the computation graph observation placeholder
                 observation.shape = (8,)
@@ -782,7 +813,7 @@ def format_single_step_observation(observation: np.ndarray):
     batch_size_one_observation = np.expand_dims(observation, axis=0)
     return batch_size_one_observation
 
-# todo --> validate, possible source of graph data input error
+# todo:validate --> possible source of graph data input error:
 def format_single_step_action(action_array: np.ndarray):
     # todo --> unitest
     action = None
