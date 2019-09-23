@@ -29,7 +29,7 @@ In browser, go to:
 
 def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=True):
 
-    exp_spec = bloc.ExperimentSpec(trajectories_batch_size=1)
+    exp_spec = bloc.ExperimentSpec()
     parma_dict = {
         'timestep_max_per_trajectorie': 2000,
         'trajectories_batch_size': 60,
@@ -46,9 +46,6 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=True
     playground = bloc.GymPlayground(environment_name='LunarLander-v2')
     env = playground.env
 
-
-    if render_env is None:
-        render_env = ENV_RENDER
 
     # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
     # *                                                                                                               *
@@ -99,7 +96,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=True
                 """ ---- Simulator: time-steps ---- """
                 for step in range(exp_spec.timestep_max_per_trajectorie):
 
-                    if render_env and epoch%10 == 0:
+                    if (render_env or ENV_RENDER) and epoch%100 == 0:
                         env.render()    # (!) keep environment rendering turned OFF during unit test
 
                     """ ---- Agent: act in the environment ---- """
