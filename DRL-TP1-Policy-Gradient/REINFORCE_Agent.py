@@ -112,7 +112,7 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
                         trajectories_collector.collect(trajectory_container)
 
                         # print(trajectory_container)
-                        print("\t  ↳ ::Trajectory {:3}  --->  got reward {:^4.4f}  after  {:>3} timesteps".format(
+                        print("\t  ↳ ::Trajectory {:>4}     --->     got reward {:>8.2f}   after  {:>4}  timesteps".format(
                             trj + 1, trajectory_container.the_trajectory_return, step + 1))
                         break
 
@@ -136,9 +136,12 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
             Q_values = epoch_container.trjs_Qvalues
 
             """ ---- Tensor/ndarray shape compatibility assessment ---- """
-            # assert observation_ph.shape.is_compatible_with(observations.shape), "Obs: {} != {}".format(observation_ph.shape, observations.shape)
-            # assert action_ph.shape.is_compatible_with(actions.shape), "Act: {} != {}".format(action_ph.shape, actions.shape)
-            # assert Q_values_ph.shape.is_compatible_with(Q_values.shape), "Qval: {} != {}".format(Q_values_ph.shape, Q_values.shape)
+            assert observation_ph.shape.is_compatible_with(np.array(observations).shape), \
+                "Obs: {} != {}".format(observation_ph.shape, np.array(observations).shape)
+            assert action_ph.shape.is_compatible_with(np.array(actions).shape), \
+                "Act: {} != {}".format(action_ph.shape, np.array(actions).shape)
+            assert Q_values_ph.shape.is_compatible_with(np.array(Q_values).shape), \
+                "Qval: {} != {}".format(Q_values_ph.shape, np.array(Q_values).shape)
 
             """ ---- Agent: Compute gradient & update policy ---- """
             feed_dictionary = bloc.build_feed_dictionary([observation_ph, action_ph, Q_values_ph],
@@ -147,11 +150,11 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
                                      feed_dict=feed_dictionary)
 
 
-            trjs_returns, trjs_lenghts = epoch_container.compute_metric()
+            epoch_average_trjs_return, epoch_average_trjs_lenght = epoch_container.compute_metric()
 
-            print("\n:: Epoch {:>2} metric:\n\t  ↳ | loss: {:.4f}"
-                  "\t | average return: {:.4f}\t | average trj lenght: {:.2f}".format(
-                epoch, epoch_loss, trjs_returns, trjs_lenghts))
+            print("\n:: Epoch {:>3} metric:\n\t  ↳ | pseudo loss: {:>6.2f} "
+                  "| average trj return: {:>6.2f} | average trj lenght: {:>6.2f}".format(
+                epoch, epoch_loss, epoch_average_trjs_return, epoch_average_trjs_lenght))
 
             print("{} EPOCH:{:>3} END ::\n\n".format("-" * 81, epoch + 1, trj + 1))
 

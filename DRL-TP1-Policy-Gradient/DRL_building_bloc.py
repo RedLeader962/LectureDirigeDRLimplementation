@@ -566,7 +566,7 @@ class TrajectoryContainer(object):
     #     rew = self.rewards[ts]
     #     return obs, act, rew
 
-    def unpack(self) -> (list, list, list, list, int, int):
+    def unpack(self) -> (list, list, list, list, float, int):
         """
         Unpack the full trajectorie as a tuple of numpy array
 
@@ -659,10 +659,11 @@ class TimestepCollector(object):
 
 
 class EpochContainer(object):
-    def __init__(self, trajectories_list: [TrajectoryContainer]):
+    def __init__(self, trajectories_list: list):
         """
-        Container for storage & retrieval of batch of sampled trajectories
+        Container for storage & retrieval of a batch of sampled trajectories
 
+        :param trajectories_list: a list of TrajectoryContainer instance fulled with collected timestep events
         :type trajectories_list: [TrajectoryContainer, ...]
         """
         self.trjs_observations = []
@@ -672,15 +673,11 @@ class EpochContainer(object):
         self.trjs_returns = []
         self.trjs_lenghts = []
         self._number_of_collected_trajectory = len(trajectories_list)
-        self.total_timestep_collected = 0
+        self._total_timestep_collected = 0
 
-        """TrajectoryContainer unpacking reference:
-
-                       (observations, actions, rewards, 
-                            Q_values, the_trajectory_return, trajectory_lenght) = TrajectoryContainer.unpack()
-        """
         for aTrajectory_container in trajectories_list:
-            assert isinstance(aTrajectory_container, TrajectoryContainer), "The list must contain object type TrajectoryContainer"
+            assert isinstance(aTrajectory_container, TrajectoryContainer), \
+                "The list must contain object of type TrajectoryContainer"
 
             unpacked = aTrajectory_container.unpack()
             observations, actions, rewards, Q_values, trajectory_return, trajectory_lenght = unpacked
@@ -691,30 +688,38 @@ class EpochContainer(object):
             self.trjs_Qvalues += Q_values
             self.trjs_returns.append(trajectory_return)
             self.trjs_lenghts.append(trajectory_lenght)
-            self.total_timestep_collected += len(aTrajectory_container)
+            self._total_timestep_collected += len(aTrajectory_container)
 
     def __len__(self) -> int:
         return self._number_of_collected_trajectory
 
-    def compute_metric(self) -> (np.ndarray, np.ndarray):
-        trjs_returns = np.mean(self.trjs_returns).copy()
-        trjs_lenghts = np.mean(self.trjs_lenghts).copy()
-        return trjs_returns, trjs_lenghts
+    def get_total_timestep_collected(self):
+        return self._total_timestep_collected
+
+    def compute_metric(self) -> (float, float):
+        """
+        Compute relevant metric over this container stored sample
+
+        :return: (epoch_average_trjs_return, epoch_average_trjs_lenght)
+        :rtype: (float, float)
+        """
+        epoch_average_trjs_return = np.mean(self.trjs_returns).copy()
+        epoch_average_trjs_lenght = np.mean(self.trjs_lenghts).copy()
+        return epoch_average_trjs_return, epoch_average_trjs_lenght
 
     def unpack_all(self) -> (list, list, list, list, list, int, int):
         """
         Unpack the full epoch batch of collected trajectories in lists of numpy ndarray
-
-        todo: (implement & test) precompute ndarray concatenation in a single ndarray
-          |        [ndarray, ... , ndarray] --> big ndarray
 
         :return: (trjs_observations, trjs_actions, trjs_Qvalues,
                     trjs_returns, trjs_lenghts, total_timestep_collected, nb_of_collected_trjs )
         :rtype: (list, list, list, list, list, int, int)
         """
 
+        # (icebox) todo:assessment --> if the copy method still required?:
+        #                                   it does only if the list content are numpy ndarray
         trajectories_copy = (self.trjs_observations.copy(), self.trjs_actions.copy(), self.trjs_Qvalues.copy(),
-                             self.trjs_returns.copy(), self.trjs_lenghts, self.total_timestep_collected, self.__len__())
+                             self.trjs_returns.copy(), self.trjs_lenghts, self._total_timestep_collected, self.__len__())
 
         return trajectories_copy
 
