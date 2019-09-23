@@ -660,9 +660,10 @@ class EpochContainer(object):
         Unpack the full epoch batch of collected trajectories in lists of numpy ndarray
 
         todo: (implement & test) precompute ndarray concatenation in a single ndarray
-          |             [ndarray, ... , ndarray] --> big ndarray
+          |        [ndarray, ... , ndarray] --> big ndarray
 
-        :return: (trjs_observations, trjs_actions, trjs_Qvalues, trjs_returns, trjs_lenghts, nb_of_collected_trjs, timestep_total)
+        :return: (trjs_observations, trjs_actions, trjs_Qvalues,
+                    trjs_returns, trjs_lenghts, nb_of_collected_trjs, timestep_total)
         :rtype: (list, list, list, list, list, int, int)
         """
 
@@ -688,9 +689,14 @@ class EpochContainer(object):
             trjs_returns.append(trajectory[4])
             trjs_lenghts.append(trajectory[5])
 
+        _number_of_collected_trj = self.total_timestep_collected()
+        _timestep_total = self.__len__()
+
+        # np.array(V).copy()
+
         # Reset the container
         self._reset()
-        return trjs_observations, trjs_actions, trjs_Qvalues, trjs_returns, trjs_lenghts, self.__len__(), self.total_timestep_collected()
+        return trjs_observations, trjs_actions, trjs_Qvalues, trjs_returns, trjs_lenghts, _number_of_collected_trj, _timestep_total
 
     def _reset(self) -> None:
         self.trajectories = []
@@ -705,7 +711,7 @@ class TrajectoriesCollector(object):
         self.epoch_container = EpochContainer(experiment_spec=experiment_spec)
         
     def collect(self, trajectory: TrajectoryContainer) -> None:
-        self.epoch_container(trajectory)
+        self.epoch_container.collect(trajectory)
         return None
 
     def get_collected_trajectories_and_reset_collector(self) -> {list, list, list, list, list, int, int}:
@@ -736,7 +742,7 @@ class TrajectoriesCollector(object):
 
         # Compute metric:
         trajectories_dict['epoch_average_return'] = np.mean(trajectories_dict['trjs_returns'])
-        trajectories_dict['epoch_average_lenghts'] = np.mean(trajectories_dict['trjs_returns'])
+        trajectories_dict['epoch_average_lenghts'] = np.mean(trajectories_dict['trjs_len'])
 
         return trajectories_dict
 

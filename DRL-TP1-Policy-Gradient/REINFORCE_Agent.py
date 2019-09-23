@@ -31,8 +31,8 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
     playground = bloc.GymPlayground(environment_name='LunarLander-v2')
 
     exp_spec.max_epoch = 10
-    exp_spec.timestep_max_per_trajectorie = 200
-    exp_spec.trajectories_batch_size=1
+    exp_spec.timestep_max_per_trajectorie = 400
+    exp_spec.trajectories_batch_size=50
 
     env = playground.env
 
@@ -75,10 +75,10 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
 
         """ ---- Simulator: Epochs ---- """
         for epoch in range(exp_spec.max_epoch):
+            print("\n\n:: Epoch: {:^3} {}".format( epoch+1, "-" * 85))
 
             """ ---- Simulator: trajectories ---- """
             for trj in range(exp_spec.trajectories_batch_size):
-                print("\n:: Epoch: {} {}\n\t ↳:: Trajectorie {} started\n".format( epoch+1, "-" * 67, trj + 1))
                 observation = env.reset()   # fetch initial observation
 
                 """ ---- Simulator: time-steps ---- """
@@ -99,8 +99,8 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
 
                     if len(info) is not 0:
                         print("\ninfo: {}\n".format(info))
-                    print("\t\t E:{} Tr:{} TS:{}\t|\taction[{}]\t--> \treward = {}".format(epoch + 1, trj + 1,
-                                                                              step + 1, action, reward))
+                    # print("\t\t E:{} Tr:{} TS:{}\t\t|\taction[{}]\t--> \treward = {}".format(
+                    #     epoch + 1, trj + 1, step + 1, action, reward))
 
                     """ ---- Simulator: trajectory as ended ---- """
                     if done or (step == exp_spec.timestep_max_per_trajectorie - 1):
@@ -112,36 +112,55 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
                         trajectories_collector.collect(trajectory_container)
 
                         # print(trajectory_container)
-                        print("\n\n\t ↳::Trajectory {} finished after {} timesteps\n".format(trj + 1, step + 1))
-                        print("{} E:{} Tr:{} END ::\n\n".format("-" * 63, epoch + 1, trj + 1))
+                        print("\t  ↳ ::Trajectory {:3}  --->  got reward {:^4.4f}  after  {:>3} timesteps".format(
+                            trj + 1, trajectory_container.trajectory_return, step + 1))
                         break
 
+            """ ---- Simulator: epoch as ended, it's time to learn! ---- """
+            number_of_trj_collected = trajectories_collector.get_number_of_trajectories_collected()
+            total_timestep_collected = trajectories_collector.get_total_timestep_collected()
 
-            """ ---- Simulator: epoch as ended ---- 
-            
-            trajectories_dict keys:   
-                
-                    'trjs_obss', 'trjs_acts', 
-                    'trjs_Qvalues', 'trjs_returns', 
-                    'trjs_len', 'epoch_average_return', 
-                    'epoch_average_lenghts'
-            """
+            print("\n:: Collected {:>3} trajectories for a total of {:>5} timestep.".format(number_of_trj_collected, total_timestep_collected))
+
+            # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
+            # *                                                                                                      *
+            # *                                      Update policy_theta                                             *
+            # *                                                                                                      *
+            # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
+
+            """ ---- Prepare data for backpropagation in the neural net ---- """
             trajectories_dict = trajectories_collector.get_collected_trajectories_and_reset_collector()
 
-            ax = 0
-            observations = np.squeeze(trajectories_dict['trjs_obss'], axis=ax)
-            actions = np.squeeze(trajectories_dict['trjs_acts'], axis=ax)
-            Q_values = np.squeeze(trajectories_dict['trjs_Qvalues'], axis=ax)
+            """ 
+                trajectories_dict keys:   
+                            'trjs_obss', 'trjs_acts', 'trjs_Qvalues', 'trjs_returns', 
+                            'trjs_len', 'epoch_average_return', 'epoch_average_lenghts'
+            """
+            observations = np.squeeze(trajectories_dict['trjs_obss'])
+            actions = np.squeeze(trajectories_dict['trjs_acts'])
+            Q_values = np.squeeze(trajectories_dict['trjs_Qvalues'])
 
-            assert observation_ph.shape.is_compatible_with(observations)
-            assert action_ph.shape.is_compatible_with(actions)
-            assert Q_values_ph.shape.is_compatible_with(Q_values)
+            # observations = trajectories_dict['trjs_obss']
+            # actions = trajectories_dict['trjs_acts']
+            # Q_values = trajectories_dict['trjs_Qvalues']
+
+            """ ---- Tensor/ndarray shape compatibility assessment ---- """
+            assert observation_ph.shape.is_compatible_with(observations.shape), "Obs: {} != {}".format(observation_ph.shape, observations.shape)
+            assert action_ph.shape.is_compatible_with(actions.shape), "Act: {} != {}".format(action_ph.shape, actions.shape)
+            assert Q_values_ph.shape.is_compatible_with(Q_values.shape), "Qval: {} != {}".format(Q_values_ph.shape, Q_values.shape)
 
             """ ---- Agent: Compute gradient & update policy ---- """
             feed_dictionary = bloc.build_feed_dictionary([observation_ph, action_ph, Q_values_ph],
-                                                         [observations, actions, Q_values])
+                                                    [observations, actions, Q_values])
+            epoch_loss, _ = sess.run([pseudo_loss, policy_optimizer_op],
+                                     feed_dict=feed_dictionary)
 
-            trajectory_loss, _ = sess.run([pseudo_loss, policy_optimizer_op], feed_dict=feed_dictionary)
+            print("\n:: Epoch {:>2} metric:\n\t  ↳ | loss: {:.4f}"
+                  "\t | average return: {:.4f}\t | average trajectory lenght: {:.4f}".format(
+                epoch, epoch_loss, trajectories_dict['epoch_average_return'], trajectories_dict['epoch_average_lenghts']))
+
+            print("{} EPOCH:{:>3} END ::\n\n".format("-" * 81, epoch + 1, trj + 1))
+
 
 
 
