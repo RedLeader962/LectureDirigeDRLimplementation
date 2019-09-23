@@ -310,7 +310,7 @@ def policy_theta_continuous_space(logits_layer: tf.Tensor, playground: GymPlaygr
 
 
 def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.Tensor, Q_values_placeholder: tf.Tensor,
-                     experiment_spec: ExperimentSpec, playground: GymPlayground) -> (tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor):
+                     experiment_spec: ExperimentSpec, playground: GymPlayground) -> (tf.Tensor, tf.Tensor, tf.Tensor):
     """
     The learning agent. Base on the REINFORCE paper (aka: Vanila policy gradient)
     todo --> add references
@@ -326,8 +326,8 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
     :type playground: GymPlayground
     :param experiment_spec:
     :type experiment_spec: ExperimentSpec
-    :return: (sampled_action, theta_mlp, pseudo_loss, sampled_action_log_probability)
-    :rtype: (tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor)
+    :return: (sampled_action, theta_mlp, pseudo_loss)
+    :rtype: (tf.Tensor, tf.Tensor, tf.Tensor)
     """
 
     with tf.name_scope(vocab.REINFORCE) as scope:
@@ -347,12 +347,11 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
 
         # /---- continuous case -----
         elif isinstance(playground.env.action_space, gym.spaces.Box):
-            raise NotImplementedError   # todo: implement
+            raise NotImplementedError   # todo: implement <-- ice-box until next sprint
 
-            policy_theta, log_standard_deviation = policy_theta_continuous_space(theta_mlp, playground)
-
-            sampled_action = NotImplemented
-            sampled_action_log_probability = NotImplemented
+            # policy_theta, log_standard_deviation = policy_theta_continuous_space(theta_mlp, playground)
+            # sampled_action = NotImplemented
+            # sampled_action_log_probability = NotImplemented
 
         # /---- other gym environment -----
         else:
@@ -701,7 +700,7 @@ class EpochContainer(object):
 
 
 
-class EpochCollector(object):
+class TrajectoriesCollector(object):
     def __init__(self, experiment_spec: ExperimentSpec):
         self.epoch_container = EpochContainer(experiment_spec=experiment_spec)
         
@@ -717,7 +716,7 @@ class EpochCollector(object):
                     3. Return the computed value in a dictionarie
                     4. Reset the container ready for the next batch.
 
-        :key: trjs_obss', 'trjs_acts', 'trjs_Qvalues', 'trjs_returns', 'trjs_len', 'epoch_average_return', 'epoch_average_lenghts'
+        :key: 'trjs_obss', 'trjs_acts', 'trjs_Qvalues', 'trjs_returns', 'trjs_len', 'epoch_average_return', 'epoch_average_lenghts'
 
         :return: a dictionarie of concatenated trajectories component
         :rtype: dict
