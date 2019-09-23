@@ -30,9 +30,10 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
     exp_spec = bloc.ExperimentSpec(trajectories_batch_size=1)
     playground = bloc.GymPlayground(environment_name='LunarLander-v2')
 
-    exp_spec.max_epoch = 10
-    exp_spec.timestep_max_per_trajectorie = 400
-    exp_spec.trajectories_batch_size=50
+    exp_spec.max_epoch = 200
+    exp_spec.timestep_max_per_trajectorie = 2000
+    exp_spec.trajectories_batch_size = 50
+    exp_spec.learning_rate = 0.98
 
     env = playground.env
 
@@ -75,7 +76,7 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
 
         """ ---- Simulator: Epochs ---- """
         for epoch in range(exp_spec.max_epoch):
-            print("\n\n:: Epoch: {:^3} {}".format( epoch+1, "-" * 85))
+            print("\n\n:: Epoch: {:^3} {}".format( epoch+1, "-" * 75))
 
             """ ---- Simulator: trajectories ---- """
             for trj in range(exp_spec.trajectories_batch_size):
@@ -153,10 +154,10 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
             epoch_average_trjs_return, epoch_average_trjs_lenght = epoch_container.compute_metric()
 
             print("\n:: Epoch {:>3} metric:\n\t  ↳ | pseudo loss: {:>6.2f} "
-                  "| average trj return: {:>6.2f} | average trj lenght: {:>6.2f}".format(
+                  "| average trj return: {:>6.2f} | average trj lenght: {:>6.2f}\n".format(
                 epoch, epoch_loss, epoch_average_trjs_return, epoch_average_trjs_lenght))
 
-            print("{} EPOCH:{:>3} END ::\n\n".format("-" * 81, epoch + 1, trj + 1))
+            print("{} EPOCH:{:>3} END ::\n\n".format("-" * 72, epoch + 1, trj + 1))
 
 
 
