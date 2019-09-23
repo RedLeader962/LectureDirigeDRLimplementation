@@ -98,10 +98,10 @@ class ExperimentSpec(object):
 
         self.assert_param()
 
-        print(">>> Switching to parameter: {}".format(self.paramameter_set_name))
-        print(self.get_agent_training_spec())
-
-        print(self.get_neural_net_spec())
+        print("\n\n>>> Switching to parameter: {}".format(self.paramameter_set_name),
+              self.get_agent_training_spec(),
+              self.get_neural_net_spec(),
+              "\n")
         return None
 
 

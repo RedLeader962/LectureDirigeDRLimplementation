@@ -36,7 +36,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
         'trajectories_batch_size': 40,
         'max_epoch': 1000,
         'discounted_reward_to_go': True,
-        'discout_factor': 0.99,
+        'discout_factor': 0.999,
         'learning_rate': 1e-2,
         'nn_h_layer_topo': (8, 32, 32),
         'random_seed': 42,
@@ -51,7 +51,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
         'trajectories_batch_size': 3,
         'max_epoch': 20,
         'discounted_reward_to_go': True,
-        'discout_factor': 0.99,
+        'discout_factor': 0.999,
         'learning_rate': 1e-2,
         'nn_h_layer_topo': (8, 8),
         'random_seed': 42,
@@ -73,7 +73,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
     if RENDER_ENV is not None:
         render_env = RENDER_ENV
 
-    print(">> Environment rendering: {}".format(render_env))
+    print("\n\n>>> Environment rendering: {}".format(render_env))
 
     playground = bloc.GymPlayground(environment_name='LunarLander-v2')
 
@@ -127,7 +127,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
                 """ ---- Simulator: time-steps ---- """
                 for step in range(exp_spec.timestep_max_per_trajectorie):
 
-                    if render_env and (epoch % exp_spec.render_env_every_What_epoch) == 0:
+                    if render_env and (epoch % exp_spec.render_env_every_What_epoch == 0) and trj==0:
                         playground.env.render()    # (!) keep environment rendering turned OFF during unit test
 
                     """ ---- Agent: act in the environment ---- """
@@ -215,7 +215,7 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description="Command line arg for agent traning")
     parser.add_argument('--render_env', type=bool, default=False)
-    parser.add_argument('--discounted_reward_to_go', type=bool, default=True)
+    parser.add_argument('--discounted_reward_to_go', type=bool, default=None)
     args = parser.parse_args()
 
     train_REINFORCE_agent_discrete(render_env=args.render_env, discounted_reward_to_go=args.discounted_reward_to_go)
