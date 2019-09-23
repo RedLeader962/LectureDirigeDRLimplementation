@@ -24,8 +24,8 @@ In browser, go to:
 
 class ExperimentSpec(object):
     def __init__(self, timestep_max_per_trajectorie=20, trajectories_batch_size=10, max_epoch=2, discout_factor=1,
-                 learning_rate=1e-2,
-                 neural_net_hidden_layer_topology: tuple = (32, 32), random_seed=42):
+                 learning_rate=1e-2, neural_net_hidden_layer_topology: tuple = (32, 32), random_seed=42,
+                 discounted_reward_to_go=True):
         """
         Gather the specification for a experiement
         
@@ -36,22 +36,28 @@ class ExperimentSpec(object):
 
 
         # todo: add a param for the neural net configuration via a dict fed as a argument
+        :param discounted_reward_to_go:
+        :type discounted_reward_to_go:
         """
+        self.paramameter_set_name = 'default'
         self.timestep_max_per_trajectorie = timestep_max_per_trajectorie         # horizon
         self.trajectories_batch_size = trajectories_batch_size
         self.max_epoch = max_epoch
         self.discout_factor: float = discout_factor
         self.learning_rate = learning_rate
+        self.discounted_reward_to_go = discounted_reward_to_go
 
         self.nn_h_layer_topo = neural_net_hidden_layer_topology
         self.random_seed = random_seed
         self.hidden_layers_activation: tf.Tensor = tf.tanh
         self.output_layers_activation: tf.Tensor = tf.sigmoid
 
+        self.render_env_every_What_epoch = 100
         self.log_every_step = 1000
         # todo: any NN usefull param
 
         self.assert_param()
+
 
     def assert_param(self):
         assert (0 <= self.discout_factor) and (self.discout_factor <= 1)
@@ -92,8 +98,9 @@ class ExperimentSpec(object):
 
         self.assert_param()
 
-        print("The new experiment specificaton are:")
+        print(">>> Switching to parameter: {}".format(self.paramameter_set_name))
         print(self.get_agent_training_spec())
+
         print(self.get_neural_net_spec())
         return None
 

@@ -1,8 +1,8 @@
 # coding=utf-8
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-# region ::Import statement ...
 
+# region ::Import statement ...
 import tensorflow as tf
 tf_cv1 = tf.compat.v1   # shortcut
 import numpy as np
@@ -16,7 +16,7 @@ vocab = rl_name()
 # endregion
 
 
-ENV_RENDER = True   # (!) Environment rendering manual selection. Comment this line
+RENDER_ENV = True   # (!) Environment rendering manual selection. Comment this line
 
 
 """
@@ -27,24 +27,55 @@ In browser, go to:
     http://0.0.0.0:6006/ 
 """
 
-def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=True):
+def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None):
 
     exp_spec = bloc.ExperimentSpec()
     parma_dict = {
-        'timestep_max_per_trajectorie': 2000,
-        'trajectories_batch_size': 60,
-        'max_epoch': 400,
-        'discout_factor': 0.98,
+        'paramameter_set_name': 'Training spec',
+        'timestep_max_per_trajectorie': 600,
+        'trajectories_batch_size': 40,
+        'max_epoch': 1000,
+        'discounted_reward_to_go': True,
+        'discout_factor': 0.99,
         'learning_rate': 1e-2,
-        'nn_h_layer_topo': (32, 32),
+        'nn_h_layer_topo': (8, 32, 32),
         'random_seed': 42,
         'hidden_layers_activation': tf.tanh,
         'output_layers_activation': tf.tanh,
+        'render_env_every_What_epoch': 100
     }
+
+    test_parma_dict = {
+        'paramameter_set_name': 'Test spec',
+        'timestep_max_per_trajectorie': 20,
+        'trajectories_batch_size': 3,
+        'max_epoch': 20,
+        'discounted_reward_to_go': True,
+        'discout_factor': 0.99,
+        'learning_rate': 1e-2,
+        'nn_h_layer_topo': (8, 8),
+        'random_seed': 42,
+        'hidden_layers_activation': tf.tanh,
+        'output_layers_activation': tf.tanh,
+        'render_env_every_What_epoch': 5
+    }
+
     exp_spec.set_experiment_spec(parma_dict)
+    # exp_spec.set_experiment_spec(test_parma_dict)
+
+    if discounted_reward_to_go is not None:
+        exp_spec.set_experiment_spec(
+            {
+                'discounted_reward_to_go': discounted_reward_to_go
+            }
+        )
+
+    if RENDER_ENV is not None:
+        render_env = RENDER_ENV
+
+    print(">> Environment rendering: {}".format(render_env))
 
     playground = bloc.GymPlayground(environment_name='LunarLander-v2')
-    env = playground.env
 
 
     # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -90,21 +121,21 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=True
 
             """ ---- Simulator: trajectories ---- """
             for trj in range(exp_spec.trajectories_batch_size):
-                observation = env.reset()   # fetch initial observation
+                observation = playground.env.reset()   # fetch initial observation
 
 
                 """ ---- Simulator: time-steps ---- """
                 for step in range(exp_spec.timestep_max_per_trajectorie):
 
-                    if (render_env or ENV_RENDER) and epoch%100 == 0:
-                        env.render()    # (!) keep environment rendering turned OFF during unit test
+                    if render_env and (epoch % exp_spec.render_env_every_What_epoch) == 0:
+                        playground.env.render()    # (!) keep environment rendering turned OFF during unit test
 
                     """ ---- Agent: act in the environment ---- """
                     step_observation = bloc.format_single_step_observation(observation)
                     action_array = sess.run(sampled_action, feed_dict={observation_ph: step_observation})
 
                     action = bloc.format_single_step_action(action_array)
-                    observation, reward, done, info = env.step(action)
+                    observation, reward, done, info = playground.env.step(action)
 
                     """ ---- Agent: Collect current timestep events ---- """
                     timestep_collector.collect(observation, action, reward)
@@ -119,7 +150,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=True
 
                         """ ---- Agent: Collect the sampled trajectory  ---- """
                         trajectory_container = timestep_collector.get_collected_timestep_and_reset_collector(
-                                                                        discounted_q_values=discounted_reward_to_go)
+                                                                        discounted_q_values=exp_spec.discounted_reward_to_go)
 
                         trajectories_collector.collect(trajectory_container)
 
@@ -174,6 +205,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=True
 
 
     writer.close()
+    playground.env.close()
 
 
 

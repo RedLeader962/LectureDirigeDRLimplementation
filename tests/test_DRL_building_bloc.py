@@ -32,7 +32,8 @@ def gym_continuous_setup():
     :return: (exp_spec, playground)
     :rtype: (ExperimentSpec, GymPlayground)
     """
-    exp_spec = bloc.ExperimentSpec(timestep_max_per_trajectorie=10, trajectories_batch_size=2, max_epoch=2, neural_net_hidden_layer_topology=(2, 2))
+    exp_spec = bloc.ExperimentSpec(timestep_max_per_trajectorie=10, trajectories_batch_size=2, max_epoch=2,
+                                   neural_net_hidden_layer_topology=(2, 2))
     playground = bloc.GymPlayground('LunarLanderContinuous-v2')
     return exp_spec, playground
 
@@ -42,7 +43,8 @@ def gym_discrete_setup():
     :return: (exp_spec, playground)
     :rtype: (ExperimentSpec, GymPlayground)
     """
-    exp_spec = bloc.ExperimentSpec(timestep_max_per_trajectorie=10, trajectories_batch_size=2, max_epoch=2, neural_net_hidden_layer_topology=(2, 2))
+    exp_spec = bloc.ExperimentSpec(timestep_max_per_trajectorie=10, trajectories_batch_size=2, max_epoch=2,
+                                   neural_net_hidden_layer_topology=(2, 2))
     playground = bloc.GymPlayground('LunarLander-v2')
     return exp_spec, playground
 
@@ -76,7 +78,7 @@ def gym_and_tf_discrete_setup():
 
 def test_ExperimentSpec_init_ENV_TOPOLOGY_FAIL():
     with pytest.raises(Exception):
-        bloc.ExperimentSpec(neural_net_hidden_layer_topology=[1,])
+        bloc.ExperimentSpec(neural_net_hidden_layer_topology=[1, ])
 
 
 def test_set_experiment_spec_PASS(gym_discrete_setup):
