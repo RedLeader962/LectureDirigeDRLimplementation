@@ -1,17 +1,14 @@
 # coding=utf-8
 
-import tensorflow_weak_warning_supressor as no_cpu_compile_warn
-no_cpu_compile_warn.execute()
-
 import gym
 import pretty_printing
 import numpy as np
-import abc
-
 import tensorflow as tf
 from tensorflow import keras
 tf_cv1 = tf.compat.v1   # shortcut
 
+import tensorflow_weak_warning_supressor as no_cpu_compile_warn
+no_cpu_compile_warn.execute()
 
 from vocabulary import rl_name
 vocab = rl_name()
@@ -364,11 +361,11 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
 
 
 # <editor-fold desc="::Reward to go related function ...">
-def reward_to_go(rewards: list) -> np.ndarray:
+def reward_to_go(rewards: list) -> list:
     assert isinstance(rewards, list)
     np_backward_rewards = np.array(rewards[::-1])
     reward_to_go = np.cumsum(np_backward_rewards)
-    return reward_to_go[::-1]
+    return list(reward_to_go[::-1])
 
 def reward_to_go_np(rewards: np.ndarray) -> np.ndarray:
     assert isinstance(rewards, np.ndarray)
@@ -377,10 +374,23 @@ def reward_to_go_np(rewards: np.ndarray) -> np.ndarray:
     return np.flip(reward_to_go)
 
 
-def discounted_reward_to_go(rewards: list, experiment_spec: ExperimentSpec) -> np.ndarray:
-    assert isinstance(rewards, list)
+def discounted_reward_to_go(rewards: list, experiment_spec: ExperimentSpec) -> list:
+    """
+    Compute the discounted reward to go iteratively
+
+    todo --> refactor using a gamma mask and matrix product & sum, instead of loop
+
+    :param rewards:
+    :type rewards:
+    :param experiment_spec:
+    :type experiment_spec:
+    :return:
+    :rtype:
+    """
     gamma = experiment_spec.discout_factor
     assert (0 <= gamma) and (gamma <= 1)
+    assert isinstance(rewards, list)
+
     backward_rewards = rewards[::-1]
     discounted_reward_to_go = np.zeros_like(rewards)
 
@@ -390,20 +400,21 @@ def discounted_reward_to_go(rewards: list, experiment_spec: ExperimentSpec) -> n
             discounted_reward_to_go[i] += gamma**exp * backward_rewards[r]
             exp += 1
 
-    return discounted_reward_to_go[::-1]
+    return list(discounted_reward_to_go[::-1])
 
 
 def discounted_reward_to_go_np(rewards: np.ndarray, experiment_spec: ExperimentSpec) -> np.ndarray:
-    assert rewards.ndim == 1, "Current implementation only support array of rank 1"
-    assert isinstance(rewards, np.ndarray)
     gamma = experiment_spec.discout_factor
     assert (0 <= gamma) and (gamma <= 1)
+    assert rewards.ndim == 1, "Current implementation only support array of rank 1"
+    assert isinstance(rewards, np.ndarray)
 
     np_backward_rewards = np.flip(rewards)
     discounted_reward_to_go = np.zeros_like(rewards)
+
     # todo --> Since flip return a view, test if iterate on a pre flip ndarray and than post flip before return would be cleaner
 
-    # todo --> refactor using a gamma mask and matrix product & sum, instead of loop
+    # refactor --> using a gamma mask and matrix product & sum, instead of loop
     for r in range(len(rewards)):
         exp = 0
         for i in range(r, len(rewards)):
@@ -483,8 +494,10 @@ def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
     assert len(placeholders) == len(arrays_of_values), "placeholders and arrays_of_values must be of the same lenght"
     for placeholder in placeholders:
         assert isinstance(placeholder, tf.Tensor), "Wrong input type, placeholders must be a list of tensorflow placeholder"
-    for ar in arrays_of_values:
-        assert isinstance(ar, np.ndarray), "Wrong input type, arrays_of_values must be a list of numpy array"
+
+    # (Iceboxed) todo:investigate?? --> it's probably not required anymore:
+    # for ar in arrays_of_values:
+    #     assert isinstance(ar, np.ndarray), "Wrong input type, arrays_of_values must be a list of numpy array"
 
     feed_dict = dict()
     for placeholder, array in zip(placeholders, arrays_of_values):
@@ -494,7 +507,8 @@ def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
 
 
 class TrajectoryContainer(object):
-    def __init__(self, observations: list, actions: list, rewards: list, experiment_spec: ExperimentSpec, discounted=True, dtype=None):
+    def __init__(self, observations: list, actions: list, rewards: list, experiment_spec: ExperimentSpec,
+                 discounted: bool = True) -> None:
         """
         Container for storage & retrieval events collected at every timestep of a single trajectorie
 
@@ -504,26 +518,38 @@ class TrajectoryContainer(object):
          |      "This argument can only be used to 'upcast' the array.
          |          For downcasting, use the .astype(t) method."
 
+         :param observations:
+         :type observations: list
+         :param actions:
+         :type actions: list
+         :param rewards:
+         :type rewards: list
+         :param experiment_spec:
+         :type experiment_spec: ExperimentSpec
+         :param discounted:
+         :type discounted: bool
+
         """
+        assert isinstance(observations, list) and isinstance(actions, list) and isinstance(rewards, list), "wrong argument type"
         assert len(observations) == len(actions) == len(rewards), "{} vs {} vs {} !!!".format(observations, actions, rewards)
         # self.observations = np.array(observations, dtype=dtype)
         # self.actions = np.array(actions, dtype=dtype)
         # self.rewards = np.array(rewards, dtype=dtype)
         self.observations = observations
         self.actions = actions
+        self.rewards = rewards
+        self.the_trajectory_return = np.sum(self.rewards, axis=None)
         self.discounted = discounted
-        self.rewards = np.array(rewards)
-        self.trajectory_return = np.sum(self.rewards, axis=None)
 
         if discounted:
-            self.Q_values = list(discounted_reward_to_go_np(self.rewards, experiment_spec=experiment_spec))
+            self.Q_values = discounted_reward_to_go(self.rewards, experiment_spec=experiment_spec)
         else:
-            self.Q_values = list(reward_to_go_np(self.rewards))
+            self.Q_values = reward_to_go(self.rewards)
 
         assert len(self.Q_values) == len(self.rewards)
 
     def __len__(self):
-        return len(self.observations)
+        return len(self.actions)
 
     # def __getitem__(self, timestep: int):
     #     """
@@ -540,28 +566,28 @@ class TrajectoryContainer(object):
     #     rew = self.rewards[ts]
     #     return obs, act, rew
 
-    def unpack(self):
+    def unpack(self) -> (list, list, list, list, int, int):
         """
         Unpack the full trajectorie as a tuple of numpy array
 
             Note: Q_values is a numpy ndarray view
 
-        :return: (observations, actions, rewards, Q_values, trajectory_return, trajectory_lenght)
+        :return: (observations, actions, rewards, Q_values, the_trajectory_return, trajectory_lenght)
+        :rtype: (list, list, list, list, int, int)
         """
-
-        tc = self.observations, self.actions, list(self.rewards), self.Q_values, self.trajectory_return, self.__len__()
+        tc = self.observations, self.actions, self.rewards, self.Q_values, self.the_trajectory_return, self.__len__()
         return tc
 
     def __repr__(self):
-        str = "\n::trajectory_container/\n"
-        str += ".observations=\n{}\n\n".format(self.observations)
-        str += ".actions=\n{}\n\n".format(self.actions)
-        str += ".rewards=\n{}\n\n".format(self.rewards)
-        str += ".discounted --> {}\n".format(self.discounted)
-        str += ".Q_values=\n{}\n\n".format(self.Q_values)
-        str += ".trajectory_return=\n{}\n\n".format(self.trajectory_return)
-        str += "len(trajectory) --> {} ::\n\n".format(self.__len__())
-        return str
+        myRep = "\n::trajectory_container/\n"
+        myRep += ".observations=\n{}\n\n".format(self.observations)
+        myRep += ".actions=\n{}\n\n".format(self.actions)
+        myRep += ".rewards=\n{}\n\n".format(self.rewards)
+        myRep += ".discounted --> {}\n".format(self.discounted)
+        myRep += ".Q_values=\n{}\n\n".format(self.Q_values)
+        myRep += ".the_trajectory_return=\n{}\n\n".format(self.the_trajectory_return)
+        myRep += "len(trajectory) --> {} ::\n\n".format(self.__len__())
+        return myRep
 
 
 class TimestepCollector(object):
@@ -623,7 +649,7 @@ class TimestepCollector(object):
         """
         # todo --> validate dtype for discrete case
         trajectory_container = TrajectoryContainer(self._observations.copy(), self._actions.copy(),
-                                                   self._rewards.copy(), self._exp_spec,discounted=discounted_q_values)
+                                                   self._rewards.copy(), self._exp_spec, discounted=discounted_q_values)
 
         self._reset()
         return trajectory_container
@@ -631,11 +657,71 @@ class TimestepCollector(object):
     def __del__(self):
         self._reset()
 
+
 class EpochContainer(object):
-    """Container for storage & retrieval of batch of sampled trajectories"""
-    def __init__(self, experiment_spec: ExperimentSpec):
-        self.experiment_spec = experiment_spec
-        self.trajectories = []
+    def __init__(self, trajectories_list: [TrajectoryContainer]):
+        """
+        Container for storage & retrieval of batch of sampled trajectories
+
+        :type trajectories_list: [TrajectoryContainer, ...]
+        """
+        self.trjs_observations = []
+        self.trjs_actions = []
+        self.trjs_reward = []
+        self.trjs_Qvalues = []
+        self.trjs_returns = []
+        self.trjs_lenghts = []
+        self._number_of_collected_trajectory = len(trajectories_list)
+        self.total_timestep_collected = 0
+
+        """TrajectoryContainer unpacking reference:
+
+                       (observations, actions, rewards, 
+                            Q_values, the_trajectory_return, trajectory_lenght) = TrajectoryContainer.unpack()
+        """
+        for aTrajectory_container in trajectories_list:
+            assert isinstance(aTrajectory_container, TrajectoryContainer), "The list must contain object type TrajectoryContainer"
+
+            unpacked = aTrajectory_container.unpack()
+            observations, actions, rewards, Q_values, trajectory_return, trajectory_lenght = unpacked
+
+            self.trjs_observations += observations
+            self.trjs_actions += actions
+            self.trjs_reward += rewards
+            self.trjs_Qvalues += Q_values
+            self.trjs_returns.append(trajectory_return)
+            self.trjs_lenghts.append(trajectory_lenght)
+            self.total_timestep_collected += len(aTrajectory_container)
+
+    def __len__(self) -> int:
+        return self._number_of_collected_trajectory
+
+    def compute_metric(self) -> (np.ndarray, np.ndarray):
+        trjs_returns = np.mean(self.trjs_returns).copy()
+        trjs_lenghts = np.mean(self.trjs_lenghts).copy()
+        return trjs_returns, trjs_lenghts
+
+    def unpack_all(self) -> (list, list, list, list, list, int, int):
+        """
+        Unpack the full epoch batch of collected trajectories in lists of numpy ndarray
+
+        todo: (implement & test) precompute ndarray concatenation in a single ndarray
+          |        [ndarray, ... , ndarray] --> big ndarray
+
+        :return: (trjs_observations, trjs_actions, trjs_Qvalues,
+                    trjs_returns, trjs_lenghts, total_timestep_collected, nb_of_collected_trjs )
+        :rtype: (list, list, list, list, list, int, int)
+        """
+
+        trajectories_copy = (self.trjs_observations.copy(), self.trjs_actions.copy(), self.trjs_Qvalues.copy(),
+                             self.trjs_returns.copy(), self.trjs_lenghts, self.total_timestep_collected, self.__len__())
+
+        return trajectories_copy
+
+
+class TrajectoriesCollector(object):
+    def __init__(self):
+        self.trajectories_list = []
         self.timestep_total = 0
         self._number_of_collected_trajectory = 0
 
@@ -643,8 +729,8 @@ class EpochContainer(object):
         #   |   It's a order of magnitude faster to collect ndarray in a list and then convert the list
         #   |       to a ndarray than it is to append ndarray to each other
 
-    def __call__(self, trajectory: TrajectoryContainer,  *args, **kwargs) -> None:
-        self.trajectories.append(trajectory)
+    def __call__(self, trajectory: TrajectoryContainer, *args, **kwargs) -> None:
+        self.trajectories_list.append(trajectory)
         self.timestep_total += trajectory.__len__()
         self._number_of_collected_trajectory += 1
         return None
@@ -653,74 +739,13 @@ class EpochContainer(object):
         self.__call__(trajectory)
         return None
 
-    def __len__(self):
-        return self._number_of_collected_trajectory
+    def get_number_of_trajectories_collected(self):
+        return self.trajectories_list.__len__()
 
-    def total_timestep_collected(self) -> int:
+    def get_total_timestep_collected(self) -> int:
         return self.timestep_total
 
-    def unpack(self) -> (list, list, list, list, list, int, int):
-        """
-        Unpack the full epoch batch of collected trajectories in lists of numpy ndarray
-
-        todo: (implement & test) precompute ndarray concatenation in a single ndarray
-          |        [ndarray, ... , ndarray] --> big ndarray
-
-        :return: (trjs_observations, trjs_actions, trjs_Qvalues,
-                    trjs_returns, trjs_lenghts, nb_of_collected_trjs, timestep_total)
-        :rtype: (list, list, list, list, list, int, int)
-        """
-
-        trjs_observations = []
-        trjs_actions = []
-        trjs_reward = []
-        trjs_Qvalues = []
-        trjs_returns = []
-        trjs_lenghts = []
-
-        """TrajectoryContainer unpacking reference:
-           
-                       (observations, actions, rewards, 
-                            Q_values, trajectory_return, trajectory_lenght) = TrajectoryContainer.unpack()
-        """
-        for trj in self.trajectories:
-            observations, actions, rewards, Q_values, trajectory_return, trajectory_lenght = trj.unpack()
-
-            trjs_observations += observations
-            trjs_actions += actions
-            # trjs_reward += rewards
-            trjs_Qvalues += Q_values
-            trjs_returns += trajectory_return
-            trjs_lenghts.append(trajectory_lenght)
-
-        _number_of_collected_trj = self.total_timestep_collected()
-        _timestep_total = self.__len__()
-
-        # np.array(V).copy()
-
-        # Reset the container
-        trajectories_copy = (trjs_observations.copy(), trjs_actions.copy(), trjs_Qvalues.copy(),
-                             trjs_returns.copy(), trjs_lenghts, _number_of_collected_trj, _timestep_total)
-        self._reset()
-        return trajectories_copy
-
-    def _reset(self) -> None:
-        self.trajectories = []
-        self.timestep_total = 0
-        self._number_of_collected_trajectory = 0
-        return None
-
-
-
-class TrajectoriesCollector(object):
-    def __init__(self, experiment_spec: ExperimentSpec):
-        self.epoch_container = EpochContainer(experiment_spec=experiment_spec)
-        
-    def collect(self, trajectory: TrajectoryContainer) -> None:
-        self.epoch_container.collect(trajectory)
-        return None
-
-    def get_collected_trajectories_and_reset_collector(self) -> {list, list, list, list, list, int, int}:
+    def get_collected_trajectories_and_reset_collector(self) -> EpochContainer:
         """
             Step:
                     1. Concatenate each trajectory component in a long ndarray
@@ -728,41 +753,20 @@ class TrajectoriesCollector(object):
                     3. Return the computed value in a dictionarie
                     4. Reset the container ready for the next batch.
 
-        :key: 'trjs_obss', 'trjs_acts', 'trjs_Qvalues', 'trjs_returns', 'trjs_len', 'epoch_average_return', 'epoch_average_lenghts'
 
-        :return: a dictionarie of concatenated trajectories component
-        :rtype: dict
+        :return: a EpochContainer of concatenated trajectories component
+        :rtype: EpochContainer
         """
-        trajectories_lists = self.epoch_container.unpack()
+        container = EpochContainer(self.trajectories_list)
 
-        _, _, _, _, _, nb_trjs, timestep_total = trajectories_lists
+        self.trajectories_list = []
+        self.timestep_total = 0
+        self._number_of_collected_trajectory = 0
 
-        component_name = ('trjs_obss', 'trjs_acts', 'trjs_Qvalues', 'trjs_returns', 'trjs_len')
-
-        """EpochContainer unpacking reference:
-        
-                (trjs_observations, trjs_actions, trjs_Qvalues, trjs_returns, 
-                            trjs_lenghts, nb_of_collected_trjs, timestep_total) = epoch_container.unpack()
-        """
-
-        # For each component, convert his list of trajectories to a long ndarray of trajectories:
-        trajectories_dict = {K: np.array(V).copy() for K, V in zip(component_name, trajectories_lists[:-2])}
-
-        # Compute metric:
-        trajectories_dict['epoch_average_return'] = np.mean(trajectories_dict['trjs_returns'])
-        trajectories_dict['epoch_average_lenghts'] = np.mean(trajectories_dict['trjs_len'])
-        trajectories_dict['nb_trjs'] = nb_trjs
-        trajectories_dict['timestep_total'] = timestep_total
-        return trajectories_dict
-
-    def get_number_of_trajectories_collected(self):
-        return self.epoch_container.__len__()
-
-    def get_total_timestep_collected(self) -> int:
-        return self.epoch_container.total_timestep_collected()
+        return container
 
 
-
+# todo --> validate, possible source of graph data input error
 def format_single_step_observation(observation: np.ndarray):
     """ Single trajectorie batch size hack for the computation graph observation placeholder
                 observation.shape = (8,)
@@ -773,7 +777,7 @@ def format_single_step_observation(observation: np.ndarray):
     batch_size_one_observation = np.expand_dims(observation, axis=0)
     return batch_size_one_observation
 
-
+# todo --> validate, possible source of graph data input error
 def format_single_step_action(action_array: np.ndarray):
     # todo --> unitest
     action = None

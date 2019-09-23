@@ -53,7 +53,7 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
 
     """ ---- Collector instantiation ---- """
     timestep_collector = bloc.TimestepCollector(exp_spec, playground)
-    trajectories_collector = bloc.TrajectoriesCollector(exp_spec)
+    trajectories_collector = bloc.TrajectoriesCollector()
 
 
     """ ---- Optimizer ---- """
@@ -113,7 +113,7 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
 
                         # print(trajectory_container)
                         print("\t  ↳ ::Trajectory {:3}  --->  got reward {:^4.4f}  after  {:>3} timesteps".format(
-                            trj + 1, trajectory_container.trajectory_return, step + 1))
+                            trj + 1, trajectory_container.the_trajectory_return, step + 1))
                         break
 
             """ ---- Simulator: epoch as ended, it's time to learn! ---- """
@@ -129,20 +129,11 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
 
             """ ---- Prepare data for backpropagation in the neural net ---- """
-            trajectories_dict = trajectories_collector.get_collected_trajectories_and_reset_collector()
+            epoch_container = trajectories_collector.get_collected_trajectories_and_reset_collector()
 
-            """ 
-                trajectories_dict keys:   
-                            'trjs_obss', 'trjs_acts', 'trjs_Qvalues', 'trjs_returns', 
-                            'trjs_len', 'epoch_average_return', 'epoch_average_lenghts'
-            """
-            # observations = np.squeeze(trajectories_dict['trjs_obss'])
-            # actions = np.squeeze(trajectories_dict['trjs_acts'])
-            # Q_values = np.squeeze(trajectories_dict['trjs_Qvalues'])
-
-            observations = trajectories_dict['trjs_obss']
-            actions = trajectories_dict['trjs_acts']
-            Q_values = trajectories_dict['trjs_Qvalues']
+            observations = epoch_container.trjs_observations
+            actions = epoch_container.trjs_actions
+            Q_values = epoch_container.trjs_Qvalues
 
             """ ---- Tensor/ndarray shape compatibility assessment ---- """
             # assert observation_ph.shape.is_compatible_with(observations.shape), "Obs: {} != {}".format(observation_ph.shape, observations.shape)
@@ -155,9 +146,12 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
             epoch_loss, _ = sess.run([pseudo_loss, policy_optimizer_op],
                                      feed_dict=feed_dictionary)
 
+
+            trjs_returns, trjs_lenghts = epoch_container.compute_metric()
+
             print("\n:: Epoch {:>2} metric:\n\t  ↳ | loss: {:.4f}"
                   "\t | average return: {:.4f}\t | average trj lenght: {:.2f}".format(
-                epoch, epoch_loss, trajectories_dict['epoch_average_return'], trajectories_dict['epoch_average_lenghts']))
+                epoch, epoch_loss, trjs_returns, trjs_lenghts))
 
             print("{} EPOCH:{:>3} END ::\n\n".format("-" * 81, epoch + 1, trj + 1))
 
