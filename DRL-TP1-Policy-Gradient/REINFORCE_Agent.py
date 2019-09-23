@@ -136,18 +136,18 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
                             'trjs_obss', 'trjs_acts', 'trjs_Qvalues', 'trjs_returns', 
                             'trjs_len', 'epoch_average_return', 'epoch_average_lenghts'
             """
-            observations = np.squeeze(trajectories_dict['trjs_obss'])
-            actions = np.squeeze(trajectories_dict['trjs_acts'])
-            Q_values = np.squeeze(trajectories_dict['trjs_Qvalues'])
+            # observations = np.squeeze(trajectories_dict['trjs_obss'])
+            # actions = np.squeeze(trajectories_dict['trjs_acts'])
+            # Q_values = np.squeeze(trajectories_dict['trjs_Qvalues'])
 
-            # observations = trajectories_dict['trjs_obss']
-            # actions = trajectories_dict['trjs_acts']
-            # Q_values = trajectories_dict['trjs_Qvalues']
+            observations = trajectories_dict['trjs_obss']
+            actions = trajectories_dict['trjs_acts']
+            Q_values = trajectories_dict['trjs_Qvalues']
 
             """ ---- Tensor/ndarray shape compatibility assessment ---- """
-            assert observation_ph.shape.is_compatible_with(observations.shape), "Obs: {} != {}".format(observation_ph.shape, observations.shape)
-            assert action_ph.shape.is_compatible_with(actions.shape), "Act: {} != {}".format(action_ph.shape, actions.shape)
-            assert Q_values_ph.shape.is_compatible_with(Q_values.shape), "Qval: {} != {}".format(Q_values_ph.shape, Q_values.shape)
+            # assert observation_ph.shape.is_compatible_with(observations.shape), "Obs: {} != {}".format(observation_ph.shape, observations.shape)
+            # assert action_ph.shape.is_compatible_with(actions.shape), "Act: {} != {}".format(action_ph.shape, actions.shape)
+            # assert Q_values_ph.shape.is_compatible_with(Q_values.shape), "Qval: {} != {}".format(Q_values_ph.shape, Q_values.shape)
 
             """ ---- Agent: Compute gradient & update policy ---- """
             feed_dictionary = bloc.build_feed_dictionary([observation_ph, action_ph, Q_values_ph],
@@ -156,7 +156,7 @@ def train_REINFORCE_agent_discrete(render_env=False, discounted_reward_to_go=Tru
                                      feed_dict=feed_dictionary)
 
             print("\n:: Epoch {:>2} metric:\n\t  ↳ | loss: {:.4f}"
-                  "\t | average return: {:.4f}\t | average trajectory lenght: {:.4f}".format(
+                  "\t | average return: {:.4f}\t | average trj lenght: {:.2f}".format(
                 epoch, epoch_loss, trajectories_dict['epoch_average_return'], trajectories_dict['epoch_average_lenghts']))
 
             print("{} EPOCH:{:>3} END ::\n\n".format("-" * 81, epoch + 1, trj + 1))

@@ -506,48 +506,51 @@ class TrajectoryContainer(object):
 
         """
         assert len(observations) == len(actions) == len(rewards), "{} vs {} vs {} !!!".format(observations, actions, rewards)
-        self.observations = np.array(observations, dtype=dtype)
-        self.actions = np.array(actions, dtype=dtype)
-        self.rewards = np.array(rewards, dtype=dtype)
+        # self.observations = np.array(observations, dtype=dtype)
+        # self.actions = np.array(actions, dtype=dtype)
+        # self.rewards = np.array(rewards, dtype=dtype)
+        self.observations = observations
+        self.actions = actions
         self.discounted = discounted
-        self.trajectory_return = np.sum(self.rewards)
+        self.rewards = np.array(rewards)
+        self.trajectory_return = np.sum(self.rewards, axis=None)
 
         if discounted:
-            self.Q_values = discounted_reward_to_go_np(self.rewards, experiment_spec=experiment_spec)
+            self.Q_values = list(discounted_reward_to_go_np(self.rewards, experiment_spec=experiment_spec))
         else:
-            self.Q_values = reward_to_go_np(self.rewards)
+            self.Q_values = list(reward_to_go_np(self.rewards))
 
         assert len(self.Q_values) == len(self.rewards)
 
     def __len__(self):
         return len(self.observations)
 
-    def __getitem__(self, timestep: int):
-        """
-        Return the values (observation, action, reward) at the given timestep
+    # def __getitem__(self, timestep: int):
+    #     """
+    #     Return the values (observation, action, reward) at the given timestep
+    #
+    #     :param timestep: the exact timestep number (not the list index)
+    #     :type timestep: int
+    #     :return:  (observations, actions, rewards) at timestep t
+    #     :rtype: (np.ndarray, np.ndarray, np.ndarray)
+    #     """
+    #     ts = timestep - 1
+    #     obs = self.observations[ts]
+    #     act = self.actions[ts]
+    #     rew = self.rewards[ts]
+    #     return obs, act, rew
 
-        :param timestep: the exact timestep number (not the list index)
-        :type timestep: int
-        :return:  (observations, actions, rewards) at timestep t
-        :rtype: (np.ndarray, np.ndarray, np.ndarray)
-        """
-        ts = timestep - 1
-        obs = self.observations[ts]
-        act = self.actions[ts]
-        rew = self.rewards[ts]
-        return obs, act, rew
-
-    def unpack(self) -> (np.ndarray, np.ndarray, np.ndarray, [np.ndarray, np.ndarray], np.float, int):
+    def unpack(self):
         """
         Unpack the full trajectorie as a tuple of numpy array
 
             Note: Q_values is a numpy ndarray view
 
         :return: (observations, actions, rewards, Q_values, trajectory_return, trajectory_lenght)
-        :rtype: (np.ndarray, np.ndarray, np.ndarray, [np.ndarray, np.ndarray], np.float, int)
         """
-        return self.observations, self.actions, self.rewards, \
-               self.Q_values, self.trajectory_return, self.__len__()
+
+        tc = self.observations, self.actions, list(self.rewards), self.Q_values, self.trajectory_return, self.__len__()
+        return tc
 
     def __repr__(self):
         str = "\n::trajectory_container/\n"
@@ -619,8 +622,9 @@ class TimestepCollector(object):
         :rtype: TrajectoryContainer
         """
         # todo --> validate dtype for discrete case
-        trajectory_container = TrajectoryContainer(self._observations, self._actions, self._rewards, self._exp_spec,
-                                                   discounted=discounted_q_values)
+        trajectory_container = TrajectoryContainer(self._observations.copy(), self._actions.copy(),
+                                                   self._rewards.copy(), self._exp_spec,discounted=discounted_q_values)
+
         self._reset()
         return trajectory_container
 
@@ -676,18 +680,18 @@ class EpochContainer(object):
 
         """TrajectoryContainer unpacking reference:
            
-                       (observations, actions, rewards, Q_values, 
-                                trajectory_return, trajectory_lenght) = TrajectoryContainer.unpack()
+                       (observations, actions, rewards, 
+                            Q_values, trajectory_return, trajectory_lenght) = TrajectoryContainer.unpack()
         """
         for trj in self.trajectories:
-            trajectory = trj.unpack()
+            observations, actions, rewards, Q_values, trajectory_return, trajectory_lenght = trj.unpack()
 
-            trjs_observations.append(trajectory[0])
-            trjs_actions.append(trajectory[1])
-            # trjs_reward.append(trajectory[2])
-            trjs_Qvalues.append(trajectory[3])
-            trjs_returns.append(trajectory[4])
-            trjs_lenghts.append(trajectory[5])
+            trjs_observations += observations
+            trjs_actions += actions
+            # trjs_reward += rewards
+            trjs_Qvalues += Q_values
+            trjs_returns += trajectory_return
+            trjs_lenghts.append(trajectory_lenght)
 
         _number_of_collected_trj = self.total_timestep_collected()
         _timestep_total = self.__len__()
@@ -695,8 +699,10 @@ class EpochContainer(object):
         # np.array(V).copy()
 
         # Reset the container
+        trajectories_copy = (trjs_observations.copy(), trjs_actions.copy(), trjs_Qvalues.copy(),
+                             trjs_returns.copy(), trjs_lenghts, _number_of_collected_trj, _timestep_total)
         self._reset()
-        return trjs_observations, trjs_actions, trjs_Qvalues, trjs_returns, trjs_lenghts, _number_of_collected_trj, _timestep_total
+        return trajectories_copy
 
     def _reset(self) -> None:
         self.trajectories = []
@@ -728,7 +734,9 @@ class TrajectoriesCollector(object):
         :rtype: dict
         """
         trajectories_lists = self.epoch_container.unpack()
+
         _, _, _, _, _, nb_trjs, timestep_total = trajectories_lists
+
         component_name = ('trjs_obss', 'trjs_acts', 'trjs_Qvalues', 'trjs_returns', 'trjs_len')
 
         """EpochContainer unpacking reference:
@@ -743,7 +751,8 @@ class TrajectoriesCollector(object):
         # Compute metric:
         trajectories_dict['epoch_average_return'] = np.mean(trajectories_dict['trjs_returns'])
         trajectories_dict['epoch_average_lenghts'] = np.mean(trajectories_dict['trjs_len'])
-
+        trajectories_dict['nb_trjs'] = nb_trjs
+        trajectories_dict['timestep_total'] = timestep_total
         return trajectories_dict
 
     def get_number_of_trajectories_collected(self):
