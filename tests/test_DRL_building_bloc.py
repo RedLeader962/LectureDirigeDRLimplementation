@@ -425,7 +425,7 @@ def test_reward_to_go_PASS(gym_and_tf_continuous_setup):
 
     print(reward_to_go)
     assert reward_to_go[N-1] == N-1, "shape:{} - {}".format(reward_to_go.shape, reward_to_go)
-    assert isinstance(reward_to_go, np.ndarray)
+    assert isinstance(reward_to_go, list)
 
 
 def test_dicounted_reward_to_go_PASS(gym_and_tf_continuous_setup):
@@ -440,7 +440,7 @@ def test_dicounted_reward_to_go_PASS(gym_and_tf_continuous_setup):
     print("\t{} reward_to_go".format(reward_to_go))
     print("\t{} discounted_reward_to_go".format(discounted_reward_to_go))
 
-    assert isinstance(discounted_reward_to_go, np.ndarray)
+    assert isinstance(discounted_reward_to_go, list)
     assert discounted_reward_to_go[N-1] == N-1, "shape:{} - {}".format(discounted_reward_to_go.shape, discounted_reward_to_go)
     assert discounted_reward_to_go[0] == 136
 
