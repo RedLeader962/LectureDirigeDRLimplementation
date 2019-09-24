@@ -7,6 +7,8 @@ import tensorflow as tf
 tf_cv1 = tf.compat.v1   # shortcut
 import numpy as np
 import DRL_building_bloc as bloc
+from DRL_building_bloc import CycleIndexer, ExperimentSpec, GymPlayground, TrajectoryContainer, TimestepCollector, \
+    TrajectoriesCollector, EpochContainer, REINFORCE_policy, ConsolPrintLearningStats
 
 import tensorflow_weak_warning_supressor as no_cpu_compile_warn
 no_cpu_compile_warn.execute()
@@ -15,8 +17,9 @@ from vocabulary import rl_name
 vocab = rl_name()
 # endregion
 
-
-RENDER_ENV = True   # (!) Environment rendering manual selection. Comment this line
+# (!) Environment rendering manual selection.
+RENDER_ENV = False
+# RENDER_ENV = True
 
 
 """
@@ -27,9 +30,9 @@ In browser, go to:
     http://0.0.0.0:6006/ 
 """
 
-def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None):
+def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None, print_metric_every_what_epoch=5):
 
-    exp_spec = bloc.ExperimentSpec()
+    exp_spec = ExperimentSpec()
     parma_dict = {
         'paramameter_set_name': 'Training spec',
         'timestep_max_per_trajectorie': 600,
@@ -47,9 +50,9 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
     test_parma_dict = {
         'paramameter_set_name': 'Test spec',
-        'timestep_max_per_trajectorie': 20,
-        'trajectories_batch_size': 3,
-        'max_epoch': 20,
+        'timestep_max_per_trajectorie': 100,
+        'trajectories_batch_size': 10,
+        'max_epoch': 10,
         'discounted_reward_to_go': True,
         'discout_factor': 0.999,
         'learning_rate': 1e-2,
@@ -60,8 +63,8 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
         'render_env_every_What_epoch': 5
     }
 
-    exp_spec.set_experiment_spec(parma_dict)
-    # exp_spec.set_experiment_spec(test_parma_dict)
+    # exp_spec.set_experiment_spec(parma_dict)
+    exp_spec.set_experiment_spec(test_parma_dict)
 
     if discounted_reward_to_go is not None:
         exp_spec.set_experiment_spec(
@@ -75,7 +78,9 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
     print("\n\n>>> Environment rendering: {}".format(render_env))
 
-    playground = bloc.GymPlayground(environment_name='LunarLander-v2')
+    playground = GymPlayground(environment_name='LunarLander-v2')
+
+    consol_print_learning_stats = ConsolPrintLearningStats(print_metric_every_what_epoch)
 
 
     # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -86,16 +91,19 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
 
     """ ---- Build the Policy_theta computation graph with theta as multi-layer perceptron ---- """
+    # Placeholder
     observation_ph, action_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
     Q_values_ph = tf_cv1.placeholder(tf.float32, shape=(None,), name=vocab.Qvalues_placeholder)
-    reinforce_policy = bloc.REINFORCE_policy(observation_ph, action_ph, Q_values_ph, exp_spec, playground)
+
+    # The policy & is neural net theta
+    reinforce_policy = REINFORCE_policy(observation_ph, action_ph, Q_values_ph, exp_spec, playground)
     (sampled_action, theta_mlp, pseudo_loss) = reinforce_policy
     # Todo --> Refactor Q_values_ph: push inside gym_playground_to_tensorflow_graph_adapter
 
 
     """ ---- Collector instantiation ---- """
-    timestep_collector = bloc.TimestepCollector(exp_spec, playground)
-    trajectories_collector = bloc.TrajectoriesCollector()
+    timestep_collector = TimestepCollector(exp_spec, playground)
+    trajectories_collector = TrajectoriesCollector()
 
 
     """ ---- Optimizer ---- """
@@ -115,14 +123,19 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
         # *                                                                                                           *
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
+        consol_print_learning_stats.start_the_crazy_experiment()
+
         """ ---- Simulator: Epochs ---- """
         for epoch in range(exp_spec.max_epoch):
-            print("\n\n:: Epoch: {:^3} {}".format( epoch+1, "-" * 75))
+            # print("\n\n:: Epoch: {:^3} {}".format( epoch+1, "-" * 75)) # todo <-- uncomment or delete:
+
+            consol_print_learning_stats.next_glorious_epoch()
 
             """ ---- Simulator: trajectories ---- """
             for trj in range(exp_spec.trajectories_batch_size):
                 observation = playground.env.reset()   # fetch initial observation
 
+                consol_print_learning_stats.next_glorious_trajectory()
 
                 """ ---- Simulator: time-steps ---- """
                 for step in range(exp_spec.timestep_max_per_trajectorie):
@@ -140,8 +153,8 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
                     """ ---- Agent: Collect current timestep events ---- """
                     timestep_collector.collect(observation, action, reward)
 
-                    if len(info) is not 0:
-                        print("\ninfo: {}\n".format(info))
+                    # if len(info) is not 0:
+                    #     print("\ninfo: {}\n".format(info))
                     # print("\t\t E:{} Tr:{} TS:{}\t\t|\taction[{}]\t--> \treward = {}".format(
                     #     epoch + 1, trj + 1, step + 1, action, reward))
 
@@ -155,15 +168,30 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
                         trajectories_collector.collect(trajectory_container)
 
                         # print(trajectory_container)
-                        print("\t  ↳ ::Trajectory {:>4}     --->     got reward {:>8.2f}   after  {:>4}  timesteps".format(
-                            trj + 1, trajectory_container.the_trajectory_return, step + 1))
+                        # print("\t  ↳ ::Trajectory {:>4}     --->     got reward {:>8.2f}   after  {:>4}  timesteps".format(
+                        #     trj + 1, trajectory_container.the_trajectory_return, step + 1))
+
+                        # todo <-- uncomment or delete:
+                        # print("\r\t|\n\t↳ ::Trajectory {:>4}  ".format(trj + 1), ">"*index_i, " "*index_j ,
+                        #       "  got reward {:>8.2f}   after  {:>4}  timesteps\n\n".format(
+                        #     trajectory_container.the_trajectory_return, step + 1), end="", flush=True)
+
                         break
+
+                consol_print_learning_stats.trajectory_training_stat(the_trajectory_return=trajectory_container.the_trajectory_return,
+                                                                     timestep=step)
+
+
+
+
+
 
             """ ---- Simulator: epoch as ended, it's time to learn! ---- """
             number_of_trj_collected = trajectories_collector.get_number_of_trajectories_collected()
             total_timestep_collected = trajectories_collector.get_total_timestep_collected()
 
-            print("\n:: Collected {:>3} trajectories for a total of {:>5} timestep.".format(number_of_trj_collected, total_timestep_collected))
+            # todo <-- uncomment or delete:
+            # print("\n\n:: Collected {:>3} trajectories for a total of {:>5} timestep.".format(number_of_trj_collected, total_timestep_collected))
 
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
             # *                                                                                                      *
@@ -195,15 +223,23 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
             epoch_average_trjs_return, epoch_average_trjs_lenght = epoch_container.compute_metric()
 
-            print("\n:: Epoch {:>3} metric:\n\t  ↳ | pseudo loss: {:>6.2f} "
-                  "| average trj return: {:>6.2f} | average trj lenght: {:>6.2f}\n".format(
-                epoch, epoch_loss, epoch_average_trjs_return, epoch_average_trjs_lenght))
+            # todo <-- uncomment or delete:
+            # print("\n:: Epoch {:>3} metric:\n\t  ↳ | pseudo loss: {:>6.2f} "
+            #       "| average trj return: {:>6.2f} | average trj lenght: {:>6.2f}\n".format(
+            #     epoch, epoch_loss, epoch_average_trjs_return, epoch_average_trjs_lenght))
+            #
+            # print("{} EPOCH:{:>3} END ::\n\n".format("-" * 72, epoch + 1, trj + 1))
 
-            print("{} EPOCH:{:>3} END ::\n\n".format("-" * 72, epoch + 1, trj + 1))
+            consol_print_learning_stats.epoch_training_stat(
+                epoch_loss=epoch_loss, epoch_average_trjs_return=epoch_average_trjs_return,
+                epoch_average_trjs_lenght=epoch_average_trjs_lenght,
+                number_of_trj_collected=number_of_trj_collected,
+                total_timestep_collected=total_timestep_collected
+            )
 
 
 
-
+    consol_print_learning_stats.print_experiment_stats()
     writer.close()
     playground.env.close()
 

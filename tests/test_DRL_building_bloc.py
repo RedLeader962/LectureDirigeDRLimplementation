@@ -546,3 +546,11 @@ def test_create_tensor():
 def test_vocab_PASS():
     print(vocab)
 
+def test_CycleIndexer_PASS():
+    cycle_indexer = bloc.CycleIndexer(20)
+
+    for _ in range(40):
+        i, j = cycle_indexer.__next__()
+        print(i, j)
+
+

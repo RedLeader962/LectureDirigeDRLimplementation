@@ -1,4 +1,6 @@
 # coding=utf-8
+import sys
+import time
 
 import gym
 import pretty_printing
@@ -837,3 +839,155 @@ def format_single_step_action(action_array: np.ndarray):
                                         "Should output a int instead of {}".format(action)
     finally:
         return action
+
+
+class CycleIndexer(object):
+    def __init__(self, cycle_lenght: int = 10):
+        self.i = 0
+        self.j = cycle_lenght
+        self.cycle_lenght = cycle_lenght
+
+    def __next__(self):
+        if self.i == self.cycle_lenght:
+            self.reset()
+        else:
+            self.i += 1
+            self.j -= 1
+
+        return self.i, self.j
+
+    def reset(self):
+        self.i = 0
+        self.j = self.cycle_lenght
+
+
+class ConsolPrintLearningStats(object):
+    def __init__(self, print_metric_every_what_epoch=5, consol_span=90):
+        self.cycle_indexer = CycleIndexer(cycle_lenght=10)
+        self.epoch = 0
+        self.trj = 0
+        self.the_trajectory_return = None
+        self.timestep = None
+        self.number_of_trj_collected = None
+        self.total_timestep_collected = None
+        self.epoch_loss = None
+        self.average_trjs_return = None
+        self.average_trjs_lenght = None
+        self.print_metric_every = print_metric_every_what_epoch
+        self.span = consol_span
+
+    def _assert_all_property_are_feed(self) -> bool:
+        if ((self.number_of_trj_collected is not None) and (self.total_timestep_collected is not None) and
+                (self.epoch_loss is not None) and (self.average_trjs_return is not None) and
+                (self.average_trjs_lenght is not None)):
+            return True
+
+    def start_the_crazy_experiment(self, message=("3", "2", "1", "READY")) -> None:
+        print("\n\n")
+        self.anim_line(start_anim_at_a_new_line=True, keep_cursor_at_same_line_on_exit=False)
+        self.anim_line(nb_of_cycle=1, keep_cursor_at_same_line_on_exit=True)
+
+        for m in message:
+            print("\r{:^{span}}".format(m, span=self.span), end="", flush=True)
+            time.sleep(0.2)
+        # print("\r{:^{span}}".format("?", span=self.span), end="", flush=True)
+        # time.sleep(0.01)
+        print(
+            "\r{:=<{span}}\r".format("=== EXPERIMENT START ", span=self.span), end="", flush=True)
+        return None
+
+    def print_experiment_stats(self):
+        print("\n\n\n{:^{span}}".format("Experiment stoped", span=self.span))
+        stats_str = "Collected {} trajectories over {} epoch".format(self.epoch, self.trj)
+        print("{:^{span}}".format(
+            stats_str, span=self.span), end="\n\n", flush=True)
+        print("{:=>{span}}".format(" EXPERIMENT END ===", span=self.span), end="\n", flush=True)
+        self.anim_line(caracter=">", nb_of_cycle=1, start_anim_at_a_new_line=False)
+        self.anim_line(caracter="<", nb_of_cycle=1, keep_cursor_at_same_line_on_exit=False)
+        return None
+
+    def anim_line(self, caracter=">", nb_of_cycle=2,
+                  start_anim_at_a_new_line=False,
+                  keep_cursor_at_same_line_on_exit=True):
+        if start_anim_at_a_new_line:
+            print("\n")
+
+
+        for c in range(nb_of_cycle):
+            for i in range(self.span):
+                print(caracter, end="", flush=True)
+                time.sleep(0.005)
+
+            if (c == nb_of_cycle -1) and not keep_cursor_at_same_line_on_exit:
+                print("\n", end="", flush=True)
+            else:
+                print("\r", end="", flush=True)
+
+
+
+
+    def next_glorious_epoch(self) -> None:
+        self.epoch += 1
+
+        if (self.epoch - 1) % self.print_metric_every == 0:
+            print("\n\n{:-<{span}}\n".format(":: Epoch ", span=self.span), end="", flush=True)
+        return None
+
+
+    def next_glorious_trajectory(self) -> (int, int):
+        """
+        Incremente the cycle_index_i and decremente the cycle_index_j.
+        Both index are returned for convience.
+
+        :return: cycle_index_i, cycle_index_j
+        :rtype: int, int
+        """
+        self.trj += 1
+        return self.cycle_indexer.__next__()
+
+    def epoch_training_stat(self, epoch_loss, epoch_average_trjs_return, epoch_average_trjs_lenght,
+                            number_of_trj_collected, total_timestep_collected) -> None:
+        """
+        Call after a traing update as been done, at the end of a epoch.
+        """
+        self.number_of_trj_collected = total_timestep_collected
+        self.total_timestep_collected = number_of_trj_collected
+        self.epoch_loss = epoch_loss
+        self.average_trjs_return = epoch_average_trjs_return
+        self.average_trjs_lenght = epoch_average_trjs_lenght
+
+        if (self.epoch - 1) % self.print_metric_every == 0:
+            print(
+                "\r\t ↳ {:^3}".format(self.epoch),
+                "::Collected {:^5} trajectories for a total of {:^5} timestep.".format(
+                    self.number_of_trj_collected, self.total_timestep_collected),
+                "\n\t\t↳ pseudo loss: {:>6.2f} ".format(self.epoch_loss),
+                "| average trj return: {:>6.2f} | average trj lenght: {:>6.2f}\n".format(
+                    self.average_trjs_return, self.average_trjs_lenght),
+                end="", flush=True
+            )
+        return None
+
+    def trajectory_training_stat(self, the_trajectory_return, timestep) -> None:
+        """
+        Print formated learning metric & stat
+
+        :param the_trajectory_return:
+        :type the_trajectory_return: float
+        :param timestep:
+        :type timestep: int
+        :return:
+        :rtype: None
+        """
+        print("\r\t ↳ {:^3} ::Trajectory {:>4}  ".format(self.epoch, self.trj),
+              ">"*self.cycle_indexer.i, " "*self.cycle_indexer.j,
+              "  got reward {:>8.2f}   after  {:>4}  timesteps".format(
+                  the_trajectory_return, timestep + 1),
+              sep='', end='', flush=True)
+
+        self.the_trajectory_return = the_trajectory_return
+        self.timestep = timestep
+        return None
+
+
+
