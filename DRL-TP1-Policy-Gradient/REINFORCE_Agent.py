@@ -32,25 +32,26 @@ In browser, go to:
 
 def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None, print_metric_every_what_epoch=5):
 
-    exp_spec = ExperimentSpec()
-    parma_dict = {
+    cartpole_parma_dict = {
+        'prefered_environment': 'CartPole-v1',
         'paramameter_set_name': 'Training spec',
-        'timestep_max_per_trajectorie': 600,
+        'timestep_max_per_trajectorie': 2000,           # check the max_episode_steps specification of your chosen env
         'trajectories_batch_size': 40,
         'max_epoch': 1000,
         'discounted_reward_to_go': True,
         'discout_factor': 0.999,
         'learning_rate': 1e-2,
-        'nn_h_layer_topo': (8, 32, 32),
+        'nn_h_layer_topo': (32, ),
         'random_seed': 42,
         'hidden_layers_activation': tf.tanh,
         'output_layers_activation': tf.tanh,
-        'render_env_every_What_epoch': 100
+        'render_env_every_What_epoch': 100,
+        'print_metric_every_what_epoch': 10,
     }
 
     test_parma_dict = {
         'paramameter_set_name': 'Test spec',
-        'timestep_max_per_trajectorie': 100,
+        'timestep_max_per_trajectorie': 20,
         'trajectories_batch_size': 10,
         'max_epoch': 10,
         'discounted_reward_to_go': True,
@@ -60,11 +61,34 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
         'random_seed': 42,
         'hidden_layers_activation': tf.tanh,
         'output_layers_activation': tf.tanh,
-        'render_env_every_What_epoch': 5
+        'render_env_every_What_epoch': 5,
+        'print_metric_every_what_epoch': 5,
     }
 
-    exp_spec.set_experiment_spec(parma_dict)
+    """
+    For OpenAi Gym registered environment, go to:
+
+        * Bird eye view: https://gym.openai.com/envs
+        * Specification: https://github.com/openai/gym/blob/master/gym/envs/__init__.py 
+
+                eg:
+                    register(
+                        id='CartPole-v1',
+                        entry_point='gym.envs.classic_control:CartPoleEnv',
+                        max_episode_steps=500,
+                        reward_threshold=475.0,
+                    )
+                    
+        'MountainCar-v0', 'MountainCarContinuous-v0', 'CartPole-v1', 'Pendulum-v0', 'LunarLander-v2', 'LunarLanderContinuous-v2', ...
+
+    """
+    # (nice to have) todo:refactor --> automate timestep_max_per_trajectorie field default: fetch the value from the selected env
+    exp_spec = ExperimentSpec(print_metric_every_what_epoch)
+
+    exp_spec.set_experiment_spec(cartpole_parma_dict)
     # exp_spec.set_experiment_spec(test_parma_dict)
+
+    playground = GymPlayground(environment_name=exp_spec.prefered_environment)
 
     if discounted_reward_to_go is not None:
         exp_spec.set_experiment_spec(
@@ -78,9 +102,9 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
     print("\n\n>>> Environment rendering: {}".format(render_env))
 
-    playground = GymPlayground(environment_name='LunarLander-v2')
 
-    consol_print_learning_stats = ConsolPrintLearningStats(print_metric_every_what_epoch)
+
+    consol_print_learning_stats = ConsolPrintLearningStats(exp_spec.print_metric_every_what_epoch)
 
 
     # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -164,7 +188,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
                         """ ---- Agent: Collect the sampled trajectory  ---- """
                         trajectory_container = timestep_collector.get_collected_timestep_and_reset_collector(
-                                                                        discounted_q_values=exp_spec.discounted_reward_to_go)
+                            discounted_q_values=exp_spec.discounted_reward_to_go)
 
                         trajectories_collector.collect(trajectory_container)
                         break

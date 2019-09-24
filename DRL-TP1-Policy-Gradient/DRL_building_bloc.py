@@ -25,9 +25,9 @@ In browser, go to:
 """
 
 class ExperimentSpec(object):
-    def __init__(self, timestep_max_per_trajectorie=20, trajectories_batch_size=10, max_epoch=2, discout_factor=1,
+    def __init__(self, timestep_max_per_trajectorie=None, trajectories_batch_size=10, max_epoch=2, discout_factor=1,
                  learning_rate=1e-2, neural_net_hidden_layer_topology: tuple = (32, 32), random_seed=42,
-                 discounted_reward_to_go=True):
+                 discounted_reward_to_go=True, environment_name='CartPole-v1', print_metric_every_what_epoch=5):
         """
         Gather the specification for a experiement
         
@@ -38,11 +38,19 @@ class ExperimentSpec(object):
 
 
         # todo: add a param for the neural net configuration via a dict fed as a argument
+        :param print_metric_every_what_epoch:
+        :type print_metric_every_what_epoch:
+        :param environment_name:
+        :type environment_name:
         :param discounted_reward_to_go:
         :type discounted_reward_to_go:
         """
+
         self.paramameter_set_name = 'default'
-        self.timestep_max_per_trajectorie = timestep_max_per_trajectorie         # horizon
+        self.prefered_environment = environment_name
+
+        self.timestep_max_per_trajectorie = timestep_max_per_trajectorie
+
         self.trajectories_batch_size = trajectories_batch_size
         self.max_epoch = max_epoch
         self.discout_factor: float = discout_factor
@@ -56,12 +64,13 @@ class ExperimentSpec(object):
 
         self.render_env_every_What_epoch = 100
         self.log_every_step = 1000
-        # todo: any NN usefull param
+        self.print_metric_every_what_epoch = print_metric_every_what_epoch
 
-        self.assert_param()
+        # (nice to have) todo --> add any NN usefull param:
 
+        self._assert_param()
 
-    def assert_param(self):
+    def _assert_param(self):
         assert (0 <= self.discout_factor) and (self.discout_factor <= 1)
         assert isinstance(self.nn_h_layer_topo, tuple)
 
@@ -98,7 +107,7 @@ class ExperimentSpec(object):
             str_k: str
             self.__setattr__(str_k, v)
 
-        self.assert_param()
+        self._assert_param()
 
         print("\n\n>>> Switching to parameter: {}".format(self.paramameter_set_name),
               self.get_agent_training_spec(),
@@ -876,8 +885,8 @@ class ConsolPrintLearningStats(object):
         self.print_metric_every = print_metric_every_what_epoch
         self.span = consol_span
 
-        self.current_stats_batch_pseudo_loss = 0
-        self.last_stats_batch_mean_pseudo_lost = 0
+        self.current_stats_batch_pseudo_loss = 0.0
+        self.last_stats_batch_mean_pseudo_lost = 0.0
 
         self.current_batch_return = 0
         self.last_batch_return = 0
@@ -909,7 +918,7 @@ class ConsolPrintLearningStats(object):
 
     def print_experiment_stats(self):
         print("\n\n\n{:^{span}}".format("Experiment stoped", span=self.span))
-        stats_str = "Collected {} trajectories over {} epoch".format(self.epoch, self.trj)
+        stats_str = "Collected {} trajectories over {} epoch".format(self.trj, self.epoch)
         print("{:^{span}}".format(
             stats_str, span=self.span), end="\n\n", flush=True)
         print("{:=>{span}}".format(" EXPERIMENT END ===", span=self.span), end="\n", flush=True)
@@ -966,7 +975,7 @@ class ConsolPrintLearningStats(object):
 
         self.current_stats_batch_pseudo_loss += self.epoch_loss
 
-        self.current_batch_return += self.epoch_average_trjs_return
+        self.current_batch_return += epoch_average_trjs_return
 
 
 
@@ -984,7 +993,7 @@ class ConsolPrintLearningStats(object):
 
             print("\n\tAverage pseudo lost: {:>6.3f} (over the past {} epoch)".format(
                 mean_stats_batch_loss, self.print_metric_every))
-            if mean_stats_batch_loss < self.last_stats_batch_mean_pseudo_lost:
+            if abs(mean_stats_batch_loss) < abs(self.last_stats_batch_mean_pseudo_lost):
                 print("\t\t↳ is lowering ⬊  ...  goooood :)", end="", flush=True)
             elif mean_stats_batch_loss > self.last_stats_batch_mean_pseudo_lost:
                 print("\t\t↳ is rising ⬈", end="", flush=True)
