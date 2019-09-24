@@ -2,6 +2,7 @@
 import sys
 import time
 
+import matplotlib.pyplot as plt
 import gym
 import pretty_printing
 import numpy as np
@@ -624,7 +625,7 @@ class TrajectoryContainer(object):
         :return: (observations, actions, rewards, Q_values, the_trajectory_return, trajectory_lenght)
         :rtype: (list, list, list, list, int, int)
         """
-        tc = self.observations, self.actions, self.rewards, self.Q_values, self.the_trajectory_return, self.__len__()
+        tc = self.observations, self.actions, self.rewards, self.Q_values, int(self.the_trajectory_return), self.__len__()
         return tc
 
     def __repr__(self):
@@ -892,8 +893,8 @@ class ConsolPrintLearningStats(object):
         self.last_batch_return = 0
 
         self.collected_experiment_stats = {
+            'smoothed_average_return': [],
             'smoothed_average_peusdo_loss': [],
-            'smoothed_average_return': []
         }
 
     def _assert_all_property_are_feed(self) -> bool:
@@ -925,7 +926,8 @@ class ConsolPrintLearningStats(object):
         self.anim_line(caracter=">", nb_of_cycle=1, start_anim_at_a_new_line=False)
         self.anim_line(caracter="<", nb_of_cycle=1, keep_cursor_at_same_line_on_exit=False)
 
-        print("\n\nCollected experiment stats:\n{}".format(self.collected_experiment_stats))
+        ultra_basic_ploter(self.collected_experiment_stats['smoothed_average_return'], self.collected_experiment_stats['smoothed_average_peusdo_loss'],)
+        # print("\n\nCollected experiment stats:\n{}".format(self.collected_experiment_stats))
         return None
 
     def anim_line(self, caracter=">", nb_of_cycle=2,
@@ -1032,3 +1034,18 @@ class ConsolPrintLearningStats(object):
 
 
 
+def ultra_basic_ploter(epoch_average_return: list, epoch_average_loss: list) -> None:
+
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    x_axes = len(epoch_average_return)
+    ax.plot(x_axes, epoch_average_return, label='Average Return')
+    ax.plot(x_axes, epoch_average_loss, label='Average loss')
+
+    # plt.ylabel('Average Return')
+    plt.xlabel('Epoch')
+
+    ax.grid(True)
+    ax.legend(loc='best')
+
+    plt.show()

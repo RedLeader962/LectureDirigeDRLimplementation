@@ -36,12 +36,12 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
         'prefered_environment': 'CartPole-v1',
         'paramameter_set_name': 'Training spec',
         'timestep_max_per_trajectorie': 2000,           # check the max_episode_steps specification of your chosen env
-        'trajectories_batch_size': 40,
+        'trajectories_batch_size': 10,
         'max_epoch': 1000,
         'discounted_reward_to_go': True,
         'discout_factor': 0.999,
-        'learning_rate': 1e-2,
-        'nn_h_layer_topo': (32, ),
+        'learning_rate': 1e-3,
+        'nn_h_layer_topo': (62, ),
         'random_seed': 42,
         'hidden_layers_activation': tf.tanh,
         'output_layers_activation': tf.tanh,
@@ -65,6 +65,13 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
         'print_metric_every_what_epoch': 5,
     }
 
+    # Note: Gamma value is critical.
+    #       Big difference between 0.9 and 0.999.
+    #       Also you need to take into account the experiment average number of step per episode
+    #
+    #           Example with experiment average step of 100:
+    #              0.9^100 = 0.000026 vs 0.99^100 = 0.366003 vs 0.999^100 = 0.904792
+
     """
     For OpenAi Gym registered environment, go to:
 
@@ -85,8 +92,8 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
     # (nice to have) todo:refactor --> automate timestep_max_per_trajectorie field default: fetch the value from the selected env
     exp_spec = ExperimentSpec(print_metric_every_what_epoch)
 
-    exp_spec.set_experiment_spec(cartpole_parma_dict)
-    # exp_spec.set_experiment_spec(test_parma_dict)
+    # exp_spec.set_experiment_spec(cartpole_parma_dict)
+    exp_spec.set_experiment_spec(test_parma_dict)
 
     playground = GymPlayground(environment_name=exp_spec.prefered_environment)
 
