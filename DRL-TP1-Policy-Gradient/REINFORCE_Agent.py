@@ -18,8 +18,8 @@ vocab = rl_name()
 # endregion
 
 # (!) Environment rendering manual selection.
-RENDER_ENV = False
-# RENDER_ENV = True
+# RENDER_ENV = False
+RENDER_ENV = True
 
 
 """

@@ -875,8 +875,17 @@ class ConsolPrintLearningStats(object):
         self.average_trjs_lenght = None
         self.print_metric_every = print_metric_every_what_epoch
         self.span = consol_span
-        self.current_batch_pseudo_loss = 0
-        self.last_batch_mean_pseudo_lost = 0
+
+        self.current_stats_batch_pseudo_loss = 0
+        self.last_stats_batch_mean_pseudo_lost = 0
+
+        self.current_batch_return = 0
+        self.last_batch_return = 0
+
+        self.collected_experiment_stats = {
+            'smoothed_average_peusdo_loss': [],
+            'smoothed_average_return': []
+        }
 
     def _assert_all_property_are_feed(self) -> bool:
         if ((self.number_of_trj_collected is not None) and (self.total_timestep_collected is not None) and
@@ -906,6 +915,8 @@ class ConsolPrintLearningStats(object):
         print("{:=>{span}}".format(" EXPERIMENT END ===", span=self.span), end="\n", flush=True)
         self.anim_line(caracter=">", nb_of_cycle=1, start_anim_at_a_new_line=False)
         self.anim_line(caracter="<", nb_of_cycle=1, keep_cursor_at_same_line_on_exit=False)
+
+        print("\n\nCollected experiment stats:\n{}".format(self.collected_experiment_stats))
         return None
 
     def anim_line(self, caracter=">", nb_of_cycle=2,
@@ -953,12 +964,15 @@ class ConsolPrintLearningStats(object):
         self.average_trjs_return = epoch_average_trjs_return
         self.average_trjs_lenght = epoch_average_trjs_lenght
 
-        self.current_batch_pseudo_loss += self.epoch_loss
+        self.current_stats_batch_pseudo_loss += self.epoch_loss
+
+        self.current_batch_return += self.epoch_average_trjs_return
 
 
 
         if (self.epoch) % self.print_metric_every == 0:
-            mean_batch_loss = self.current_batch_pseudo_loss / self.print_metric_every
+            mean_stats_batch_loss = self.current_stats_batch_pseudo_loss / self.print_metric_every
+            mean_stats_batch_return = self.current_batch_return / self.print_metric_every
             print(
                 "\r\t ↳ {:^3}".format(self.epoch),
                 ":: Collected {} trajectories for a total of {} timestep.".format(
@@ -968,15 +982,21 @@ class ConsolPrintLearningStats(object):
                     self.average_trjs_return, self.average_trjs_lenght),
                 end="\n", flush=True)
 
-            print("\n\tAverage pseudo lost for the past {} epoch: {:>6.3f}".format(
-                self.print_metric_every, mean_batch_loss))
-            if mean_batch_loss < self.last_batch_mean_pseudo_lost:
-                print("\t\t↳ is lowering ⬊", end="", flush=True)
-            elif mean_batch_loss > self.last_batch_mean_pseudo_lost:
+            print("\n\tAverage pseudo lost: {:>6.3f} (over the past {} epoch)".format(
+                mean_stats_batch_loss, self.print_metric_every))
+            if mean_stats_batch_loss < self.last_stats_batch_mean_pseudo_lost:
+                print("\t\t↳ is lowering ⬊  ...  goooood :)", end="", flush=True)
+            elif mean_stats_batch_loss > self.last_stats_batch_mean_pseudo_lost:
                 print("\t\t↳ is rising ⬈", end="", flush=True)
 
-            self.current_batch_pseudo_loss = 0
-            self.last_batch_mean_pseudo_lost = mean_batch_loss
+            self.collected_experiment_stats['smoothed_average_peusdo_loss'].append(mean_stats_batch_loss)
+            self.collected_experiment_stats['smoothed_average_return'].append(mean_stats_batch_return)
+
+            self.current_stats_batch_pseudo_loss = 0
+            self.last_stats_batch_mean_pseudo_lost = mean_stats_batch_loss
+
+            self.current_batch_return = 0
+            self.last_batch_return = mean_stats_batch_return
         return None
 
     def trajectory_training_stat(self, the_trajectory_return, timestep) -> None:
@@ -992,13 +1012,14 @@ class ConsolPrintLearningStats(object):
         """
         print("\r\t ↳ {:^3} :: Trajectory {:>4}  ".format(self.epoch, self.trj),
               ">"*self.cycle_indexer.i, " "*self.cycle_indexer.j,
-              "  got reward {:>8.2f}   after  {:>4}  timesteps".format(
+              "  got return {:>8.2f}   after  {:>4}  timesteps".format(
                   the_trajectory_return, timestep + 1),
               sep='', end='', flush=True)
 
         self.the_trajectory_return = the_trajectory_return
         self.timestep = timestep
         return None
+
 
 
 
