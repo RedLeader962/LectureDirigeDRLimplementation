@@ -63,8 +63,8 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
         'render_env_every_What_epoch': 5
     }
 
-    # exp_spec.set_experiment_spec(parma_dict)
-    exp_spec.set_experiment_spec(test_parma_dict)
+    exp_spec.set_experiment_spec(parma_dict)
+    # exp_spec.set_experiment_spec(test_parma_dict)
 
     if discounted_reward_to_go is not None:
         exp_spec.set_experiment_spec(

@@ -875,6 +875,8 @@ class ConsolPrintLearningStats(object):
         self.average_trjs_lenght = None
         self.print_metric_every = print_metric_every_what_epoch
         self.span = consol_span
+        self.current_batch_pseudo_loss = 0
+        self.last_batch_mean_pseudo_lost = 0
 
     def _assert_all_property_are_feed(self) -> bool:
         if ((self.number_of_trj_collected is not None) and (self.total_timestep_collected is not None) and
@@ -912,7 +914,6 @@ class ConsolPrintLearningStats(object):
         if start_anim_at_a_new_line:
             print("\n")
 
-
         for c in range(nb_of_cycle):
             for i in range(self.span):
                 print(caracter, end="", flush=True)
@@ -923,16 +924,12 @@ class ConsolPrintLearningStats(object):
             else:
                 print("\r", end="", flush=True)
 
-
-
-
     def next_glorious_epoch(self) -> None:
         self.epoch += 1
 
         if (self.epoch - 1) % self.print_metric_every == 0:
             print("\n\n{:-<{span}}\n".format(":: Epoch ", span=self.span), end="", flush=True)
         return None
-
 
     def next_glorious_trajectory(self) -> (int, int):
         """
@@ -950,22 +947,36 @@ class ConsolPrintLearningStats(object):
         """
         Call after a traing update as been done, at the end of a epoch.
         """
-        self.number_of_trj_collected = total_timestep_collected
-        self.total_timestep_collected = number_of_trj_collected
+        self.number_of_trj_collected = number_of_trj_collected
+        self.total_timestep_collected = total_timestep_collected
         self.epoch_loss = epoch_loss
         self.average_trjs_return = epoch_average_trjs_return
         self.average_trjs_lenght = epoch_average_trjs_lenght
 
-        if (self.epoch - 1) % self.print_metric_every == 0:
+        self.current_batch_pseudo_loss += self.epoch_loss
+
+
+
+        if (self.epoch) % self.print_metric_every == 0:
+            mean_batch_loss = self.current_batch_pseudo_loss / self.print_metric_every
             print(
                 "\r\t ↳ {:^3}".format(self.epoch),
-                "::Collected {:^5} trajectories for a total of {:^5} timestep.".format(
+                ":: Collected {} trajectories for a total of {} timestep.".format(
                     self.number_of_trj_collected, self.total_timestep_collected),
                 "\n\t\t↳ pseudo loss: {:>6.2f} ".format(self.epoch_loss),
-                "| average trj return: {:>6.2f} | average trj lenght: {:>6.2f}\n".format(
+                "| average trj return: {:>6.2f} | average trj lenght: {:>6.2f}".format(
                     self.average_trjs_return, self.average_trjs_lenght),
-                end="", flush=True
-            )
+                end="\n", flush=True)
+
+            print("\n\tAverage pseudo lost for the past {} epoch: {:>6.3f}".format(
+                self.print_metric_every, mean_batch_loss))
+            if mean_batch_loss < self.last_batch_mean_pseudo_lost:
+                print("\t\t↳ is lowering ⬊", end="", flush=True)
+            elif mean_batch_loss > self.last_batch_mean_pseudo_lost:
+                print("\t\t↳ is rising ⬈", end="", flush=True)
+
+            self.current_batch_pseudo_loss = 0
+            self.last_batch_mean_pseudo_lost = mean_batch_loss
         return None
 
     def trajectory_training_stat(self, the_trajectory_return, timestep) -> None:
@@ -979,7 +990,7 @@ class ConsolPrintLearningStats(object):
         :return:
         :rtype: None
         """
-        print("\r\t ↳ {:^3} ::Trajectory {:>4}  ".format(self.epoch, self.trj),
+        print("\r\t ↳ {:^3} :: Trajectory {:>4}  ".format(self.epoch, self.trj),
               ">"*self.cycle_indexer.i, " "*self.cycle_indexer.j,
               "  got reward {:>8.2f}   after  {:>4}  timesteps".format(
                   the_trajectory_return, timestep + 1),
