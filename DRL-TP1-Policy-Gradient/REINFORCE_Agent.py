@@ -127,7 +127,6 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
         """ ---- Simulator: Epochs ---- """
         for epoch in range(exp_spec.max_epoch):
-            # print("\n\n:: Epoch: {:^3} {}".format( epoch+1, "-" * 75)) # todo <-- uncomment or delete:
 
             consol_print_learning_stats.next_glorious_epoch()
 
@@ -155,6 +154,8 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
                     # if len(info) is not 0:
                     #     print("\ninfo: {}\n".format(info))
+
+                    # Timestep consol print
                     # print("\t\t E:{} Tr:{} TS:{}\t\t|\taction[{}]\t--> \treward = {}".format(
                     #     epoch + 1, trj + 1, step + 1, action, reward))
 
@@ -166,32 +167,15 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
                                                                         discounted_q_values=exp_spec.discounted_reward_to_go)
 
                         trajectories_collector.collect(trajectory_container)
-
-                        # print(trajectory_container)
-                        # print("\t  ↳ ::Trajectory {:>4}     --->     got reward {:>8.2f}   after  {:>4}  timesteps".format(
-                        #     trj + 1, trajectory_container.the_trajectory_return, step + 1))
-
-                        # todo <-- uncomment or delete:
-                        # print("\r\t|\n\t↳ ::Trajectory {:>4}  ".format(trj + 1), ">"*index_i, " "*index_j ,
-                        #       "  got reward {:>8.2f}   after  {:>4}  timesteps\n\n".format(
-                        #     trajectory_container.the_trajectory_return, step + 1), end="", flush=True)
-
                         break
 
                 consol_print_learning_stats.trajectory_training_stat(the_trajectory_return=trajectory_container.the_trajectory_return,
                                                                      timestep=step)
 
-
-
-
-
-
             """ ---- Simulator: epoch as ended, it's time to learn! ---- """
             number_of_trj_collected = trajectories_collector.get_number_of_trajectories_collected()
             total_timestep_collected = trajectories_collector.get_total_timestep_collected()
 
-            # todo <-- uncomment or delete:
-            # print("\n\n:: Collected {:>3} trajectories for a total of {:>5} timestep.".format(number_of_trj_collected, total_timestep_collected))
 
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
             # *                                                                                                      *
@@ -220,15 +204,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
             epoch_loss, _ = sess.run([pseudo_loss, policy_optimizer_op],
                                      feed_dict=feed_dictionary)
 
-
             epoch_average_trjs_return, epoch_average_trjs_lenght = epoch_container.compute_metric()
-
-            # todo <-- uncomment or delete:
-            # print("\n:: Epoch {:>3} metric:\n\t  ↳ | pseudo loss: {:>6.2f} "
-            #       "| average trj return: {:>6.2f} | average trj lenght: {:>6.2f}\n".format(
-            #     epoch, epoch_loss, epoch_average_trjs_return, epoch_average_trjs_lenght))
-            #
-            # print("{} EPOCH:{:>3} END ::\n\n".format("-" * 72, epoch + 1, trj + 1))
 
             consol_print_learning_stats.epoch_training_stat(
                 epoch_loss=epoch_loss, epoch_average_trjs_return=epoch_average_trjs_return,
