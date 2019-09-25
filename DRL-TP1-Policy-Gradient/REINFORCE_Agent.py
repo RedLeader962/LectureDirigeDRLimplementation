@@ -6,6 +6,8 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import tensorflow as tf
 tf_cv1 = tf.compat.v1   # shortcut
 import numpy as np
+import matplotlib.pyplot as plt
+
 import DRL_building_bloc as bloc
 from DRL_building_bloc import CycleIndexer, ExperimentSpec, GymPlayground, TrajectoryContainer, TimestepCollector, \
     TrajectoriesCollector, EpochContainer, REINFORCE_policy, ConsolPrintLearningStats
@@ -18,8 +20,8 @@ vocab = rl_name()
 # endregion
 
 # (!) Environment rendering manual selection.
-# RENDER_ENV = False
-RENDER_ENV = True
+# RENDER_ENV = True
+RENDER_ENV = False
 
 
 """
@@ -36,7 +38,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
         'prefered_environment': 'CartPole-v1',
         'paramameter_set_name': 'Training spec',
         'timestep_max_per_trajectorie': 2000,           # check the max_episode_steps specification of your chosen env
-        'trajectories_batch_size': 10,
+        'trajectories_batch_size': 40,
         'max_epoch': 1000,
         'discounted_reward_to_go': True,
         'discout_factor': 0.999,
@@ -51,9 +53,9 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
     test_parma_dict = {
         'paramameter_set_name': 'Test spec',
-        'timestep_max_per_trajectorie': 20,
+        'timestep_max_per_trajectorie': 200,
         'trajectories_batch_size': 10,
-        'max_epoch': 10,
+        'max_epoch': 50,
         'discounted_reward_to_go': True,
         'discout_factor': 0.999,
         'learning_rate': 1e-2,
@@ -111,7 +113,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
 
 
-    consol_print_learning_stats = ConsolPrintLearningStats(exp_spec.print_metric_every_what_epoch)
+    consol_print_learning_stats = ConsolPrintLearningStats(exp_spec, exp_spec.print_metric_every_what_epoch)
 
 
     # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -249,6 +251,8 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
     consol_print_learning_stats.print_experiment_stats()
     writer.close()
     playground.env.close()
+
+    plt.close()
 
 
 

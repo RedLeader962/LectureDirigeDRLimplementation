@@ -1,4 +1,5 @@
 # coding=utf-8
+from datetime import datetime
 import sys
 import time
 
@@ -872,7 +873,7 @@ class CycleIndexer(object):
 
 
 class ConsolPrintLearningStats(object):
-    def __init__(self, print_metric_every_what_epoch=5, consol_span=90):
+    def __init__(self, experiment_spec, print_metric_every_what_epoch=5, consol_span=90):
         self.cycle_indexer = CycleIndexer(cycle_lenght=10)
         self.epoch = 0
         self.trj = 0
@@ -896,6 +897,9 @@ class ConsolPrintLearningStats(object):
             'smoothed_average_return': [],
             'smoothed_average_peusdo_loss': [],
         }
+
+        self.exp_spec = experiment_spec
+
 
     def _assert_all_property_are_feed(self) -> bool:
         if ((self.number_of_trj_collected is not None) and (self.total_timestep_collected is not None) and
@@ -926,7 +930,10 @@ class ConsolPrintLearningStats(object):
         self.anim_line(caracter=">", nb_of_cycle=1, start_anim_at_a_new_line=False)
         self.anim_line(caracter="<", nb_of_cycle=1, keep_cursor_at_same_line_on_exit=False)
 
-        ultra_basic_ploter(self.collected_experiment_stats['smoothed_average_return'], self.collected_experiment_stats['smoothed_average_peusdo_loss'],)
+        ultra_basic_ploter(self.collected_experiment_stats['smoothed_average_return'],
+                           self.collected_experiment_stats['smoothed_average_peusdo_loss'],
+                           self.exp_spec, self.print_metric_every)
+
         # print("\n\nCollected experiment stats:\n{}".format(self.collected_experiment_stats))
         return None
 
@@ -1008,6 +1015,7 @@ class ConsolPrintLearningStats(object):
 
             self.current_batch_return = 0
             self.last_batch_return = mean_stats_batch_return
+
         return None
 
     def trajectory_training_stat(self, the_trajectory_return, timestep) -> None:
@@ -1032,20 +1040,51 @@ class ConsolPrintLearningStats(object):
         return None
 
 
+class UltraBasicLivePloter(object):
+    def __init__(self):
+        """
+        (Ice-Boxed) todo:implement --> live ploting for trainig: (!) alternative --> use TensorBoard
+
+        """
+        fig, ax = plt.subplots(figsize=(8, 6))
+        self.fig = fig
+        self.ax = ax
+        plt.xlabel('Epoch')
+        ax.grid(True)
+        ax.legend(loc='best')
+
+        plt.ion()  # for live plot
+
+    def draw(self, epoch_average_return: list, epoch_average_loss: list) -> None:
+        x_axes = range(0, len(epoch_average_return))
+        self.ax.plot(x_axes, epoch_average_return, label='Average Return')
+        self.ax.plot(x_axes, epoch_average_loss, label='Average loss')
+
+        plt.draw()
+        return None
 
 
-def ultra_basic_ploter(epoch_average_return: list, epoch_average_loss: list) -> None:
+def ultra_basic_ploter(epoch_average_return: list, epoch_average_loss: list, experiment_spec: ExperimentSpec,
+                       metric_computed_every_what_epoch: int) -> None:
 
     fig, ax = plt.subplots(figsize=(8, 6))
 
-    x_axes = len(epoch_average_return)
+    x_axes = np.arange(0, len(epoch_average_return)) * metric_computed_every_what_epoch
     ax.plot(x_axes, epoch_average_return, label='Average Return')
     ax.plot(x_axes, epoch_average_loss, label='Average loss')
 
     # plt.ylabel('Average Return')
     plt.xlabel('Epoch')
 
+    # utc_now = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    now = datetime.now()
+    # time = datetime.time()
+    ax.set_title("Experiment {} finished at {}:{} {}".format(experiment_spec.paramameter_set_name,
+                                                       now.hour, now.minute, now.date()), fontsize='xx-large')
+
+
     ax.grid(True)
     ax.legend(loc='best')
 
     plt.show()
+
