@@ -1016,6 +1016,11 @@ class ConsolPrintLearningStats(object):
             self.current_batch_return = 0
             self.last_batch_return = mean_stats_batch_return
 
+            if (self.epoch) % (self.print_metric_every * 10) == 0:
+                ultra_basic_ploter(self.collected_experiment_stats['smoothed_average_return'],
+                                   self.collected_experiment_stats['smoothed_average_peusdo_loss'],
+                                   self.exp_spec, self.print_metric_every)
+
         return None
 
     def trajectory_training_stat(self, the_trajectory_return, timestep) -> None:

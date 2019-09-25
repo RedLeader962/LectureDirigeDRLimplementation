@@ -20,8 +20,8 @@ vocab = rl_name()
 # endregion
 
 # (!) Environment rendering manual selection.
-# RENDER_ENV = True
-RENDER_ENV = False
+RENDER_ENV = True
+# RENDER_ENV = False
 
 
 """
@@ -39,7 +39,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
         'paramameter_set_name': 'Training spec',
         'timestep_max_per_trajectorie': 2000,           # check the max_episode_steps specification of your chosen env
         'trajectories_batch_size': 40,
-        'max_epoch': 1000,
+        'max_epoch': 5000,
         'discounted_reward_to_go': True,
         'discout_factor': 0.999,
         'learning_rate': 1e-3,
@@ -55,7 +55,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
         'paramameter_set_name': 'Test spec',
         'timestep_max_per_trajectorie': 200,
         'trajectories_batch_size': 10,
-        'max_epoch': 50,
+        'max_epoch': 100,
         'discounted_reward_to_go': True,
         'discout_factor': 0.999,
         'learning_rate': 1e-2,
@@ -94,8 +94,8 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
     # (nice to have) todo:refactor --> automate timestep_max_per_trajectorie field default: fetch the value from the selected env
     exp_spec = ExperimentSpec(print_metric_every_what_epoch)
 
-    # exp_spec.set_experiment_spec(cartpole_parma_dict)
-    exp_spec.set_experiment_spec(test_parma_dict)
+    exp_spec.set_experiment_spec(cartpole_parma_dict)
+    # exp_spec.set_experiment_spec(test_parma_dict)
 
     playground = GymPlayground(environment_name=exp_spec.prefered_environment)
 
