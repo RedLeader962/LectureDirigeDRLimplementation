@@ -36,7 +36,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
     cartpole_parma_dict = {
         'prefered_environment': 'CartPole-v1',
-        'paramameter_set_name': 'Training spec',
+        'paramameter_set_name': 'CartPole-v1 - Training spec',
         'timestep_max_per_trajectorie': 2000,           # check the max_episode_steps specification of your chosen env
         'trajectories_batch_size': 40,
         'max_epoch': 5000,
@@ -45,8 +45,26 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
         'learning_rate': 1e-3,
         'nn_h_layer_topo': (62, ),
         'random_seed': 42,
-        'hidden_layers_activation': tf.tanh,
-        'output_layers_activation': tf.tanh,
+        'hidden_layers_activation': tf.nn.tanh,
+        'output_layers_activation': tf.nn.tanh,
+        'render_env_every_What_epoch': 100,
+        'print_metric_every_what_epoch': 10,
+    }
+
+    cartpole_parma_dict_2 = {
+        'prefered_environment': 'CartPole-v1',
+        'paramameter_set_name': 'CartPole-v1',
+        'timestep_max_per_trajectorie': 2000,           # check the max_episode_steps specification of your chosen env
+        'trajectories_batch_size': 100,
+        'max_epoch': 2000,
+        'discounted_reward_to_go': False,
+        'discout_factor': 0.999,
+        'learning_rate': 1e-2,
+        'nn_h_layer_topo': (62, ),
+        'random_seed': 42,
+        'hidden_layers_activation': tf.nn.tanh,        # tf.nn.relu,
+        'output_layers_activation': None,
+        # 'output_layers_activation': tf.nn.sigmoid,
         'render_env_every_What_epoch': 100,
         'print_metric_every_what_epoch': 10,
     }
@@ -61,8 +79,8 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
         'learning_rate': 1e-2,
         'nn_h_layer_topo': (8, 8),
         'random_seed': 42,
-        'hidden_layers_activation': tf.tanh,
-        'output_layers_activation': tf.tanh,
+        'hidden_layers_activation': tf.nn.tanh,
+        'output_layers_activation': tf.nn.tanh,
         'render_env_every_What_epoch': 5,
         'print_metric_every_what_epoch': 5,
     }
@@ -94,7 +112,8 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
     # (nice to have) todo:refactor --> automate timestep_max_per_trajectorie field default: fetch the value from the selected env
     exp_spec = ExperimentSpec(print_metric_every_what_epoch)
 
-    exp_spec.set_experiment_spec(cartpole_parma_dict)
+    exp_spec.set_experiment_spec(cartpole_parma_dict_2)
+    # exp_spec.set_experiment_spec(cartpole_parma_dict)
     # exp_spec.set_experiment_spec(test_parma_dict)
 
     playground = GymPlayground(environment_name=exp_spec.prefered_environment)
@@ -130,7 +149,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
     # The policy & is neural net theta
     reinforce_policy = REINFORCE_policy(observation_ph, action_ph, Q_values_ph, exp_spec, playground)
-    (sampled_action, theta_mlp, pseudo_loss) = reinforce_policy
+    (policy_action_sampler, theta_mlp, pseudo_loss) = reinforce_policy
     # Todo --> Refactor Q_values_ph: push inside gym_playground_to_tensorflow_graph_adapter
 
 
@@ -177,7 +196,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
                     """ ---- Agent: act in the environment ---- """
                     step_observation = bloc.format_single_step_observation(observation)
-                    action_array = sess.run(sampled_action, feed_dict={observation_ph: step_observation})
+                    action_array = sess.run(policy_action_sampler, feed_dict={observation_ph: step_observation})
 
                     action = bloc.format_single_step_action(action_array)
                     observation, reward, done, info = playground.env.step(action)
@@ -202,8 +221,8 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
                         trajectories_collector.collect(trajectory_container)
                         break
 
-                consol_print_learning_stats.trajectory_training_stat(the_trajectory_return=trajectory_container.the_trajectory_return,
-                                                                     timestep=step)
+                consol_print_learning_stats.trajectory_training_stat(
+                    the_trajectory_return=trajectory_container.the_trajectory_return, timestep=step)
 
             """ ---- Simulator: epoch as ended, it's time to learn! ---- """
             number_of_trj_collected = trajectories_collector.get_number_of_trajectories_collected()
@@ -233,7 +252,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
             """ ---- Agent: Compute gradient & update policy ---- """
             feed_dictionary = bloc.build_feed_dictionary([observation_ph, action_ph, Q_values_ph],
-                                                    [observations, actions, Q_values])
+                                                         [observations, actions, Q_values])
             epoch_loss, _ = sess.run([pseudo_loss, policy_optimizer_op],
                                      feed_dict=feed_dictionary)
 

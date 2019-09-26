@@ -147,7 +147,7 @@ def test_build_MLP_computation_graph_io(tf_setup, gym_discrete_setup):
 
     mlp_hidden_ops = bloc.build_MLP_computation_graph(keras_input, playground, nn_shape)
     print("\n\n>>> {}\n\n".format(mlp_hidden_ops))
-    model = keras.Model(inputs=keras_input, outputs=mlp_hidden_ops)
+    # model = keras.Model(inputs=keras_input, outputs=mlp_hidden_ops)
     # print(model.to_yaml())
 
 

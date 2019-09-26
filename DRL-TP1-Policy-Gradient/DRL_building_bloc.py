@@ -61,8 +61,8 @@ class ExperimentSpec(object):
 
         self.nn_h_layer_topo = neural_net_hidden_layer_topology
         self.random_seed = random_seed
-        self.hidden_layers_activation: tf.Tensor = tf.tanh
-        self.output_layers_activation: tf.Tensor = tf.sigmoid
+        self.hidden_layers_activation: tf.Tensor = tf.nn.tanh
+        self.output_layers_activation: tf.Tensor = tf.nn.sigmoid
 
         self.render_env_every_What_epoch = 100
         self.log_every_step = 1000
@@ -208,8 +208,8 @@ class GymPlayground(object):
 
 
 def build_MLP_computation_graph(input_placeholder: tf.Tensor, playground: GymPlayground,
-                                hidden_layer_topology: tuple = (32, 32), hidden_layers_activation: tf.Tensor = tf.tanh,
-                                output_layers_activation: tf.Tensor = tf.sigmoid,
+                                hidden_layer_topology: tuple = (32, 32), hidden_layers_activation: tf.Tensor = tf.nn.tanh,
+                                output_layers_activation: tf.Tensor = None,
                                 name_scope=vocab.Multi_Layer_Perceptron) -> tf.Tensor:
     """
     Builder function for Low Level TensorFlow API.
@@ -241,22 +241,34 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, playground: GymPla
     assert isinstance(playground, GymPlayground)
     assert isinstance(hidden_layer_topology, tuple)
 
-    with tf.name_scope(name_scope) as scope:
-        # Create input layer
-        ops = keras.layers.Dense(hidden_layer_topology[0], input_shape=input_placeholder.shape,
-                                  activation=hidden_layers_activation, name=vocab.input_layer)
+    # with tf.name_scope(name_scope) as scope:
+        # # Create input layer
+        # ops = keras.layers.Dense(hidden_layer_topology[0], input_shape=input_placeholder.shape,
+        #                           activation=hidden_layers_activation, name=vocab.input_layer)
+        #
+        # parent_layer = ops(input_placeholder)
+        #
+        # # create & connect all hidden layer
+        # for id in range(len(hidden_layer_topology)):
+        #     h_layer = keras.layers.Dense(hidden_layer_topology[id], activation=hidden_layers_activation, name='{}{}'.format(vocab.hidden_, id + 1))
+        #     parent_layer = h_layer(parent_layer)
+        #
+        # # create & connect the ouput layer: the logits
+        # logits = keras.layers.Dense(playground.ACTION_CHOICES, activation=output_layers_activation, name=vocab.logits)
+        #
+        # return logits(parent_layer)
 
-        parent_layer = ops(input_placeholder)
+    with tf.variable_scope(name_or_scope=name_scope):
+        h_layer = input_placeholder
 
         # create & connect all hidden layer
         for id in range(len(hidden_layer_topology)):
-            h_layer = keras.layers.Dense(hidden_layer_topology[id], activation=hidden_layers_activation, name='{}{}'.format(vocab.hidden_, id + 1))
-            parent_layer = h_layer(parent_layer)
+            h_layer = tf_cv1.layers.dense(h_layer, hidden_layer_topology[id], activation=hidden_layers_activation, name='{}{}'.format(vocab.hidden_, id + 1))
 
         # create & connect the ouput layer: the logits
-        logits = keras.layers.Dense(playground.ACTION_CHOICES, activation=output_layers_activation, name=vocab.logits)
+        logits = tf_cv1.layers.dense(h_layer, playground.ACTION_CHOICES, activation=output_layers_activation, name=vocab.logits)
 
-        return logits(parent_layer)
+    return logits
 
 
 def continuous_space_placeholder(space: gym.spaces.Box, name=None) -> tf.Tensor:
@@ -311,7 +323,7 @@ def policy_theta_discrete_space(logits_layer: tf.Tensor, playground: GymPlaygrou
     :type logits_layer: tf.Tensor
     :param playground:
     :type playground: GymPlayground
-    :return: (sampled_action, log_probabilities)
+    :return: (sampled_action, log_p_all)
     :rtype: (tf.Tensor, tf.Tensor)
     """
     assert isinstance(playground.env.action_space, gym.spaces.Discrete)
@@ -320,7 +332,7 @@ def policy_theta_discrete_space(logits_layer: tf.Tensor, playground: GymPlaygrou
 
     with tf.name_scope(vocab.policy_theta_D) as scope:
         # convert the logits layer (aka: raw output) to probabilities
-        log_probabilities = tf.nn.log_softmax(logits_layer)
+        log_p_all = tf.nn.log_softmax(logits_layer)
         oversize_policy_theta = tf.random.categorical(logits_layer, num_samples=1)
 
         # Remove single-dimensional entries from the shape of the array since we only take one sample from the distribution
@@ -329,11 +341,11 @@ def policy_theta_discrete_space(logits_layer: tf.Tensor, playground: GymPlaygrou
         # # Compute the log probabilitie from sampled action
         # # todo --> sampled_action_log_probability unit test
         # sampled_action_mask = tf.one_hot(sampled_action, depth=playground.ACTION_CHOICES)
-        # log_probabilities_matrix = tf.multiply(sampled_action_mask, log_probabilities)
+        # log_probabilities_matrix = tf.multiply(sampled_action_mask, log_p_all)
         # sampled_action_log_probability = tf.reduce_sum(log_probabilities_matrix, axis=1)
 
 
-        return sampled_action, log_probabilities
+        return sampled_action, log_p_all
 
 
 def policy_theta_continuous_space(logits_layer: tf.Tensor, playground: GymPlayground):
@@ -381,7 +393,10 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
     with tf.name_scope(vocab.REINFORCE) as scope:
 
         theta_mlp = build_MLP_computation_graph(observation_placeholder, playground,
-                                                experiment_spec.nn_h_layer_topo, name_scope=vocab.theta_NeuralNet)
+                                                experiment_spec.nn_h_layer_topo,
+                                                hidden_layers_activation=experiment_spec.hidden_layers_activation,
+                                                output_layers_activation=experiment_spec.output_layers_activation,
+                                                name_scope=vocab.theta_NeuralNet)
 
         # /---- discrete case -----
         if isinstance(playground.env.action_space, gym.spaces.Discrete):
@@ -389,9 +404,12 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
                 "the observation_placeholder is incompatible with environment, " \
                 "{} != {}".format(observation_placeholder.shape.as_list()[-1], playground.OBSERVATION_SPACE.shape[0])
 
-            sampled_action, log_probabilities = policy_theta_discrete_space(theta_mlp, playground)
+            sampled_action, log_p_all = policy_theta_discrete_space(theta_mlp, playground)
 
-            pseudo_loss = discrete_pseudo_loss(theta_mlp, action_placeholder, Q_values_placeholder, playground)
+            pseudo_loss = discrete_pseudo_loss(log_p_all, action_placeholder, Q_values_placeholder, playground)
+
+            # pseudo_loss = tf.reduce_mean(tf.stop_gradient(Q_values_placeholder) * tf.nn.sparse_softmax_cross_entropy_with_logits(logits=theta_mlp, labels=action_placeholder), name=vocab.pseudo_loss)
+
 
         # /---- continuous case -----
         elif isinstance(playground.env.action_space, gym.spaces.Box):
@@ -476,14 +494,15 @@ def discounted_reward_to_go_np(rewards: np.ndarray, experiment_spec: ExperimentS
 # </editor-fold>
 
 
-def discrete_pseudo_loss(theta_mlp: tf.Tensor, action_placeholder: tf.Tensor, Q_values_placeholder: tf.Tensor, playground: GymPlayground) -> tf.Tensor:
+def discrete_pseudo_loss(log_p_all, action_placeholder: tf.Tensor, Q_values_placeholder: tf.Tensor,
+                         playground: GymPlayground) -> tf.Tensor:
     """
     Pseudo loss for discrete action space only using Softmax cross entropy with logits
 
+    :param log_probabilities:
+    :type log_probabilities:
     :param playground:
     :type playground:
-    :param theta_mlp:
-    :type theta_mlp:
     :param action_placeholder:
     :type action_placeholder: tf.Tensor
     :param Q_values_placeholder:
@@ -494,21 +513,20 @@ def discrete_pseudo_loss(theta_mlp: tf.Tensor, action_placeholder: tf.Tensor, Q_
 
     assert action_placeholder.shape.is_compatible_with(Q_values_placeholder.shape), "action_placeholder shape is not compatible with Q_values_placeholder shape, {} != {}".format(action_placeholder, Q_values_placeholder)
 
-    with tf.name_scope(vocab.pseudo_loss) as scope:
+    # with tf.name_scope(vocab.pseudo_loss) as scope:
 
-        # Step 1: Compute the log probabilitie of the current policy over the action space
-        action_mask = tf.one_hot(action_placeholder, playground.ACTION_CHOICES)
-        log_probabilities_matrix = tf.multiply(action_mask, tf.nn.log_softmax(theta_mlp))
-        log_probabilities = tf.reduce_sum(log_probabilities_matrix, axis=1)
+    # Step 1: Compute the log probabilitie of the current policy over the action space
+    action_mask = tf.one_hot(action_placeholder, playground.ACTION_CHOICES)
+    log_probabilities_matrix = tf.multiply(action_mask, log_p_all)
+    log_probabilities = tf.reduce_sum(log_probabilities_matrix, axis=1)
 
-        # Step 2: Compute the pseudo loss
-        # note: tf.stop_gradient(Q_values_placeholder) prevent the backpropagation into the Q_values_placeholder
-        #   |   witch contain rewards_to_go. It treat the values of the tensor as constant during backpropagation.
-
-        weighted_likelihoods = tf.multiply(
-            tf.stop_gradient(Q_values_placeholder), log_probabilities)
-        pseudo_loss = tf.reduce_mean(weighted_likelihoods)
-        return pseudo_loss
+    # Step 2: Compute the pseudo loss
+    # note: tf.stop_gradient(Q_values_placeholder) prevent the backpropagation into the Q_values_placeholder
+    #   |   witch contain rewards_to_go. It treat the values of the tensor as constant during backpropagation.
+    weighted_likelihoods = tf.multiply(
+        tf.stop_gradient(Q_values_placeholder), log_probabilities)
+    pseudo_loss = -tf.reduce_mean(weighted_likelihoods)
+    return pseudo_loss
 
 
 def policy_optimizer(pseudo_loss: tf.Tensor, exp_spec: ExperimentSpec) -> tf.Operation:
@@ -522,7 +540,7 @@ def policy_optimizer(pseudo_loss: tf.Tensor, exp_spec: ExperimentSpec) -> tf.Ope
     :return: policy_optimizer_op
     :rtype: tf.Operation
     """
-    return tf_cv1.train.AdamOptimizer(learning_rate=exp_spec.learning_rate).minimize(pseudo_loss, name=vocab.optimizer)
+    return tf.train.AdamOptimizer(learning_rate=exp_spec.learning_rate).minimize(pseudo_loss, name=vocab.optimizer)
 
 
 def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
@@ -978,14 +996,13 @@ class ConsolPrintLearningStats(object):
         """
         self.number_of_trj_collected = number_of_trj_collected
         self.total_timestep_collected = total_timestep_collected
-        self.epoch_loss = epoch_loss
         self.average_trjs_return = epoch_average_trjs_return
         self.average_trjs_lenght = epoch_average_trjs_lenght
-
-        self.current_stats_batch_pseudo_loss += self.epoch_loss
+        self.epoch_loss = epoch_loss
 
         self.current_batch_return += epoch_average_trjs_return
 
+        self.current_stats_batch_pseudo_loss += self.epoch_loss
 
 
         if (self.epoch) % self.print_metric_every == 0:
@@ -1004,7 +1021,7 @@ class ConsolPrintLearningStats(object):
                 mean_stats_batch_loss, self.print_metric_every))
             if abs(mean_stats_batch_loss) < abs(self.last_stats_batch_mean_pseudo_lost):
                 print("\t\t↳ is lowering ⬊  ...  goooood :)", end="", flush=True)
-            elif mean_stats_batch_loss > self.last_stats_batch_mean_pseudo_lost:
+            elif abs(mean_stats_batch_loss) > abs(self.last_stats_batch_mean_pseudo_lost):
                 print("\t\t↳ is rising ⬈", end="", flush=True)
 
             self.collected_experiment_stats['smoothed_average_peusdo_loss'].append(mean_stats_batch_loss)
