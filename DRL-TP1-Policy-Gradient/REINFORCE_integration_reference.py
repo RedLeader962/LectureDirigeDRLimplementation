@@ -43,7 +43,8 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
     n_acts = env.action_space.n
 
     # make core of policy network
-    obs_ph = tf.placeholder(shape=(None, obs_dim), dtype=tf.float32)                  # ////// Original bloc //////
+    # obs_ph = tf.placeholder(shape=(None, obs_dim), dtype=tf.float32)                  # ////// Original bloc //////
+    obs_ph, act_ph = BLOC.gym_playground_to_tensorflow_graph_adapter(playground)
     # logits = mlp(obs_ph, sizes=hidden_sizes+[n_acts])                               # ////// Original bloc //////
     logits = BLOC.build_MLP_computation_graph(
         obs_ph, playground, hidden_layer_topology=tuple(hidden_sizes))                 # \\\\\\    My bloc    \\\\\\
@@ -54,7 +55,7 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
 
     # make loss function whose gradient, for the right data, is policy gradient
     weights_ph = tf.placeholder(shape=(None,), dtype=tf.float32)
-    act_ph = tf.placeholder(shape=(None,), dtype=tf.int32)
+    # act_ph = tf.placeholder(shape=(None,), dtype=tf.int32)                        # ////// Original bloc //////
     action_masks = tf.one_hot(act_ph, n_acts)
     log_probs = tf.reduce_sum(action_masks * tf.nn.log_softmax(logits), axis=1)
     loss = -tf.reduce_mean(weights_ph * log_probs)
@@ -131,7 +132,17 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
     # training loop
     for i in range(epochs):
         batch_loss, batch_rets, batch_lens = train_one_epoch()
-        yield (i, batch_loss, (np.mean(batch_rets)), np.mean(batch_lens))
+        mean_return = np.mean(batch_rets)
+        average_len = np.mean(batch_lens)
+
+        print('epoch: %3d \t loss: %.3f \t return: %.3f \t ep_len: %.3f' %
+              (i, batch_loss, mean_return, average_len))
+
+        yield (i, batch_loss, mean_return, average_len)
+
+
+    print("\n>>> Close session\n")
+    sess.close()
 
 
 if __name__ == '__main__':

@@ -241,32 +241,32 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, playground: GymPla
     assert isinstance(playground, GymPlayground)
     assert isinstance(hidden_layer_topology, tuple)
 
-    # with tf.name_scope(name_scope) as scope:
-        # # Create input layer
-        # ops = keras.layers.Dense(hidden_layer_topology[0], input_shape=input_placeholder.shape,
-        #                           activation=hidden_layers_activation, name=vocab.input_layer)
-        #
-        # parent_layer = ops(input_placeholder)
-        #
-        # # create & connect all hidden layer
-        # for id in range(len(hidden_layer_topology)):
-        #     h_layer = keras.layers.Dense(hidden_layer_topology[id], activation=hidden_layers_activation, name='{}{}'.format(vocab.hidden_, id + 1))
-        #     parent_layer = h_layer(parent_layer)
-        #
-        # # create & connect the ouput layer: the logits
-        # logits = keras.layers.Dense(playground.ACTION_CHOICES, activation=output_layers_activation, name=vocab.logits)
-        #
-        # return logits(parent_layer)
+    with tf.name_scope(name_scope) as scope:
+        # Create input layer
+        ops = keras.layers.Dense(hidden_layer_topology[0], input_shape=input_placeholder.shape,
+                                  activation=hidden_layers_activation, name=vocab.input_layer)
 
-    with tf.variable_scope(name_or_scope=name_scope):
-        h_layer = input_placeholder
+        parent_layer = ops(input_placeholder)
 
         # create & connect all hidden layer
         for id in range(len(hidden_layer_topology)):
-            h_layer = tf_cv1.layers.dense(h_layer, hidden_layer_topology[id], activation=hidden_layers_activation, name='{}{}'.format(vocab.hidden_, id + 1))
+            h_layer = keras.layers.Dense(hidden_layer_topology[id], activation=hidden_layers_activation, name='{}{}'.format(vocab.hidden_, id + 1))
+            parent_layer = h_layer(parent_layer)
 
         # create & connect the ouput layer: the logits
-        logits = tf_cv1.layers.dense(h_layer, playground.ACTION_CHOICES, activation=output_layers_activation, name=vocab.logits)
+        logits = keras.layers.Dense(playground.ACTION_CHOICES, activation=output_layers_activation, name=vocab.logits)
+
+        return logits(parent_layer)
+
+    # with tf.variable_scope(name_or_scope=name_scope):
+    #     h_layer = input_placeholder
+    #
+    #     # create & connect all hidden layer
+    #     for id in range(len(hidden_layer_topology)):
+    #         h_layer = tf_cv1.layers.dense(h_layer, hidden_layer_topology[id], activation=hidden_layers_activation, name='{}{}'.format(vocab.hidden_, id + 1))
+    #
+    #     # create & connect the ouput layer: the logits
+    #     logits = tf_cv1.layers.dense(h_layer, playground.ACTION_CHOICES, activation=output_layers_activation, name=vocab.logits)
 
     return logits
 
