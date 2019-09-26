@@ -13,6 +13,13 @@ from vocabulary import rl_name
 vocab = rl_name()
 
 
+#  todo:implement --> fixture with yield (aka: setup & teardown) fct for TF graph.
+#                         Execute:
+#                             sess = tf.InteractiveSession()
+#                             sess.run(tf.global_variables_initializer())
+#                             tf.reset_default_graph()
+#                             sess.close()
+
 # ---- setup & teardown -------------------------------------------------------------------------------------------
 
 @pytest.fixture

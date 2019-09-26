@@ -82,16 +82,16 @@ def test_bloc_integration_to_working_REINFORCE_algo_PASS(setup_train_algo_genera
                 i, batch_loss, mean_return, average_len))
             break
         elif not agent_learned:
-            error_str += "\t\tRun {}\n" \
-                         "\t\t  |\tLoss:\t\t\t{:.3f}\n\t\t  |\tMean return:\t{:.3f} < {} !!\n".format(
+            error_str += ("\t\tRun {}\n"
+                          "\t\t  |\tLoss:\t\t\t{:.3f}\n\t\t  |\tMean return:\t{:.3f} < {} !!\n").format(
                 run, batch_loss, mean_return, env_max_return)
 
-    assert agent_learned, "\n\n" \
-                          ":: The agent FAILED to learned enough in {} epoch\n" \
-                          "    - Test run over {} run\n" \
-                          "    - Env: {} with NN hidden {}\n" \
-                          "    - Required mean return {}\n" \
-                          "\n{}\n\n".format(
+    assert agent_learned, ("\n\n"
+                           ":: The agent FAILED to learned enough in {} epoch\n"
+                           "    - Test run over {} run\n"
+                           "    - Env: {} with NN hidden {}\n"
+                           "    - Required mean return {}\n"
+                           "\n{}\n\n").format(
         max_epochs, nb_of_try, env_name, hidden_sizes, env_max_return, error_str)
 
 
