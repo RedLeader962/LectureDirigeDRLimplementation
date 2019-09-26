@@ -269,6 +269,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
     consol_print_learning_stats.print_experiment_stats()
     writer.close()
+    sess.close()
     playground.env.close()
 
     plt.close()

@@ -4,6 +4,14 @@ import pytest
 import REINFORCE_integration_reference as integration_ref
 
 
+"""
+Start TensorBoard in terminal:
+    tensorboard --logdir=tests/graph/integration_test
+    
+In browser, go to:
+    http://0.0.0.0:6006/ 
+"""
+
 
 @pytest.fixture()
 def setup_train_algo_generator_with_PASSING_spec():
@@ -87,7 +95,7 @@ def test_bloc_integration_to_working_REINFORCE_algo_PASS(setup_train_algo_genera
         max_epochs, nb_of_try, env_name, hidden_sizes, env_max_return, error_str)
 
 
-@pytest.mark.skip(reason="Was required to check that each run was unique")
+@pytest.mark.skip(reason="Was required to check that each run was unique & done in isolation")
 def test_training_loop_ALL_RUN_DIFFERENT(setup_train_algo_generator_with_PASSING_spec):
     epoch_generator, nb_of_try, env_name, env_max_return, max_epochs, hidden_sizes = setup_train_algo_generator_with_PASSING_spec
 
@@ -103,6 +111,6 @@ def test_training_loop_ALL_RUN_DIFFERENT(setup_train_algo_generator_with_PASSING
 
         loss_at_run_end.append(batch_loss)
 
-    assert len(set(loss_at_run_end)) == repeate_run, "Some run where probably executed in the same session"
+    assert len(set(loss_at_run_end)) == repeate_run, ">>> Some run where probably not executed in isolation!"
 
 

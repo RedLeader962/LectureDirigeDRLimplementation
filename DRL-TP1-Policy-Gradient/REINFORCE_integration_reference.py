@@ -1,4 +1,7 @@
+from datetime import datetime
+
 import tensorflow as tf
+tf_cv1 = tf.compat.v1   # shortcut
 import numpy as np
 import gym
 from gym.spaces import Discrete, Box
@@ -62,6 +65,11 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
 
     # make train op
     train_op = tf.train.AdamOptimizer(learning_rate=lr).minimize(loss)
+
+    # \\\\\\    My bloc    \\\\\\
+    date_now = datetime.now()
+    run_str = "Run--{}h{}--{}-{}-{}".format(date_now.hour, date_now.minute, date_now.day, date_now.month, date_now.year)
+    writer = tf_cv1.summary.FileWriter("./graph/integration_test/{}".format(run_str), tf_cv1.get_default_graph())
 
     sess = tf.InteractiveSession()
     sess.run(tf.global_variables_initializer())
@@ -142,6 +150,8 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
 
 
     print("\n>>> Close session\n")
+    writer.close()
+    playground.env.close()
     sess.close()
 
 
