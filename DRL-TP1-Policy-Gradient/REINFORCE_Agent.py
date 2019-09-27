@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import DRL_building_bloc as bloc
 from DRL_building_bloc import ExperimentSpec, GymPlayground, REINFORCE_policy
 from visualisation_tool import CycleIndexer, ConsolPrintLearningStats
-from sample_container import TrajectoryContainer, TrajectoryCollector, BatchContainer, UniformBatchCollector
+from sample_container import TrajectoryContainer, TrajectoryCollector, UniformeBatchContainer, UniformBatchCollector
 
 import tensorflow_weak_warning_supressor as no_cpu_compile_warn
 no_cpu_compile_warn.execute()
@@ -192,7 +192,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
             consol_print_learning_stats.next_glorious_epoch()
 
             """ ---- Simulator: trajectories ---- """
-            while not the_UNI_BATCH_COLLECTOR.full():      # (Priority) todo:fixme!! --> must be handle by the batch_collector:
+            while the_UNI_BATCH_COLLECTOR.is_not_fll():      # (Priority) todo:fixme!! --> must be handle by the batch_collector:
                 observation = playground.env.reset()   # fetch initial observation
 
                 consol_print_learning_stats.next_glorious_trajectory()
@@ -202,7 +202,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
                     if (render_env and (epoch % exp_spec.render_env_every_What_epoch == 0)
                             and the_UNI_BATCH_COLLECTOR.trj_collected_so_far() == 0):
-                        playground.env.render()  # (!) keep environment rendering turned OFF during unit test
+                        playground.env.render()  # keep environment rendering turned OFF during unit test
 
                     """ ---- Agent: act in the environment ---- """
                     step_observation = bloc.format_single_step_observation(observation)
@@ -249,14 +249,14 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
 
             """ ---- Prepare data for backpropagation in the neural net ---- """
-            batch_container = the_UNI_BATCH_COLLECTOR.pop_batch_and_reset_collector()
+            batch_container = the_UNI_BATCH_COLLECTOR.pop_batch_and_reset()
 
             # (Priority) todo:fixme!! --> must be compute by the batch_collector:
             epoch_average_trjs_return, epoch_average_trjs_lenght = batch_container.compute_metric()
 
-            observations = batch_container.trjs_observations
-            actions = batch_container.trjs_actions
-            Q_values = batch_container.trjs_Qvalues
+            observations = batch_container.batch_observations
+            actions = batch_container.batch_actions
+            Q_values = batch_container.batch_Qvalues
 
             """ ---- Tensor/ndarray shape compatibility assessment ---- """
             assert observation_ph.shape.is_compatible_with(np.array(observations).shape), \

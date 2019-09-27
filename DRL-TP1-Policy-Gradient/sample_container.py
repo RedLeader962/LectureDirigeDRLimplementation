@@ -177,75 +177,86 @@ class TrajectoryCollector(object):
         self._reset()
 
 
-class BatchContainer(object):
-    """Container for collected trajectories. Is outputed by the UniformBatchCollector"""
-    def __init__(self, batch_container_list: list):
+class UniformeBatchContainer(object):
+    def __init__(self, batch_container_list: list, batch_constraint: int):
         """
-        Container for storage & retrieval of a batch of sampled trajectories
+        Container for storage & retrieval of sampled trajectories
+        Is a component of the UniformBatchCollector
 
-        :param batch_container_list: a list of TrajectoryContainer instance fulled with collected timestep events
+        (nice to have) todo:implement --> convert each list to tupple
+        Once initialize, what was stored in it become immutable
+
+        :param batch_constraint:
+        :type batch_constraint:
+        :param batch_container_list: Take a list of TrajectoryContainer instance fulled with collected timestep events.
         :type batch_container_list: [TrajectoryContainer, ...]
         """
-        self.trjs_observations = []
-        self.trjs_actions = []
-        self.trjs_reward = []
-        self.trjs_Qvalues = []
-        self.trjs_returns = []
-        self.trjs_lenghts = []
-        self._number_of_batch_collected = len(batch_container_list)
-        self._total_timestep_collected = 0
+        self.batch_observations = []
+        self.batch_actions = []
+        self.batch_rewards = []
+        self.batch_Qvalues = []
+        self.batch_returns = []
+        self.batch_trjs_lenghts = []
+        self._timestep_count = 0
+        self._trjs_count = len(batch_container_list)
 
         for aTrjContainer in batch_container_list:
             assert isinstance(aTrjContainer, TrajectoryContainer), "The list must contain object of type TrajectoryContainer"
 
-            unpacked = aTrjContainer.unpack()
-            observations, actions, rewards, Q_values, trajectories_returns, trajectories_lenght = unpacked
+            aTrj_obss, aTrj_acts, aTrj_rews, aTrj_Qs, aTrj_return, aTrj_lenght = aTrjContainer.unpack()
 
-            self.trjs_observations += observations
-            self.trjs_actions += actions
-            self.trjs_reward += rewards
-            self.trjs_Qvalues += Q_values
-            self.trjs_returns += trajectories_returns
-            self.trjs_lenghts += trajectories_lenght
-            self._total_timestep_collected += len(aTrjContainer)
+            # merge list
+            self.batch_observations += aTrj_obss
+            self.batch_actions += aTrj_acts
+            self.batch_rewards += aTrj_rews
+            self.batch_Qvalues += aTrj_Qs
+
+            self.batch_returns.append(aTrj_return)
+            self.batch_trjs_lenghts.append(aTrj_lenght)
+
+            self._timestep_count += len(aTrjContainer)
+
+        assert self._timestep_count == batch_constraint, ("The sum of each TrajectoryContainer lenght does not respect the size contraint: "
+                                                          "Exepcted {}, got {} !!! ").format(batch_constraint, self._timestep_count)
 
     def __len__(self) -> int:
-        return self._total_timestep_collected
+        return self._timestep_count
 
     def trajectories_count(self):
-        return self._total_timestep_collected
+        return self._trjs_count
 
     def unpack_all(self) -> (list, list, list, list, list, int, int):
         """
         Unpack the full epoch batch of collected trajectories in lists of numpy ndarray
 
-        :return: (trjs_observations, trjs_actions, trjs_Qvalues,
-                    trjs_returns, trjs_lenghts, total_timestep_collected, nb_of_collected_trjs )
+        :return: (batch_observations, batch_actions, batch_Qvalues,
+                    batch_returns, batch_trjs_lenghts, total_timestep_collected, nb_of_collected_trjs )
         :rtype: (list, list, list, list, list, int, int)
         """
 
         # (icebox) todo:assessment --> if the copy method still required?: it does only if the list content are numpy ndarray
-        trajectories_copy = (self.trjs_observations.copy(), self.trjs_actions.copy(), self.trjs_Qvalues.copy(),
-                             self.trjs_returns.copy(), self.trjs_lenghts, self._total_timestep_collected, self.__len__())
+        trajectories_copy = (self.batch_observations.copy(), self.batch_actions.copy(), self.batch_Qvalues.copy(),
+                             self.batch_returns.copy(), self.batch_trjs_lenghts, self._timestep_count, self.__len__())
 
         return trajectories_copy
 
-    def compute_metric(self) -> (np.ndarray, np.ndarray):
+    def compute_metric(self) -> (float, float):
         """
-        Compute relevant metric over this container stored sample
+        Compute batch relevant metric over this container stored sample
 
         :return: (batch_average_trjs_return, batch_average_trjs_lenght)
-        :rtype: (np.ndarray, np.ndarray)
+        :rtype: (float, float)
         """
-        assert len(self.trjs_returns) == self.trj_count, "Nb of trajectories_returns collected differ from the container trj_count"
-        batch_average_trjs_return = np.mean(self.trjs_returns).copy()
-        batch_average_trjs_lenght = np.mean(self.trjs_lenghts).copy()
+        assert len(self.batch_returns) == self.trj_count, "Nb of trajectories_returns collected differ from the container trj_count"
+        batch_average_trjs_return = float(np.mean(self.batch_returns))
+        batch_average_trjs_lenght = float(np.mean(self.batch_trjs_lenghts))
         return batch_average_trjs_return, batch_average_trjs_lenght
 
 
 class UniformBatchCollector(object):
     """
     Collect sampled trajectories and agregate them in multiple batch container of uniforme dimension.
+    (!) Is responsible of batch dimension uniformity across the experiement.
 
     (CRITICAL) todo:unit-test --> tensor shape must be equal across trajectory for loss optimization:
 
@@ -254,15 +265,17 @@ class UniformBatchCollector(object):
       |       to a long ndarray than it is to append ndarray to each other
 
     """
-    def __init__(self, experiment_spec: ExperimentSpec):
-        self.CAPACITY = experiment_spec.batch_size_in_ts
+    def __init__(self, capacity: ExperimentSpec):
+        self.CAPACITY = capacity
         self._reset()
 
     def __call__(self, trajectory: TrajectoryContainer, *args, **kwargs) -> None:
-        assert not self.full(), "The batch is already full: {} timesteps collected!".format(self._timestep_count)
+        assert self.is_not_full(), "The batch is full: {} timesteps collected! Execute pop_batch_and_reset()".format(self._timestep_count)
 
         if self.remaining_space < len(trajectory):              # (Priority) todo:unit-test
+            """ Cut the trajectory and append to batch """
             trajectory.cut(max_lenght=self.remaining_space)
+            assert len(trajectory) + self.remaining_space == self.CAPACITY
 
         self.trajectories_list.append(trajectory)
         self._trajectory_count += 1
@@ -274,8 +287,8 @@ class UniformBatchCollector(object):
         self.__call__(trajectory)
         return None
 
-    def full(self) -> bool:
-        return not self._timestep_count < self.CAPACITY
+    def is_not_full(self) -> bool:
+        return self._timestep_count < self.CAPACITY
 
     def trj_collected_so_far(self) -> int:
         return self._trajectory_count
@@ -283,13 +296,14 @@ class UniformBatchCollector(object):
     def timestep_collected_so_far(self) -> int:
         return self._timestep_count
 
-    def pop_batch_and_reset_collector(self) -> BatchContainer:
+    def pop_batch_and_reset(self) -> UniformeBatchContainer:
         """
         :return: A batch of concatenated trajectories component
-        :rtype: BatchContainer
+        :rtype: UniformeBatchContainer
         """
-        container = BatchContainer(self.trajectories_list)
+        container = UniformeBatchContainer(self.trajectories_list, exp_spec)
 
+        assert container
         # reset
         self._reset()
         return container
