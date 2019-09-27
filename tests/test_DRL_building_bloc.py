@@ -6,6 +6,10 @@ import pytest
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
+
+import sample_container
+import visualisation_tool
+
 tf_cv1 = tf.compat.v1   # shortcut
 
 import DRL_building_bloc as bloc
@@ -208,7 +212,7 @@ def test_SamplingContainer_CONTINUOUS_BASIC(gym_continuous_setup):
     # todo: finish implementing test case
 
     """ STEP-1: Container instantiation"""
-    timestep_collector = bloc.TimestepCollector(exp_spec, playground)
+    timestep_collector = sample_container.TrajectoryCollector(exp_spec, playground)
 
 
     """--Simulator code: trajectorie -------------------------------------------------------------------------------"""
@@ -233,7 +237,7 @@ def test_SamplingContainer_CONTINUOUS_BASIC(gym_continuous_setup):
             if done or (timestep_collector.full()):
                 timestep_collector.trajectory_ended()
 
-                trajectorie_container = timestep_collector.get_collected_timestep_and_reset_collector()
+                trajectorie_container = timestep_collector.pop_trajectory_and_reset()
                 np_array_obs, np_array_act, np_array_rew, Q_values, trajectory_return, trajectory_lenght = trajectorie_container.unpack()
 
                 print(
@@ -294,7 +298,7 @@ def test_SamplingContainer_CONTINUOUS_BASIC(gym_continuous_setup):
 #
 #
 #     """ STEP-1: Container instantiation"""
-#     timestep_collector = bloc.TimestepCollector(exp_spec, playground)
+#     timestep_collector = bloc.TrajectoryCollector(exp_spec, playground)
 #
 #     """--Simulator code: trajectorie -------------------------------------------------------------------------------"""
 #     for traj in range(exp_spec.batch_size_in_ts):
@@ -334,7 +338,7 @@ def test_SamplingContainer_DISCRETE_BASIC(gym_discrete_setup):
     # todo: finish implementing test case
 
     """ STEP-1: Container instantiation"""
-    timestep_collector = bloc.TimestepCollector(exp_spec, playground)
+    timestep_collector = sample_container.TrajectoryCollector(exp_spec, playground)
 
     """--Simulator code: trajectorie -------------------------------------------------------------------------------"""
     for traj in range(exp_spec.batch_size_in_ts):
@@ -358,7 +362,7 @@ def test_SamplingContainer_DISCRETE_BASIC(gym_discrete_setup):
             if done or (timestep_collector.full()):
                 timestep_collector.trajectory_ended()
 
-                trajectorie_container = timestep_collector.get_collected_timestep_and_reset_collector()
+                trajectorie_container = timestep_collector.pop_trajectory_and_reset()
                 np_array_obs, np_array_act, np_array_rew, Q_values, trajectory_return, trajectory_lenght = trajectorie_container.unpack()
 
                 print(
@@ -564,7 +568,7 @@ def test_vocab_PASS():
     print(vocab)
 
 def test_CycleIndexer_PASS():
-    cycle_indexer = bloc.CycleIndexer(20)
+    cycle_indexer = visualisation_tool.CycleIndexer(20)
 
     for _ in range(40):
         i, j = cycle_indexer.__next__()

@@ -9,8 +9,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import DRL_building_bloc as bloc
-from DRL_building_bloc import CycleIndexer, ExperimentSpec, GymPlayground, BatchContainer, TimestepCollector, \
-    BatchCollector, EpochContainer, REINFORCE_policy, ConsolPrintLearningStats
+from DRL_building_bloc import ExperimentSpec, GymPlayground, REINFORCE_policy
+from visualisation_tool import CycleIndexer, ConsolPrintLearningStats
+from sample_container import TrajectoryContainer, TrajectoryCollector, BatchContainer, UniformBatchCollector
 
 import tensorflow_weak_warning_supressor as no_cpu_compile_warn
 no_cpu_compile_warn.execute()
@@ -162,8 +163,8 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
 
     """ ---- Collector instantiation ---- """
-    timestep_collector = TimestepCollector(exp_spec, playground)
-    batch_collector = BatchCollector()
+    the_TRAJECTORY_COLLECTOR = TrajectoryCollector(exp_spec, playground)
+    the_UNI_BATCH_COLLECTOR = UniformBatchCollector(exp_spec)
 
 
     """ ---- Optimizer ---- """
@@ -191,7 +192,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
             consol_print_learning_stats.next_glorious_epoch()
 
             """ ---- Simulator: trajectories ---- """
-            while not timestep_collector.full():
+            while not the_UNI_BATCH_COLLECTOR.full():      # (Priority) todo:fixme!! --> must be handle by the batch_collector:
                 observation = playground.env.reset()   # fetch initial observation
 
                 consol_print_learning_stats.next_glorious_trajectory()
@@ -199,9 +200,9 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
                 """ ---- Simulator: time-steps ---- """
                 for step in range(exp_spec.timestep_max_per_trajectorie):
 
-                    trj = batch_collector.get_number_of_trajectories_collected()
-                    if render_env and (epoch % exp_spec.render_env_every_What_epoch == 0) and trj == 0:
-                        playground.env.render()    # (!) keep environment rendering turned OFF during unit test
+                    if (render_env and (epoch % exp_spec.render_env_every_What_epoch == 0)
+                            and the_UNI_BATCH_COLLECTOR.trj_collected_so_far() == 0):
+                        playground.env.render()  # (!) keep environment rendering turned OFF during unit test
 
                     """ ---- Agent: act in the environment ---- """
                     step_observation = bloc.format_single_step_observation(observation)
@@ -211,7 +212,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
                     observation, reward, done, info = playground.env.step(action)
 
                     """ ---- Agent: Collect current timestep events ---- """
-                    timestep_collector.collect(observation, action, reward)
+                    the_TRAJECTORY_COLLECTOR.collect(observation, action, reward)
 
                     # if len(info) is not 0:
                     #     print("\ninfo: {}\n".format(info))
@@ -221,28 +222,24 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
                     #     epoch + 1, trj + 1, step + 1, action, reward))
 
                     """ ---- Simulator: trajectory as ended ---- """
-                    if done or (timestep_collector.full()):
+                    if done:
+                        trj_return = the_TRAJECTORY_COLLECTOR.trajectory_ended()
 
-                        trj_return = timestep_collector.trajectory_ended()
-
-                        # (Priority) todo:refactor --> modify to go in the trajectory loop:
                         consol_print_learning_stats.trajectory_training_stat(
                             the_trajectory_return=trj_return, timestep=step)
 
+                        """ ---- Agent: Collect the sampled trajectory  ---- """
+                        trj_container = the_TRAJECTORY_COLLECTOR.pop_trajectory_and_reset()
+                        the_UNI_BATCH_COLLECTOR.collect(trj_container)
                         break
 
 
 
-            """ ---- Agent: Collect the sampled trajectory  ---- """
-            batch = timestep_collector.get_collected_timestep_and_reset_collector()
 
-            epoch_average_trjs_return, epoch_average_trjs_lenght = batch.compute_metric()
-
-            batch_collector.collect(batch)
 
             """ ---- Simulator: epoch as ended, it's time to learn! ---- """
-            number_of_trj_collected = batch_collector.get_number_of_trajectories_collected()
-            total_timestep_collected = batch_collector.get_total_timestep_collected()
+            number_of_trj_collected = the_UNI_BATCH_COLLECTOR.trj_collected_so_far()
+            total_timestep_collected = the_UNI_BATCH_COLLECTOR.timestep_collected_so_far()
 
 
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
@@ -252,11 +249,14 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
 
             """ ---- Prepare data for backpropagation in the neural net ---- """
-            epoch_container = batch_collector.get_collected_trajectories_and_reset_collector()
+            batch_container = the_UNI_BATCH_COLLECTOR.pop_batch_and_reset_collector()
 
-            observations = epoch_container.trjs_observations
-            actions = epoch_container.trjs_actions
-            Q_values = epoch_container.trjs_Qvalues
+            # (Priority) todo:fixme!! --> must be compute by the batch_collector:
+            epoch_average_trjs_return, epoch_average_trjs_lenght = batch_container.compute_metric()
+
+            observations = batch_container.trjs_observations
+            actions = batch_container.trjs_actions
+            Q_values = batch_container.trjs_Qvalues
 
             """ ---- Tensor/ndarray shape compatibility assessment ---- """
             assert observation_ph.shape.is_compatible_with(np.array(observations).shape), \
