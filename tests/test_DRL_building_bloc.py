@@ -39,10 +39,11 @@ def gym_continuous_setup():
     :return: (exp_spec, playground)
     :rtype: (ExperimentSpec, GymPlayground)
     """
-    exp_spec = bloc.ExperimentSpec(timestep_max_per_trajectorie=10, trajectories_batch_size=2, max_epoch=2,
+    exp_spec = bloc.ExperimentSpec(timestep_max_per_trajectorie=10, batch_size_in_ts=2, max_epoch=2,
                                    neural_net_hidden_layer_topology=(2, 2))
     playground = bloc.GymPlayground('LunarLanderContinuous-v2')
-    return exp_spec, playground
+    yield exp_spec, playground
+    tf.reset_default_graph()
 
 @pytest.fixture
 def gym_discrete_setup():
@@ -50,10 +51,11 @@ def gym_discrete_setup():
     :return: (exp_spec, playground)
     :rtype: (ExperimentSpec, GymPlayground)
     """
-    exp_spec = bloc.ExperimentSpec(timestep_max_per_trajectorie=10, trajectories_batch_size=2, max_epoch=2,
+    exp_spec = bloc.ExperimentSpec(timestep_max_per_trajectorie=10, batch_size_in_ts=2, max_epoch=2,
                                    neural_net_hidden_layer_topology=(2, 2))
     playground = bloc.GymPlayground('LunarLander-v2')
-    return exp_spec, playground
+    yield exp_spec, playground
+    tf.reset_default_graph()
 
 @pytest.fixture
 def gym_and_tf_continuous_setup():
@@ -61,11 +63,12 @@ def gym_and_tf_continuous_setup():
     :return: (obs_p, act_p, exp_spec, playground)
     :rtype: (tf.Tensor, tf.Tensor, ExperimentSpec, GymPlayground)
     """
-    exp_spec = bloc.ExperimentSpec(timestep_max_per_trajectorie=10, trajectories_batch_size=2, max_epoch=2,
+    exp_spec = bloc.ExperimentSpec(timestep_max_per_trajectorie=10, batch_size_in_ts=2, max_epoch=2,
                                    neural_net_hidden_layer_topology=(2, 2))
     playground = bloc.GymPlayground('LunarLanderContinuous-v2')
-    obs_p, act_p = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
-    return obs_p, act_p, exp_spec, playground
+    obs_p, act_p, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground, (1,))
+    yield obs_p, act_p, exp_spec, playground
+    tf.reset_default_graph()
 
 @pytest.fixture
 def gym_and_tf_discrete_setup():
@@ -73,11 +76,12 @@ def gym_and_tf_discrete_setup():
     :return: (obs_p, act_p, exp_spec, playground)
     :rtype: (tf.Tensor, tf.Tensor, ExperimentSpec, GymPlayground)
     """
-    exp_spec = bloc.ExperimentSpec(timestep_max_per_trajectorie=10, trajectories_batch_size=2, max_epoch=2,
+    exp_spec = bloc.ExperimentSpec(timestep_max_per_trajectorie=10, batch_size_in_ts=2, max_epoch=2,
                                    neural_net_hidden_layer_topology=(2, 2))
     playground = bloc.GymPlayground('LunarLander-v2')
-    obs_p, act_p = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
-    return obs_p, act_p, exp_spec, playground
+    obs_p, act_p, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground, (1,))
+    yield obs_p, act_p, exp_spec, playground
+    tf.reset_default_graph()
 
 
 
@@ -93,7 +97,7 @@ def test_set_experiment_spec_PASS(gym_discrete_setup):
 
     parma_dict = {
         'timestep_max_per_trajectorie': 10,
-        'trajectories_batch_size':10,
+        'batch_size_in_ts':10,
         'max_epoch': 10,
         'discout_factor': 0.5,
         'learning_rate': 10,
@@ -129,18 +133,20 @@ def test_Playground_discreet():
 
 def test_gym_env_to_tf_graph_adapter_WRONG_IMPORT_TYPE():
     with pytest.raises(AssertionError):
-        bloc.gym_playground_to_tensorflow_graph_adapter(gym)
+        bloc.gym_playground_to_tensorflow_graph_adapter(gym, (1,))
 
 def test_gym_env_to_tf_graph_adapter_DISCRETE_PASS(gym_discrete_setup):
     _, playground = gym_discrete_setup
-    input_placeholder, output_placeholder = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
+    input_placeholder, output_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground,
+                                                                                                         (1,))
     assert input_placeholder.shape[-1] == playground.OBSERVATION_SPACE.shape[0]
     print(output_placeholder.shape)
     assert output_placeholder.shape.rank == 1
 
 def test_gym_env_to_tf_graph_adapter_CONTINUOUS_PASS(gym_continuous_setup):
     _, playground = gym_continuous_setup
-    input_placeholder, output_placeholder = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
+    input_placeholder, output_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground,
+                                                                                                         (1,))
     assert input_placeholder.shape[-1] == playground.OBSERVATION_SPACE.shape[0]
     assert output_placeholder.shape.rank == 2
 
@@ -160,12 +166,12 @@ def test_build_MLP_computation_graph_io(tf_setup, gym_discrete_setup):
 
 def test_build_MLP_computation_graph_with_DISCRETE_adapter(gym_discrete_setup):
     _, playground = gym_discrete_setup
-    input_placeholder, out_placeholder = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
+    input_placeholder, out_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground, (1,))
     bloc.build_MLP_computation_graph(input_placeholder, playground, hidden_layer_topology=(2, 2))
 
 def test_build_MLP_computation_graph_with_CONTINUOUS_adapter(gym_continuous_setup):
     _, playground = gym_continuous_setup
-    input_placeholder, out_placeholder = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
+    input_placeholder, out_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground, (1,))
     bloc.build_MLP_computation_graph(input_placeholder, playground, hidden_layer_topology=(2, 2))
 
 
@@ -173,9 +179,9 @@ def test_integration_Playground_to_adapter_to_build_graph(gym_continuous_setup):
     exp_spec, playground = gym_continuous_setup
 
     # (!) fake input data
-    input_data = np.ones((exp_spec.trajectories_batch_size, *playground.OBSERVATION_SPACE.shape))
+    input_data = np.ones((20, *playground.OBSERVATION_SPACE.shape))
 
-    input_placeholder, out_placeholder = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
+    input_placeholder, out_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground, (1,))
 
     """Build a Multi Layer Perceptron (MLP) as the policy parameter theta using a computation graph"""
     theta = bloc.build_MLP_computation_graph(input_placeholder, playground, exp_spec.nn_h_layer_topo)
@@ -206,7 +212,7 @@ def test_SamplingContainer_CONTINUOUS_BASIC(gym_continuous_setup):
 
 
     """--Simulator code: trajectorie -------------------------------------------------------------------------------"""
-    for traj in range(exp_spec.trajectories_batch_size):
+    for traj in range(exp_spec.batch_size_in_ts):
         observation = env.reset()
 
         """--Simulator code: time-step------------------------------------------------------------------------------"""
@@ -224,8 +230,10 @@ def test_SamplingContainer_CONTINUOUS_BASIC(gym_continuous_setup):
             timestep_collector.collect(observation, action, reward)
 
             """ STEP-3: acces container"""
-            if done or (step == exp_spec.timestep_max_per_trajectorie - 1):
-                trajectorie_container = timestep_collector.get_collected_timestep_and_reset_collector(discounted_q_values=True)
+            if done or (timestep_collector.full()):
+                timestep_collector.trajectory_ended()
+
+                trajectorie_container = timestep_collector.get_collected_timestep_and_reset_collector()
                 np_array_obs, np_array_act, np_array_rew, Q_values, trajectory_return, trajectory_lenght = trajectorie_container.unpack()
 
                 print(
@@ -243,7 +251,7 @@ def test_SamplingContainer_CONTINUOUS_BASIC(gym_continuous_setup):
 #     env = playground.env
 #
 #     """--Simulator code: trajectorie--------------------------------------------------------------------------------"""
-#     for traj in range(exp_spec.trajectories_batch_size):
+#     for traj in range(exp_spec.batch_size_in_ts):
 #         observation = env.reset()
 #
 #         """ STEP-1: Container instantiation"""
@@ -289,7 +297,7 @@ def test_SamplingContainer_CONTINUOUS_BASIC(gym_continuous_setup):
 #     timestep_collector = bloc.TimestepCollector(exp_spec, playground)
 #
 #     """--Simulator code: trajectorie -------------------------------------------------------------------------------"""
-#     for traj in range(exp_spec.trajectories_batch_size):
+#     for traj in range(exp_spec.batch_size_in_ts):
 #         observation = env.reset()
 #
 #         """--Simulator code: time-step------------------------------------------------------------------------------"""
@@ -329,7 +337,7 @@ def test_SamplingContainer_DISCRETE_BASIC(gym_discrete_setup):
     timestep_collector = bloc.TimestepCollector(exp_spec, playground)
 
     """--Simulator code: trajectorie -------------------------------------------------------------------------------"""
-    for traj in range(exp_spec.trajectories_batch_size):
+    for traj in range(exp_spec.batch_size_in_ts):
         observation = env.reset()
 
         """--Simulator code: time-step------------------------------------------------------------------------------"""
@@ -347,8 +355,10 @@ def test_SamplingContainer_DISCRETE_BASIC(gym_discrete_setup):
             timestep_collector.collect(observation, action, reward)
 
             """ STEP-3: acces container"""
-            if done or (step == exp_spec.timestep_max_per_trajectorie - 1):
-                trajectorie_container = timestep_collector.get_collected_timestep_and_reset_collector(discounted_q_values=True)
+            if done or (timestep_collector.full()):
+                timestep_collector.trajectory_ended()
+
+                trajectorie_container = timestep_collector.get_collected_timestep_and_reset_collector()
                 np_array_obs, np_array_act, np_array_rew, Q_values, trajectory_return, trajectory_lenght = trajectorie_container.unpack()
 
                 print(

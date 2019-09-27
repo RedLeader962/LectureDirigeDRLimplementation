@@ -27,7 +27,7 @@ In browser, go to:
 """
 
 class ExperimentSpec(object):
-    def __init__(self, timestep_max_per_trajectorie=None, trajectories_batch_size=10, max_epoch=2, discout_factor=1,
+    def __init__(self, timestep_max_per_trajectorie=None, batch_size_in_ts=5000, max_epoch=2, discout_factor=1,
                  learning_rate=1e-2, neural_net_hidden_layer_topology: tuple = (32, 32), random_seed=42,
                  discounted_reward_to_go=True, environment_name='CartPole-v1', print_metric_every_what_epoch=5):
         """
@@ -53,7 +53,7 @@ class ExperimentSpec(object):
 
         self.timestep_max_per_trajectorie = timestep_max_per_trajectorie
 
-        self.trajectories_batch_size = trajectories_batch_size
+        self.batch_size_in_ts = batch_size_in_ts
         self.max_epoch = max_epoch
         self.discout_factor: float = discout_factor
         self.learning_rate = learning_rate
@@ -79,12 +79,12 @@ class ExperimentSpec(object):
     def get_agent_training_spec(self):
         """
         Return specification related to the agent training
-        :return: ( trajectories_batch_size, max_epoch, timestep_max_per_trajectorie )
+        :return: ( batch_size_in_ts, max_epoch, timestep_max_per_trajectorie )
         :rtype: (int, int, int)
         """
         return {
             'timestep_max_per_trajectorie': self.timestep_max_per_trajectorie,
-            'trajectories_batch_size': self.trajectories_batch_size,
+            'batch_size_in_ts': self.batch_size_in_ts,
             'max_epoch': self.max_epoch,
             'discout_factor': self.discout_factor,
             'learning_rate': self.learning_rate,
@@ -241,79 +241,99 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, playground: GymPla
     assert isinstance(playground, GymPlayground)
     assert isinstance(hidden_layer_topology, tuple)
 
-    with tf.name_scope(name_scope) as scope:
-        # Create input layer
-        ops = keras.layers.Dense(hidden_layer_topology[0], input_shape=input_placeholder.shape,
-                                  activation=hidden_layers_activation, name=vocab.input_layer)
-
-        parent_layer = ops(input_placeholder)
-
-        # create & connect all hidden layer
-        for id in range(len(hidden_layer_topology)):
-            h_layer = keras.layers.Dense(hidden_layer_topology[id], activation=hidden_layers_activation, name='{}{}'.format(vocab.hidden_, id + 1))
-            parent_layer = h_layer(parent_layer)
-
-        # create & connect the ouput layer: the logits
-        logits = keras.layers.Dense(playground.ACTION_CHOICES, activation=output_layers_activation, name=vocab.logits)
-
-        return logits(parent_layer)
-
-    # with tf.variable_scope(name_or_scope=name_scope):
-    #     h_layer = input_placeholder
+    # with tf.name_scope(name_scope) as scope:
+    #     # Create input layer
+    #     ops = keras.layers.Dense(hidden_layer_topology[0], input_shape=input_placeholder.shape,
+    #                               activation=hidden_layers_activation, name=vocab.input_layer)
+    #
+    #     parent_layer = ops(input_placeholder)
     #
     #     # create & connect all hidden layer
     #     for id in range(len(hidden_layer_topology)):
-    #         h_layer = tf_cv1.layers.dense(h_layer, hidden_layer_topology[id], activation=hidden_layers_activation, name='{}{}'.format(vocab.hidden_, id + 1))
+    #         h_layer = keras.layers.Dense(hidden_layer_topology[id], activation=hidden_layers_activation, name='{}{}'.format(vocab.hidden_, id + 1))
+    #         parent_layer = h_layer(parent_layer)
     #
     #     # create & connect the ouput layer: the logits
-    #     logits = tf_cv1.layers.dense(h_layer, playground.ACTION_CHOICES, activation=output_layers_activation, name=vocab.logits)
+    #     logits = keras.layers.Dense(playground.ACTION_CHOICES, activation=output_layers_activation, name=vocab.logits)
+    #
+    #     return logits(parent_layer)
+
+    with tf.variable_scope(name_or_scope=name_scope):
+    # with tf.name_scope(name_scope) as scope:
+        h_layer = input_placeholder
+
+        # create & connect all hidden layer
+        for id in range(len(hidden_layer_topology)):
+            h_layer = tf_cv1.layers.dense(h_layer, hidden_layer_topology[id], activation=hidden_layers_activation, name='{}{}'.format(vocab.hidden_, id + 1))
+
+        # create & connect the ouput layer: the logits
+        logits = tf_cv1.layers.dense(h_layer, playground.ACTION_CHOICES, activation=output_layers_activation, name=vocab.logits)
 
     return logits
 
 
-def continuous_space_placeholder(space: gym.spaces.Box, name=None) -> tf.Tensor:
+def continuous_space_placeholder(space: gym.spaces.Box, name=None, shape_constraint: tuple = None) -> tf.Tensor:
     assert isinstance(space, gym.spaces.Box)
     space_shape = space.shape
-    return tf_cv1.placeholder(dtype=tf.float32, shape=(None, *space_shape), name=name)
+    if shape_constraint is not None:
+        shape = (*shape_constraint, *space_shape)
+    else:
+        shape = (None, *space_shape)
+    return tf_cv1.placeholder(dtype=tf.float32, shape=shape, name=name)
 
 
-def discrete_space_placeholder(space: gym.spaces.Discrete, name=None) -> tf.Tensor:
+def discrete_space_placeholder(space: gym.spaces.Discrete, name=None, shape_constraint: tuple = None) -> tf.Tensor:
     assert isinstance(space, gym.spaces.Discrete)
-    return tf_cv1.placeholder(dtype=tf.int32, shape=(None,), name=name)
+    if shape_constraint is not None:
+        shape = (*shape_constraint,)
+    else:
+        shape = (None,)
+    return tf_cv1.placeholder(dtype=tf.int32, shape=shape, name=name)
 
 
-def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground) -> (tf.Tensor, tf.Tensor):
+def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground, action_shape_constraint: tuple = None,
+                                               obs_shape_constraint: tuple = None) -> (tf.Tensor, tf.Tensor, tf.Tensor):
     """
     Configure handle for feeding value to the computation graph
             Continuous space    -->     dtype=tf.float32
             Discrete scpace     -->     dtype=tf.int32
+    :param action_shape_constraint:
+    :type action_shape_constraint:
+    :param obs_shape_constraint:
+    :type obs_shape_constraint:
     :param playground:
     :type playground: GymPlayground
-    :return: input_placeholder, output_placeholder
-    :rtype: (tf.Tensor, tf.Tensor)
+    :return: input_placeholder, output_placeholder, Q_values_placeholder
+    :rtype: (tf.Tensor, tf.Tensor, tf.Tensor)
     """
-    assert isinstance(playground, GymPlayground), "\n\n>>> gym_playground_to_tensorflow_graph_adapter() expected a builded GymPlayground.\n\n"
+    assert isinstance(playground, GymPlayground), "\n\n>>> Expected a builded GymPlayground.\n\n"
 
 
     if isinstance(playground.env.observation_space, gym.spaces.Box):
         """observation space is continuous"""
-        input_placeholder = continuous_space_placeholder(playground.OBSERVATION_SPACE, name=vocab.input_placeholder)
+        input_placeholder = continuous_space_placeholder(playground.OBSERVATION_SPACE, vocab.input_placeholder, obs_shape_constraint)
     elif isinstance(playground.env.action_space, gym.spaces.Discrete):
         """observation space is discrete"""
-        input_placeholder = discrete_space_placeholder(playground.OBSERVATION_SPACE, name=vocab.input_placeholder)
+        input_placeholder = discrete_space_placeholder(playground.OBSERVATION_SPACE, vocab.input_placeholder, obs_shape_constraint)
     else:
         raise NotImplementedError
 
     if isinstance(playground.env.action_space, gym.spaces.Box):
         """action space is continuous"""
-        output_placeholder = continuous_space_placeholder(playground.ACTION_SPACE, name=vocab.output_placeholder)
+        output_placeholder = continuous_space_placeholder(playground.ACTION_SPACE, vocab.output_placeholder, action_shape_constraint)
     elif isinstance(playground.env.action_space, gym.spaces.Discrete):
         """action space is discrete"""
-        output_placeholder = discrete_space_placeholder(playground.ACTION_SPACE, name=vocab.output_placeholder)
+        output_placeholder = discrete_space_placeholder(playground.ACTION_SPACE, vocab.output_placeholder, action_shape_constraint)
     else:
         raise NotImplementedError
 
-    return input_placeholder, output_placeholder
+    if obs_shape_constraint is not None:
+        shape = (*obs_shape_constraint,)
+    else:
+        shape = (None,)
+    Q_values_ph = tf_cv1.placeholder(dtype=tf.float32, shape=shape, name=vocab.Qvalues_placeholder)
+
+    return input_placeholder, output_placeholder, Q_values_ph
 
 
 def policy_theta_discrete_space(logits_layer: tf.Tensor, playground: GymPlayground) -> (tf.Tensor, tf.Tensor):
@@ -498,21 +518,9 @@ def discrete_pseudo_loss(log_p_all, action_placeholder: tf.Tensor, Q_values_plac
                          playground: GymPlayground) -> tf.Tensor:
     """
     Pseudo loss for discrete action space only using Softmax cross entropy with logits
-
-    :param log_probabilities:
-    :type log_probabilities:
-    :param playground:
-    :type playground:
-    :param action_placeholder:
-    :type action_placeholder: tf.Tensor
-    :param Q_values_placeholder:
-    :type Q_values_placeholder: tf.Tensor
-    :return: pseudo_loss
-    :rtype: tf.Tensor
     """
 
-    assert action_placeholder.shape.is_compatible_with(Q_values_placeholder.shape), "action_placeholder shape is not compatible with Q_values_placeholder shape, {} != {}".format(action_placeholder, Q_values_placeholder)
-
+    # \\\\\\    My bloc    \\\\\\
     # with tf.name_scope(vocab.pseudo_loss) as scope:
 
     # Step 1: Compute the log probabilitie of the current policy over the action space
@@ -528,19 +536,19 @@ def discrete_pseudo_loss(log_p_all, action_placeholder: tf.Tensor, Q_values_plac
     pseudo_loss = -tf.reduce_mean(weighted_likelihoods)
     return pseudo_loss
 
+    # ////// Original bloc //////
+    # action_masks = tf.one_hot(action_placeholder, playground.ACTION_CHOICES)
+    # # log_probs = tf.reduce_sum(action_masks * tf.nn.log_softmax(logits), axis=1)
+    # log_probs = tf.reduce_sum(action_masks * log_p_all, axis=1)
+    # loss = -tf.reduce_mean(Q_values_placeholder * log_probs)
+    return loss
 
-def policy_optimizer(pseudo_loss: tf.Tensor, exp_spec: ExperimentSpec) -> tf.Operation:
+
+def policy_optimizer(pseudo_loss: tf.Tensor, learning_rate: ExperimentSpec) -> tf.Operation:
     """
     Define the optimizing methode for training the REINFORE agent
-
-    :param exp_spec:
-    :type exp_spec: ExperimentSpec
-    :param pseudo_loss:
-    :type pseudo_loss: tf.Tensor
-    :return: policy_optimizer_op
-    :rtype: tf.Operation
     """
-    return tf.train.AdamOptimizer(learning_rate=exp_spec.learning_rate).minimize(pseudo_loss, name=vocab.optimizer)
+    return tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(pseudo_loss, name=vocab.optimizer)
 
 
 def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
@@ -575,9 +583,9 @@ def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
     return feed_dict
 
 
-class TrajectoryContainer(object):
-    def __init__(self, observations: list, actions: list, rewards: list, experiment_spec: ExperimentSpec,
-                 discounted: bool = True) -> None:
+class BatchContainer(object):
+    def __init__(self, observations: list, actions: list, rewards: list, Q_values: list, trajectories_returns: list,
+                 trajectories_lenght, trj_count) -> None:
         """
         Container for storage & retrieval events collected at every timestep of a single trajectorie
 
@@ -587,35 +595,17 @@ class TrajectoryContainer(object):
          |      "This argument can only be used to 'upcast' the array.
          |          For downcasting, use the .astype(t) method."
 
-         :param observations:
-         :type observations: list
-         :param actions:
-         :type actions: list
-         :param rewards:
-         :type rewards: list
-         :param experiment_spec:
-         :type experiment_spec: ExperimentSpec
-         :param discounted:
-         :type discounted: bool
-
         """
         assert isinstance(observations, list) and isinstance(actions, list) and isinstance(rewards, list), "wrong argument type"
         assert len(observations) == len(actions) == len(rewards), "{} vs {} vs {} !!!".format(observations, actions, rewards)
-        # self.observations = np.array(observations, dtype=dtype)
-        # self.actions = np.array(actions, dtype=dtype)
-        # self.rewards = np.array(rewards, dtype=dtype)
         self.observations = observations
         self.actions = actions
         self.rewards = rewards
-        self.the_trajectory_return = np.sum(self.rewards, axis=None)
-        self.discounted = discounted
+        self.Q_values = Q_values
+        self.trajectories_returns = trajectories_returns
+        self.trajectories_lenght = trajectories_lenght
+        self.trj_count = trj_count
 
-        if discounted:
-            self.Q_values = discounted_reward_to_go(self.rewards, experiment_spec=experiment_spec)
-        else:
-            self.Q_values = reward_to_go(self.rewards)
-
-        assert len(self.Q_values) == len(self.rewards)
 
     def __len__(self):
         return len(self.actions)
@@ -635,27 +625,40 @@ class TrajectoryContainer(object):
     #     rew = self.rewards[ts]
     #     return obs, act, rew
 
-    def unpack(self) -> (list, list, list, list, float, int):
+    def compute_metric(self) -> (float, float):
+        """
+        Compute relevant metric over this container stored sample
+
+        :return: (epoch_average_trjs_return, epoch_average_trjs_lenght)
+        :rtype: (float, float)
+        """
+        assert len(self.trajectories_returns) == self.trj_count, "Nb of trajectories_returns collected differ from the container trj_count"
+        epoch_average_trjs_return = np.mean(self.trajectories_returns).copy()
+        epoch_average_trjs_lenght = np.mean(self.trajectories_lenght).copy()
+        return epoch_average_trjs_return, epoch_average_trjs_lenght
+
+    def unpack(self) -> (list, list, list, list, list, list):
         """
         Unpack the full trajectorie as a tuple of numpy array
 
             Note: Q_values is a numpy ndarray view
 
-        :return: (observations, actions, rewards, Q_values, the_trajectory_return, trajectory_lenght)
-        :rtype: (list, list, list, list, int, int)
+        :return: (observations, actions, rewards, Q_values, trajectories_returns, trajectories_lenght)
+        :rtype: (list, list, list, list, list, list)
         """
-        tc = self.observations, self.actions, self.rewards, self.Q_values, int(self.the_trajectory_return), self.__len__()
+        tc = self.observations, self.actions, self.rewards, self.Q_values, self.trajectories_returns, self.trajectories_lenght
         return tc
 
     def __repr__(self):
         myRep = "\n::trajectory_container/\n"
+        myRep += "  capacity --> {} ::\n\n".format(self.__len__())
         myRep += ".observations=\n{}\n\n".format(self.observations)
         myRep += ".actions=\n{}\n\n".format(self.actions)
         myRep += ".rewards=\n{}\n\n".format(self.rewards)
-        myRep += ".discounted --> {}\n".format(self.discounted)
         myRep += ".Q_values=\n{}\n\n".format(self.Q_values)
-        myRep += ".the_trajectory_return=\n{}\n\n".format(self.the_trajectory_return)
-        myRep += "len(trajectory) --> {} ::\n\n".format(self.__len__())
+        myRep += ".trajectories_returns=\n{}\n\n".format(self.trajectories_returns)
+        myRep += ".trajectories_lenght=\n{}\n\n".format(self.trajectories_lenght)
+        myRep += ".trj_count --> {} ::\n\n".format(self.trj_count)
         return myRep
 
 
@@ -663,14 +666,24 @@ class TimestepCollector(object):
     """
     Batch collector for time step events agregation
     """
-    def __init__(self, experiment_spec: ExperimentSpec, playground: GymPlayground):
+    def __init__(self, experiment_spec: ExperimentSpec, playground: GymPlayground, discounted: bool = True):
         self._exp_spec = experiment_spec
-        # self._playground_spec = playground.get_environment_spec()
+        self._playground_spec = playground.get_environment_spec()
         self._observations = []
         self._actions = []
         self._rewards = []
+
+        self._curent_trj_rewards = []
+        self._trajectories_returns = []
         self._q_values = []
+        self._trajectories_lenght = []
+
         self.step_count = 0
+        self.trj_count = 0
+        self._capacity = experiment_spec.batch_size_in_ts
+
+        # self.trajectories_returns = np.sum(self.rewards, axis=None)
+        self.discounted = discounted
 
     def __call__(self, observation: np.ndarray, action, reward: float, *args, **kwargs) -> None:
         """ Collect observation, action, reward for one timestep
@@ -680,11 +693,11 @@ class TimestepCollector(object):
         :type reward: float
         """
         try:
-            assert self.step_count < self._exp_spec.timestep_max_per_trajectorie, \
-                "Max timestep per trajectorie reached so the TimestepCollector is full."
+            assert not self.full()
             self._observations.append(observation)
             self._actions.append(action)
             self._rewards.append(reward)
+            self._curent_trj_rewards.append(reward)
             self.step_count += 1
 
         except AssertionError as ae:
@@ -701,24 +714,70 @@ class TimestepCollector(object):
         self.__call__(observation, action, reward)
         return None
 
+    def full(self) -> bool:
+        return not self.step_count < self._capacity
+
+    def trajectory_ended(self) -> float:
+        """ Must be call at each trajectory end
+
+                1. Compute the return
+                2. compute the reward to go for the full trajectory
+                3. Flush curent trj rewars acumulator
+        """
+        trj_return = self._compute_trajectory_return()
+        self._compute_reward_to_go()
+        self._trajectories_lenght.append(len(self._curent_trj_rewards))
+        self._curent_trj_rewards = []                                       # flush curent trj rewars acumulator
+        self.trj_count += 1
+        return trj_return
+
+    def _compute_trajectory_return(self) -> float:
+        trj_return = float(np.sum(self._curent_trj_rewards, axis=None))
+        self._trajectories_returns.append(trj_return)
+        return trj_return
+
+    def _compute_reward_to_go(self) -> None:
+        if self.discounted:
+            self._q_values += discounted_reward_to_go(self._curent_trj_rewards, experiment_spec=self._exp_spec)
+        else:
+            self._q_values += reward_to_go(self._curent_trj_rewards)
+        return None
+
     def _reset(self):
         self._observations.clear()
         self._actions.clear()
         self._rewards.clear()
+        self._curent_trj_rewards.clear()
+        self._q_values.clear()
+        self._trajectories_lenght.clear()
         self.step_count = 0
+        self.trj_count = 0
         return None
 
-    def get_collected_timestep_and_reset_collector(self, discounted_q_values=True) -> TrajectoryContainer:
+    # def _normalize_container_size(self):
+    #     observation_space, action_space, action_choices, environment_name = self._playground_spec
+    #     obs_dummie = np.zeros(observation_space.shape)
+    #
+    #     size_delta = self._exp_spec.timestep_max_per_trajectorie - self.step_count
+    #     for d in range(size_delta):
+    #         self.collect(obs_dummie, 0, 0.0)
+
+    def get_collected_timestep_and_reset_collector(self) -> BatchContainer:
         """
-            1.  Return the sampled trajectory in a TrajectoryContainer
+            1.  Return the sampled trajectory in a BatchContainer
             2.  Reset the container ready for the next trajectorie sampling.
 
-        :return: A TrajectoryContainer with the full trajectory
-        :rtype: TrajectoryContainer
+        :return: A BatchContainer with the full trajectory
+        :rtype: BatchContainer
         """
+
+        # (CRITICAL) todo:validate --> tensor shape must be equal across trajectory for loss optimization:
+        # self._normalize_container_size()
+
         # todo --> validate dtype for discrete case
-        trajectory_container = TrajectoryContainer(self._observations.copy(), self._actions.copy(),
-                                                   self._rewards.copy(), self._exp_spec, discounted=discounted_q_values)
+        trajectory_container = BatchContainer(self._observations.copy(), self._actions.copy(), self._rewards.copy(),
+                                              self._q_values.copy(), self._trajectories_returns.copy(),
+                                              self._trajectories_lenght.copy(), self.trj_count)
 
         self._reset()
         return trajectory_container
@@ -728,12 +787,12 @@ class TimestepCollector(object):
 
 
 class EpochContainer(object):
-    def __init__(self, trajectories_list: list):
+    def __init__(self, batch_container_list: list):
         """
         Container for storage & retrieval of a batch of sampled trajectories
 
-        :param trajectories_list: a list of TrajectoryContainer instance fulled with collected timestep events
-        :type trajectories_list: [TrajectoryContainer, ...]
+        :param batch_container_list: a list of BatchContainer instance fulled with collected timestep events
+        :type batch_container_list: [BatchContainer, ...]
         """
         self.trjs_observations = []
         self.trjs_actions = []
@@ -741,40 +800,29 @@ class EpochContainer(object):
         self.trjs_Qvalues = []
         self.trjs_returns = []
         self.trjs_lenghts = []
-        self._number_of_collected_trajectory = len(trajectories_list)
+        self._number_of_batch_collected = len(batch_container_list)
         self._total_timestep_collected = 0
 
-        for aTrajectory_container in trajectories_list:
-            assert isinstance(aTrajectory_container, TrajectoryContainer), \
-                "The list must contain object of type TrajectoryContainer"
+        for aTrajectory_container in batch_container_list:
+            assert isinstance(aTrajectory_container, BatchContainer), \
+                "The list must contain object of type BatchContainer"
 
             unpacked = aTrajectory_container.unpack()
-            observations, actions, rewards, Q_values, trajectory_return, trajectory_lenght = unpacked
+            observations, actions, rewards, Q_values, trajectories_returns, trajectories_lenght = unpacked
 
             self.trjs_observations += observations
             self.trjs_actions += actions
             self.trjs_reward += rewards
             self.trjs_Qvalues += Q_values
-            self.trjs_returns.append(trajectory_return)
-            self.trjs_lenghts.append(trajectory_lenght)
+            self.trjs_returns += trajectories_returns
+            self.trjs_lenghts += trajectories_lenght
             self._total_timestep_collected += len(aTrajectory_container)
 
     def __len__(self) -> int:
-        return self._number_of_collected_trajectory
+        return self._number_of_batch_collected
 
     def get_total_timestep_collected(self):
         return self._total_timestep_collected
-
-    def compute_metric(self) -> (float, float):
-        """
-        Compute relevant metric over this container stored sample
-
-        :return: (epoch_average_trjs_return, epoch_average_trjs_lenght)
-        :rtype: (float, float)
-        """
-        epoch_average_trjs_return = np.mean(self.trjs_returns).copy()
-        epoch_average_trjs_lenght = np.mean(self.trjs_lenghts).copy()
-        return epoch_average_trjs_return, epoch_average_trjs_lenght
 
     def unpack_all(self) -> (list, list, list, list, list, int, int):
         """
@@ -793,31 +841,31 @@ class EpochContainer(object):
         return trajectories_copy
 
 
-class TrajectoriesCollector(object):
+class BatchCollector(object):
     def __init__(self):
         self.trajectories_list = []
-        self.timestep_total = 0
+        self._timestep_total = 0
         self._number_of_collected_trajectory = 0
 
         # note: Optimization consideration --> why collect numpy ndarray in python list?
         #   |   It's a order of magnitude faster to collect ndarray in a list and then convert the list
         #   |       to a ndarray than it is to append ndarray to each other
 
-    def __call__(self, trajectory: TrajectoryContainer, *args, **kwargs) -> None:
-        self.trajectories_list.append(trajectory)
-        self.timestep_total += trajectory.__len__()
-        self._number_of_collected_trajectory += 1
+    def __call__(self, batch: BatchContainer, *args, **kwargs) -> None:
+        self.trajectories_list.append(batch)
+        self._timestep_total += batch.__len__()
+        self._number_of_collected_trajectory += batch.trj_count
         return None
 
-    def collect(self, trajectory: TrajectoryContainer) -> None:
-        self.__call__(trajectory)
+    def collect(self, batch: BatchContainer) -> None:
+        self.__call__(batch)
         return None
 
-    def get_number_of_trajectories_collected(self):
-        return self.trajectories_list.__len__()
+    def get_number_of_trajectories_collected(self) -> int:
+        return self._number_of_collected_trajectory
 
     def get_total_timestep_collected(self) -> int:
-        return self.timestep_total
+        return self._timestep_total
 
     def get_collected_trajectories_and_reset_collector(self) -> EpochContainer:
         """
@@ -834,7 +882,7 @@ class TrajectoriesCollector(object):
         container = EpochContainer(self.trajectories_list)
 
         self.trajectories_list = []
-        self.timestep_total = 0
+        self._timestep_total = 0
         self._number_of_collected_trajectory = 0
 
         return container
@@ -843,9 +891,10 @@ class TrajectoriesCollector(object):
 # todo:validate --> possible source of graph data input error:
 def format_single_step_observation(observation: np.ndarray):
     """ Single trajectorie batch size hack for the computation graph observation placeholder
-                observation.shape = (8,)
-            vs
-                np.expand_dims(observation, axis=0).shape = (1, 8)
+            Ex:
+                    observation.shape = (8,)
+                vs
+                    np.expand_dims(observation, axis=0).shape = (1, 8)
     """
     assert observation.ndim == 1, "Watch out!! observation array is of wrong dimension {}".format(observation.shape)
     batch_size_one_observation = np.expand_dims(observation, axis=0)

@@ -35,6 +35,8 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
     # env = gym.make(env_name)                                                        # ////// Original bloc //////
     playground = BLOC.GymPlayground(env_name)                                       # \\\\\\    My bloc    \\\\\\
     env = playground.env                                                            # \\\\\\    My bloc    \\\\\\
+    exp_spec = BLOC.ExperimentSpec(neural_net_hidden_layer_topology=tuple(hidden_sizes), learning_rate=lr, max_epoch=epochs)
+
 
 
     assert isinstance(env.observation_space, Box), \
@@ -47,24 +49,32 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
 
     # make core of policy network
     # obs_ph = tf.placeholder(shape=(None, obs_dim), dtype=tf.float32)                  # ////// Original bloc //////
-    obs_ph, act_ph = BLOC.gym_playground_to_tensorflow_graph_adapter(playground)
+    obs_ph, act_ph, weights_ph = BLOC.gym_playground_to_tensorflow_graph_adapter(playground)  # \\\\\\    My bloc    \\\\\\
     # logits = mlp(obs_ph, sizes=hidden_sizes+[n_acts])                               # ////// Original bloc //////
     logits = BLOC.build_MLP_computation_graph(
         obs_ph, playground, hidden_layer_topology=tuple(hidden_sizes))                 # \\\\\\    My bloc    \\\\\\
 
 
     # make action selection op (outputs int actions, sampled from policy)
-    actions = tf.squeeze(tf.multinomial(logits=logits,num_samples=1), axis=1)
+    # actions = tf.squeeze(tf.multinomial(logits=logits,num_samples=1), axis=1)        # ////// Original bloc //////
+    actions, log_p_all = BLOC.policy_theta_discrete_space(logits, playground)
+
 
     # make loss function whose gradient, for the right data, is policy gradient
-    weights_ph = tf.placeholder(shape=(None,), dtype=tf.float32)
-    # act_ph = tf.placeholder(shape=(None,), dtype=tf.int32)                        # ////// Original bloc //////
-    action_masks = tf.one_hot(act_ph, n_acts)
-    log_probs = tf.reduce_sum(action_masks * tf.nn.log_softmax(logits), axis=1)
-    loss = -tf.reduce_mean(weights_ph * log_probs)
+    # weights_ph = tf.placeholder(shape=(None,), dtype=tf.float32)                   # ////// Original bloc //////
+    # act_ph = tf.placeholder(shape=(None,), dtype=tf.int32)                         # ////// Original bloc //////
+
+    # ////// Original bloc //////
+    # action_masks = tf.one_hot(act_ph, n_acts)
+    # log_probs = tf.reduce_sum(action_masks * tf.nn.log_softmax(logits), axis=1)
+    # loss = -tf.reduce_mean(weights_ph * log_probs)
+
+    loss = BLOC.discrete_pseudo_loss(log_p_all, act_ph, weights_ph, playground)           # \\\\\\    My bloc    \\\\\\
+
 
     # make train op
-    train_op = tf.train.AdamOptimizer(learning_rate=lr).minimize(loss)
+    # train_op = tf.train.AdamOptimizer(learning_rate=lr).minimize(loss)                   # ////// Original bloc //////
+    train_op = BLOC.policy_optimizer(loss, learning_rate=exp_spec.learning_rate)           # \\\\\\    My bloc    \\\\\\
 
     # \\\\\\    My bloc    \\\\\\
     date_now = datetime.now()
@@ -152,6 +162,7 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
     print("\n>>> Close session\n")
     writer.close()
     playground.env.close()
+    tf.reset_default_graph()
     sess.close()
 
 

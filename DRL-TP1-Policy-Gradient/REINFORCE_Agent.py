@@ -9,8 +9,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import DRL_building_bloc as bloc
-from DRL_building_bloc import CycleIndexer, ExperimentSpec, GymPlayground, TrajectoryContainer, TimestepCollector, \
-    TrajectoriesCollector, EpochContainer, REINFORCE_policy, ConsolPrintLearningStats
+from DRL_building_bloc import CycleIndexer, ExperimentSpec, GymPlayground, BatchContainer, TimestepCollector, \
+    BatchCollector, EpochContainer, REINFORCE_policy, ConsolPrintLearningStats
 
 import tensorflow_weak_warning_supressor as no_cpu_compile_warn
 no_cpu_compile_warn.execute()
@@ -20,8 +20,8 @@ vocab = rl_name()
 # endregion
 
 # (!) Environment rendering manual selection.
-RENDER_ENV = True
-# RENDER_ENV = False
+# RENDER_ENV = True
+RENDER_ENV = False
 
 
 """
@@ -37,8 +37,8 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
     cartpole_parma_dict = {
         'prefered_environment': 'CartPole-v1',
         'paramameter_set_name': 'CartPole-v1 - Training spec',
-        'timestep_max_per_trajectorie': 2000,           # check the max_episode_steps specification of your chosen env
-        'trajectories_batch_size': 40,
+        'timestep_max_per_trajectorie': 500,           # check the max_episode_steps specification of your chosen env
+        'batch_size_in_ts': 40,
         'max_epoch': 5000,
         'discounted_reward_to_go': True,
         'discout_factor': 0.999,
@@ -54,9 +54,9 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
     cartpole_parma_dict_2 = {
         'prefered_environment': 'CartPole-v1',
         'paramameter_set_name': 'CartPole-v1',
-        'timestep_max_per_trajectorie': 2000,           # check the max_episode_steps specification of your chosen env
-        'trajectories_batch_size': 100,
-        'max_epoch': 2000,
+        'timestep_max_per_trajectorie': 500,           # check the max_episode_steps specification of your chosen env
+        'batch_size_in_ts': 5000,
+        'max_epoch': 50,
         'discounted_reward_to_go': False,
         'discout_factor': 0.999,
         'learning_rate': 1e-2,
@@ -66,14 +66,15 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
         'output_layers_activation': None,
         # 'output_layers_activation': tf.nn.sigmoid,
         'render_env_every_What_epoch': 100,
-        'print_metric_every_what_epoch': 10,
+        'print_metric_every_what_epoch': 2,
     }
 
     test_parma_dict = {
+        'prefered_environment': 'CartPole-v0',
         'paramameter_set_name': 'Test spec',
         'timestep_max_per_trajectorie': 200,
-        'trajectories_batch_size': 10,
-        'max_epoch': 100,
+        'batch_size_in_ts': 10,
+        'max_epoch': 20,
         'discounted_reward_to_go': True,
         'discout_factor': 0.999,
         'learning_rate': 1e-2,
@@ -112,9 +113,9 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
     # (nice to have) todo:refactor --> automate timestep_max_per_trajectorie field default: fetch the value from the selected env
     exp_spec = ExperimentSpec(print_metric_every_what_epoch)
 
+    # exp_spec.set_experiment_spec(test_parma_dict)
     exp_spec.set_experiment_spec(cartpole_parma_dict_2)
     # exp_spec.set_experiment_spec(cartpole_parma_dict)
-    # exp_spec.set_experiment_spec(test_parma_dict)
 
     playground = GymPlayground(environment_name=exp_spec.prefered_environment)
 
@@ -144,8 +145,15 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
     """ ---- Build the Policy_theta computation graph with theta as multi-layer perceptron ---- """
     # Placeholder
-    observation_ph, action_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
-    Q_values_ph = tf_cv1.placeholder(tf.float32, shape=(None,), name=vocab.Qvalues_placeholder)
+    # (CRITICAL) todo:assessment --> uneven placeholder prevent the optimiser from minimizing the loss
+    obs_shape_constraint = tuple([exp_spec.max_epoch * exp_spec.timestep_max_per_trajectorie])  # <-- (!)
+    # act_pl_shape_constraint = (1, )
+    # observation_ph, action_ph, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
+    #     playground, act_pl_shape_constraint, obs_shape_constraint=obs_shape_constraint)
+    observation_ph, action_ph, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
+        playground, None, obs_shape_constraint=None)
+
+
 
     # The policy & is neural net theta
     reinforce_policy = REINFORCE_policy(observation_ph, action_ph, Q_values_ph, exp_spec, playground)
@@ -155,11 +163,11 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
     """ ---- Collector instantiation ---- """
     timestep_collector = TimestepCollector(exp_spec, playground)
-    trajectories_collector = TrajectoriesCollector()
+    batch_collector = BatchCollector()
 
 
     """ ---- Optimizer ---- """
-    policy_optimizer_op = bloc.policy_optimizer(pseudo_loss, exp_spec)
+    policy_optimizer_op = bloc.policy_optimizer(pseudo_loss, exp_spec.learning_rate)
 
 
     """ ---- Warm-up the computation graph and start learning! ---- """
@@ -183,7 +191,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
             consol_print_learning_stats.next_glorious_epoch()
 
             """ ---- Simulator: trajectories ---- """
-            for trj in range(exp_spec.trajectories_batch_size):
+            while not timestep_collector.full():
                 observation = playground.env.reset()   # fetch initial observation
 
                 consol_print_learning_stats.next_glorious_trajectory()
@@ -191,7 +199,8 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
                 """ ---- Simulator: time-steps ---- """
                 for step in range(exp_spec.timestep_max_per_trajectorie):
 
-                    if render_env and (epoch % exp_spec.render_env_every_What_epoch == 0) and trj==0:
+                    trj = batch_collector.get_number_of_trajectories_collected()
+                    if render_env and (epoch % exp_spec.render_env_every_What_epoch == 0) and trj == 0:
                         playground.env.render()    # (!) keep environment rendering turned OFF during unit test
 
                     """ ---- Agent: act in the environment ---- """
@@ -212,21 +221,28 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
                     #     epoch + 1, trj + 1, step + 1, action, reward))
 
                     """ ---- Simulator: trajectory as ended ---- """
-                    if done or (step == exp_spec.timestep_max_per_trajectorie - 1):
+                    if done or (timestep_collector.full()):
 
-                        """ ---- Agent: Collect the sampled trajectory  ---- """
-                        trajectory_container = timestep_collector.get_collected_timestep_and_reset_collector(
-                            discounted_q_values=exp_spec.discounted_reward_to_go)
+                        trj_return = timestep_collector.trajectory_ended()
 
-                        trajectories_collector.collect(trajectory_container)
+                        # (Priority) todo:refactor --> modify to go in the trajectory loop:
+                        consol_print_learning_stats.trajectory_training_stat(
+                            the_trajectory_return=trj_return, timestep=step)
+
                         break
 
-                consol_print_learning_stats.trajectory_training_stat(
-                    the_trajectory_return=trajectory_container.the_trajectory_return, timestep=step)
+
+
+            """ ---- Agent: Collect the sampled trajectory  ---- """
+            batch = timestep_collector.get_collected_timestep_and_reset_collector()
+
+            epoch_average_trjs_return, epoch_average_trjs_lenght = batch.compute_metric()
+
+            batch_collector.collect(batch)
 
             """ ---- Simulator: epoch as ended, it's time to learn! ---- """
-            number_of_trj_collected = trajectories_collector.get_number_of_trajectories_collected()
-            total_timestep_collected = trajectories_collector.get_total_timestep_collected()
+            number_of_trj_collected = batch_collector.get_number_of_trajectories_collected()
+            total_timestep_collected = batch_collector.get_total_timestep_collected()
 
 
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
@@ -236,7 +252,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
 
             """ ---- Prepare data for backpropagation in the neural net ---- """
-            epoch_container = trajectories_collector.get_collected_trajectories_and_reset_collector()
+            epoch_container = batch_collector.get_collected_trajectories_and_reset_collector()
 
             observations = epoch_container.trjs_observations
             actions = epoch_container.trjs_actions
@@ -256,7 +272,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
             epoch_loss, _ = sess.run([pseudo_loss, policy_optimizer_op],
                                      feed_dict=feed_dictionary)
 
-            epoch_average_trjs_return, epoch_average_trjs_lenght = epoch_container.compute_metric()
+
 
             consol_print_learning_stats.epoch_training_stat(
                 epoch_loss=epoch_loss, epoch_average_trjs_return=epoch_average_trjs_return,
@@ -269,6 +285,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
     consol_print_learning_stats.print_experiment_stats()
     writer.close()
+    tf_cv1.reset_default_graph()
     sess.close()
     playground.env.close()
 
