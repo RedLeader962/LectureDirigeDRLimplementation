@@ -192,7 +192,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
             consol_print_learning_stats.next_glorious_epoch()
 
             """ ---- Simulator: trajectories ---- """
-            while the_UNI_BATCH_COLLECTOR.is_not_fll():      # (Priority) todo:fixme!! --> must be handle by the batch_collector:
+            while the_UNI_BATCH_COLLECTOR.is_not_full():      # (Priority) todo:fixme!! --> must be handle by the batch_collector:
                 observation = playground.env.reset()   # fetch initial observation
 
                 consol_print_learning_stats.next_glorious_trajectory()
@@ -209,17 +209,16 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
                     action_array = sess.run(policy_action_sampler, feed_dict={observation_ph: step_observation})
 
                     action = bloc.format_single_step_action(action_array)
-                    observation, reward, done, info = playground.env.step(action)
+                    observation, reward, done, _ = playground.env.step(action)
 
                     """ ---- Agent: Collect current timestep events ---- """
                     the_TRAJECTORY_COLLECTOR.collect(observation, action, reward)
 
-                    # if len(info) is not 0:
-                    #     print("\ninfo: {}\n".format(info))
-
-                    # Timestep consol print
+                    # region ::Timestep consol print ...
+                    # # Timestep consol print
                     # print("\t\t E:{} Tr:{} TS:{}\t\t|\taction[{}]\t--> \treward = {}".format(
-                    #     epoch + 1, trj + 1, step + 1, action, reward))
+                    #     epoch + 1, the_UNI_BATCH_COLLECTOR.trj_collected_so_far() + 1, step + 1, action, reward))
+                    # endregion
 
                     """ ---- Simulator: trajectory as ended ---- """
                     if done:
@@ -232,9 +231,6 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
                         trj_container = the_TRAJECTORY_COLLECTOR.pop_trajectory_and_reset()
                         the_UNI_BATCH_COLLECTOR.collect(trj_container)
                         break
-
-
-
 
 
             """ ---- Simulator: epoch as ended, it's time to learn! ---- """

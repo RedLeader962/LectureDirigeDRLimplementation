@@ -59,7 +59,6 @@ class TrajectoryContainer(object):
         return myRep
 
 
-
 class TrajectoryCollector(object):
     """
     Collect sampled timestep events and compute relevant information
@@ -67,6 +66,7 @@ class TrajectoryCollector(object):
     def __init__(self, experiment_spec: ExperimentSpec, playground: GymPlayground, discounted: bool = True):
         self._exp_spec = experiment_spec
         self._playground_spec = playground.get_environment_spec()
+
         self._observations = []
         self._actions = []
         self._rewards = []
@@ -75,6 +75,7 @@ class TrajectoryCollector(object):
         self._trajectories_returns = []
         self._q_values = []
         self._trajectories_lenght = []
+
 
         self.step_count = 0
         self.trj_count = 0
@@ -112,9 +113,6 @@ class TrajectoryCollector(object):
         self.__call__(observation, action, reward)
         return None
 
-    # def full(self) -> bool:
-    #     return not self.step_count < self._capacity
-
     def trajectory_ended(self) -> float:
         """ Must be call at each trajectory end
 
@@ -143,8 +141,6 @@ class TrajectoryCollector(object):
             self._q_values += reward_to_go(self._curent_trj_rewards)
         return None
 
-
-
     def pop_trajectory_and_reset(self) -> TrajectoryContainer:
         """
             1.  Return the sampled trajectory in a TrajectoryContainer
@@ -153,8 +149,6 @@ class TrajectoryCollector(object):
         :return: A TrajectoryContainer with the full trajectory
         :rtype: TrajectoryContainer
         """
-
-
         trajectory_container = TrajectoryContainer(self._observations.copy(), self._actions.copy(),
                                                    self._rewards.copy(), self._q_values.copy(),
                                                    self._trajectories_returns.copy())
