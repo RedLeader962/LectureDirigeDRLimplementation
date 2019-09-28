@@ -262,7 +262,7 @@ class UniformeBatchContainer(object):
         :return: (batch_average_trjs_return, batch_average_trjs_lenght)
         :rtype: (float, float)
         """
-        assert len(self.batch_returns) == self.trj_count, "Nb of trajectories_returns collected differ from the container trj_count"
+        assert len(self.batch_returns) == self.trajectories_count(), "Nb of trajectories_returns collected differ from the container trj_count"
         batch_average_trjs_return = float(np.mean(self.batch_returns))
         batch_average_trjs_lenght = float(np.mean(self.batch_trjs_lenghts))
         return batch_average_trjs_return, batch_average_trjs_lenght
