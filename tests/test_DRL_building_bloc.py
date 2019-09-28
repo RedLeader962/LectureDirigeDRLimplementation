@@ -289,11 +289,12 @@ def test_SamplingContainer_DISCRETE_BASIC(gym_discrete_setup):
                 _ = the_TRAJECTORY_COLLECTOR.trajectory_ended()
 
                 trj_container = the_TRAJECTORY_COLLECTOR.pop_trajectory_and_reset()
+                collected_timestep = len(trj_container)
+                assert step == collected_timestep, "Trajectory lenght do not match nb collected_timestep"
+
                 the_UNI_BATCH_COLLECTOR.collect(trj_container)
                 np_array_obs, np_array_act, np_array_rew, Q_values, trajectory_return, trajectory_lenght = trj_container.unpack()
 
-                collected_timestep = len(trj_container)
-                assert step == collected_timestep, "Trajectory lenght do not match nb collected_timestep"
 
                 print(
                     "\n\n----------------------------------------------------------------------------------------"
@@ -401,6 +402,19 @@ def test_reward_to_go_PASS(gym_and_tf_continuous_setup):
     assert isinstance(reward_to_go, list)
 
 
+def test_reward_to_go_DUMMY_PASS(gym_and_tf_continuous_setup):
+    N = 10
+    rewards = [1 for x in range(N)]
+    expected_reward_to_go = [x for x in range(N)]
+    expected_reward_to_go.reverse()
+
+    reward_to_go = bloc.reward_to_go(rewards)
+
+    print(reward_to_go)
+    assert np.equal(rewards, expected_reward_to_go).any()
+    assert isinstance(reward_to_go, list)
+
+
 def test_dicounted_reward_to_go_PASS(gym_and_tf_continuous_setup):
     _, _, exp_spec, _ = gym_and_tf_continuous_setup
     exp_spec.discout_factor = 0.98  # (!)the last assert depend on this value
@@ -477,6 +491,8 @@ def test_dicounted_reward_to_go_np_FAIL(gym_and_tf_continuous_setup):
     ones_2D = np.ones((4, 2))
     with pytest.raises(AssertionError):
         bloc.discounted_reward_to_go_np(ones_2D, exp_spec)
+
+
 
 
 
