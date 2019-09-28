@@ -2,7 +2,7 @@
 from typing import Union, Any
 from gym.wrappers import TimeLimit
 
-from sample_container import TrajectoryCollector, UniformeBatchContainer
+from sample_container import TrajectoryCollector, UniformBatchCollector
 from DRL_building_bloc import ExperimentSpec, GymPlayground
 from tests.test_sampling_container.conftest import take_one_random_step
 
@@ -12,7 +12,7 @@ def test_TrajectoryCollector_INIT(gym_discrete_setup):
     exp_spec: ExperimentSpec
     playground: GymPlayground
     trajectory_collector: TrajectoryCollector
-    uni_batch_collector: UniformeBatchContainer
+    uni_batch_collector: UniformBatchCollector
     env: Union[TimeLimit, Any]
     # endregion
 
@@ -29,7 +29,7 @@ def test_TrajectoryCollector_ONE_STEP(gym_discrete_setup):
     exp_spec: ExperimentSpec
     playground: GymPlayground
     trajectory_collector: TrajectoryCollector
-    uni_batch_collector: UniformeBatchContainer
+    uni_batch_collector: UniformBatchCollector
     env: Union[TimeLimit, Any]
     # endregion
 
@@ -44,15 +44,12 @@ def test_TrajectoryCollector_ONE_STEP(gym_discrete_setup):
     assert state.q_values_computed_on_current_trj is False
 
 
-
-
-
 def test_TrajectoryCollector_ONE_STEP_END(gym_discrete_setup):
     # region ::Type hint bloc ...
     exp_spec: ExperimentSpec
     playground: GymPlayground
     trajectory_collector: TrajectoryCollector
-    uni_batch_collector: UniformeBatchContainer
+    uni_batch_collector: UniformBatchCollector
     env: Union[TimeLimit, Any]
     # endregion
 
@@ -78,13 +75,12 @@ def test_TrajectoryCollector_ONE_STEP_END(gym_discrete_setup):
     assert trajectory_collector._lenght == step_nb
 
 
-
 def test_TrajectoryCollector_ONE_STEP_POP(gym_discrete_setup):
     # region ::Type hint bloc ...
     exp_spec: ExperimentSpec
     playground: GymPlayground
     trajectory_collector: TrajectoryCollector
-    uni_batch_collector: UniformeBatchContainer
+    uni_batch_collector: UniformBatchCollector
     env: Union[TimeLimit, Any]
     # endregion
 
@@ -110,7 +106,7 @@ def test_TrajectoryCollector_ONE_STEP_RESET(gym_discrete_setup):
     exp_spec: ExperimentSpec
     playground: GymPlayground
     trajectory_collector: TrajectoryCollector
-    uni_batch_collector: UniformeBatchContainer
+    uni_batch_collector: UniformBatchCollector
     env: Union[TimeLimit, Any]
     # endregion
 
@@ -132,7 +128,7 @@ def test_TrajectoryCollector_10_STEP(gym_discrete_setup):
     exp_spec: ExperimentSpec
     playground: GymPlayground
     trajectory_collector: TrajectoryCollector
-    uni_batch_collector: UniformeBatchContainer
+    uni_batch_collector: UniformBatchCollector
     env: Union[TimeLimit, Any]
     # endregion
 
@@ -157,7 +153,7 @@ def test_TrajectoryCollector_10_STEP_END(gym_discrete_setup):
     exp_spec: ExperimentSpec
     playground: GymPlayground
     trajectory_collector: TrajectoryCollector
-    uni_batch_collector: UniformeBatchContainer
+    uni_batch_collector: UniformBatchCollector
     env: Union[TimeLimit, Any]
     # endregion
 
@@ -189,7 +185,7 @@ def test_TrajectoryCollector_10_STEP_POP(gym_discrete_setup):
     exp_spec: ExperimentSpec
     playground: GymPlayground
     trajectory_collector: TrajectoryCollector
-    uni_batch_collector: UniformeBatchContainer
+    uni_batch_collector: UniformBatchCollector
     env: Union[TimeLimit, Any]
     # endregion
 
@@ -217,7 +213,7 @@ def test_TrajectoryCollector_10_STEP_RESET(gym_discrete_setup):
     exp_spec: ExperimentSpec
     playground: GymPlayground
     trajectory_collector: TrajectoryCollector
-    uni_batch_collector: UniformeBatchContainer
+    uni_batch_collector: UniformBatchCollector
     env: Union[TimeLimit, Any]
     # endregion
 
@@ -241,7 +237,7 @@ def test_TrajectoryCollector_20_STEP_2_TRJ(gym_discrete_setup):
     exp_spec: ExperimentSpec
     playground: GymPlayground
     trajectory_collector: TrajectoryCollector
-    uni_batch_collector: UniformeBatchContainer
+    uni_batch_collector: UniformBatchCollector
     env: Union[TimeLimit, Any]
     # endregion
 
@@ -265,7 +261,7 @@ def test_TrajectoryCollector_20_STEP_END(gym_discrete_setup):
     exp_spec: ExperimentSpec
     playground: GymPlayground
     trajectory_collector: TrajectoryCollector
-    uni_batch_collector: UniformeBatchContainer
+    uni_batch_collector: UniformBatchCollector
     env: Union[TimeLimit, Any]
     # endregion
 
@@ -298,7 +294,7 @@ def test_TrajectoryCollector_20_STEP_POP(gym_discrete_setup):
     exp_spec: ExperimentSpec
     playground: GymPlayground
     trajectory_collector: TrajectoryCollector
-    uni_batch_collector: UniformeBatchContainer
+    uni_batch_collector: UniformBatchCollector
     env: Union[TimeLimit, Any]
     # endregion
 
@@ -327,7 +323,7 @@ def test_TrajectoryCollector_20_STEP_RESET(gym_discrete_setup):
     exp_spec: ExperimentSpec
     playground: GymPlayground
     trajectory_collector: TrajectoryCollector
-    uni_batch_collector: UniformeBatchContainer
+    uni_batch_collector: UniformBatchCollector
     env: Union[TimeLimit, Any]
     # endregion
 

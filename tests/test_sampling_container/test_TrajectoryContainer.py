@@ -2,7 +2,7 @@
 from typing import Union, Any
 from gym.wrappers import TimeLimit
 
-from sample_container import TrajectoryCollector, UniformeBatchContainer
+from sample_container import TrajectoryCollector, UniformBatchCollector
 from DRL_building_bloc import ExperimentSpec, GymPlayground
 from tests.test_sampling_container.conftest import take_one_random_step
 
@@ -14,7 +14,7 @@ def test_TrajectoryContainer_INTERNAL(gym_discrete_setup):
     exp_spec: ExperimentSpec
     playground: GymPlayground
     trajectory_collector: TrajectoryCollector
-    uni_batch_collector: UniformeBatchContainer
+    uni_batch_collector: UniformBatchCollector
     env: Union[TimeLimit, Any]
     # endregion
 
@@ -37,7 +37,7 @@ def test_TrajectoryContainer_ONE_STEP_POP_DUMMY(gym_discrete_setup):
     exp_spec: ExperimentSpec
     playground: GymPlayground
     trajectory_collector: TrajectoryCollector
-    uni_batch_collector: UniformeBatchContainer
+    uni_batch_collector: UniformBatchCollector
     env: Union[TimeLimit, Any]
     # endregion
 
@@ -69,7 +69,7 @@ def test_TrajectoryContainer_10_STEP_DUMMY(gym_discrete_setup):
     exp_spec: ExperimentSpec
     playground: GymPlayground
     trajectory_collector: TrajectoryCollector
-    uni_batch_collector: UniformeBatchContainer
+    uni_batch_collector: UniformBatchCollector
     env: Union[TimeLimit, Any]
     # endregion
 
@@ -106,7 +106,7 @@ def test_TrajectoryContainer_10_STEP_ON_SECOND_TRJ_DUMMY(gym_discrete_setup):
     exp_spec: ExperimentSpec
     playground: GymPlayground
     trajectory_collector: TrajectoryCollector
-    uni_batch_collector: UniformeBatchContainer
+    uni_batch_collector: UniformBatchCollector
     env: Union[TimeLimit, Any]
     # endregion
 
@@ -147,7 +147,7 @@ def test_TrajectoryContainer_CUT(gym_discrete_setup):
     exp_spec: ExperimentSpec
     playground: GymPlayground
     trajectory_collector: TrajectoryCollector
-    uni_batch_collector: UniformeBatchContainer
+    uni_batch_collector: UniformBatchCollector
     env: Union[TimeLimit, Any]
     # endregion
 

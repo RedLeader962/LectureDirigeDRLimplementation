@@ -284,6 +284,15 @@ class UniformBatchCollector(object):
         self.CAPACITY = capacity
         self._reset()
 
+    def internal_state(self) -> namedtuple:
+        """Testing utility"""
+        UniformBatchCollectorInternalState = namedtuple('UniformBatchCollectorInternalState',
+                                                        ['trajectories_list', 'timestep_count',
+                                                         'trajectory_count', 'remaining_space'])
+
+        return UniformBatchCollectorInternalState(self.trajectories_list, self._timestep_count,
+                                                  self._trajectory_count, self.remaining_space)
+
     def __call__(self, trajectory: TrajectoryContainer, *args, **kwargs) -> None:
         assert self.is_not_full(), "The batch is full: {} timesteps collected! Execute pop_batch_and_reset()".format(self._timestep_count)
 
@@ -320,7 +329,6 @@ class UniformBatchCollector(object):
         """
         container = UniformeBatchContainer(self.trajectories_list, self.CAPACITY)
 
-        assert container
         # reset
         self._reset()
         return container
