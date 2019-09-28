@@ -33,9 +33,10 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
 
     # make environment, check spaces, get obs / act dims
     # env = gym.make(env_name)                                                        # ////// Original bloc //////
-    playground = BLOC.GymPlayground(env_name)                                       # \\\\\\    My bloc    \\\\\\
+    playground = BLOC.GymPlayground(env_name)  # \\\\\\    My bloc    \\\\\\
     env = playground.env                                                            # \\\\\\    My bloc    \\\\\\
-    exp_spec = BLOC.ExperimentSpec(neural_net_hidden_layer_topology=tuple(hidden_sizes), learning_rate=lr, max_epoch=epochs)
+    exp_spec = BLOC.ExperimentSpec(max_epoch=epochs, learning_rate=lr,
+                                   neural_net_hidden_layer_topology=tuple(hidden_sizes))
 
 
 

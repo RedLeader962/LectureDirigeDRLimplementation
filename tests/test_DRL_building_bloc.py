@@ -13,6 +13,7 @@ import visualisation_tool
 tf_cv1 = tf.compat.v1   # shortcut
 
 import DRL_building_bloc as bloc
+from sample_container import TrajectoryContainer, TrajectoryCollector, UniformeBatchContainer, UniformBatchCollector
 from vocabulary import rl_name
 vocab = rl_name()
 
@@ -43,8 +44,7 @@ def gym_continuous_setup():
     :return: (exp_spec, playground)
     :rtype: (ExperimentSpec, GymPlayground)
     """
-    exp_spec = bloc.ExperimentSpec(timestep_max_per_trajectorie=10, batch_size_in_ts=2, max_epoch=2,
-                                   neural_net_hidden_layer_topology=(2, 2))
+    exp_spec = bloc.ExperimentSpec(batch_size_in_ts=1000, max_epoch=2, neural_net_hidden_layer_topology=(2, 2))
     playground = bloc.GymPlayground('LunarLanderContinuous-v2')
     yield exp_spec, playground
     tf.reset_default_graph()
@@ -55,8 +55,7 @@ def gym_discrete_setup():
     :return: (exp_spec, playground)
     :rtype: (ExperimentSpec, GymPlayground)
     """
-    exp_spec = bloc.ExperimentSpec(timestep_max_per_trajectorie=10, batch_size_in_ts=2, max_epoch=2,
-                                   neural_net_hidden_layer_topology=(2, 2))
+    exp_spec = bloc.ExperimentSpec(batch_size_in_ts=1000, max_epoch=2, neural_net_hidden_layer_topology=(2, 2))
     playground = bloc.GymPlayground('LunarLander-v2')
     yield exp_spec, playground
     tf.reset_default_graph()
@@ -67,8 +66,7 @@ def gym_and_tf_continuous_setup():
     :return: (obs_p, act_p, exp_spec, playground)
     :rtype: (tf.Tensor, tf.Tensor, ExperimentSpec, GymPlayground)
     """
-    exp_spec = bloc.ExperimentSpec(timestep_max_per_trajectorie=10, batch_size_in_ts=2, max_epoch=2,
-                                   neural_net_hidden_layer_topology=(2, 2))
+    exp_spec = bloc.ExperimentSpec(batch_size_in_ts=1000, max_epoch=2, neural_net_hidden_layer_topology=(2, 2))
     playground = bloc.GymPlayground('LunarLanderContinuous-v2')
     obs_p, act_p, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground, (1,))
     yield obs_p, act_p, exp_spec, playground
@@ -80,8 +78,7 @@ def gym_and_tf_discrete_setup():
     :return: (obs_p, act_p, exp_spec, playground)
     :rtype: (tf.Tensor, tf.Tensor, ExperimentSpec, GymPlayground)
     """
-    exp_spec = bloc.ExperimentSpec(timestep_max_per_trajectorie=10, batch_size_in_ts=2, max_epoch=2,
-                                   neural_net_hidden_layer_topology=(2, 2))
+    exp_spec = bloc.ExperimentSpec(batch_size_in_ts=1000, max_epoch=2, neural_net_hidden_layer_topology=(2, 2))
     playground = bloc.GymPlayground('LunarLander-v2')
     obs_p, act_p, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground, (1,))
     yield obs_p, act_p, exp_spec, playground
@@ -100,7 +97,6 @@ def test_set_experiment_spec_PASS(gym_discrete_setup):
     (exp_spec, playground) = gym_discrete_setup
 
     parma_dict = {
-        'timestep_max_per_trajectorie': 10,
         'batch_size_in_ts':10,
         'max_epoch': 10,
         'discout_factor': 0.5,
@@ -212,15 +208,18 @@ def test_SamplingContainer_CONTINUOUS_BASIC(gym_continuous_setup):
     # todo: finish implementing test case
 
     """ STEP-1: Container instantiation"""
-    timestep_collector = sample_container.TrajectoryCollector(exp_spec, playground)
+    the_TRAJECTORY_COLLECTOR = TrajectoryCollector(exp_spec, playground)
+    the_UNI_BATCH_COLLECTOR = UniformBatchCollector(capacity=exp_spec.batch_size_in_ts)
 
 
     """--Simulator code: trajectorie -------------------------------------------------------------------------------"""
-    for traj in range(exp_spec.batch_size_in_ts):
+    while the_UNI_BATCH_COLLECTOR.is_not_full():
         observation = env.reset()
 
+        step = 0
         """--Simulator code: time-step------------------------------------------------------------------------------"""
-        for step in range(exp_spec.timestep_max_per_trajectorie):
+        while True:
+            step += 1
             # env.render()  # (!) keep render() turn OFF during unit test
 
             print(observation)
@@ -231,14 +230,20 @@ def test_SamplingContainer_CONTINUOUS_BASIC(gym_continuous_setup):
             print("\ninfo: {}\n".format(info))
 
             """ STEP-2: append sample to container"""
-            timestep_collector.collect(observation, action, reward)
+            the_TRAJECTORY_COLLECTOR.collect(observation, action, reward)
 
-            """ STEP-3: acces container"""
-            if done or (timestep_collector.full()):
-                timestep_collector.trajectory_ended()
+            if done:
+                """ STEP-3: acces container"""
+                _ = the_TRAJECTORY_COLLECTOR.trajectory_ended()
 
-                trajectorie_container = timestep_collector.pop_trajectory_and_reset()
-                np_array_obs, np_array_act, np_array_rew, Q_values, trajectory_return, trajectory_lenght = trajectorie_container.unpack()
+                trj_container = the_TRAJECTORY_COLLECTOR.pop_trajectory_and_reset()
+                collected_timestep = len(trj_container)
+                assert step == collected_timestep, "Trajectory lenght do not match nb collected_timestep"
+
+
+                the_UNI_BATCH_COLLECTOR.collect(trj_container)
+                np_array_obs, np_array_act, np_array_rew, Q_values, trajectory_return, trajectory_lenght = trj_container.unpack()
+
 
                 print(
                     "\n\n----------------------------------------------------------------------------------------"
@@ -247,88 +252,6 @@ def test_SamplingContainer_CONTINUOUS_BASIC(gym_continuous_setup):
                 print("reward: {}".format(np_array_rew))
                 break
 
-# def test_sampling_and_storing_by_nparray_iteration_BENCHMARK___ICEBOX(gym_continuous_setup):
-#
-#     raise NotImplementedError  # todo: (!) setup benchmark test
-#
-#     (exp_spec, playground) = gym_continuous_setup
-#     env = playground.env
-#
-#     """--Simulator code: trajectorie--------------------------------------------------------------------------------"""
-#     for traj in range(exp_spec.batch_size_in_ts):
-#         observation = env.reset()
-#
-#         """ STEP-1: Container instantiation"""
-#         # QuickFix:  *playground.OBSERVATION_SPACE to unpack shape --> wont work with Discrete space dimension
-#         observations = np.zeros((*playground.OBSERVATION_SPACE, exp_spec.timestep_max_per_trajectorie))
-#         actions = np.zeros((*playground.ACTION_SPACE, exp_spec.timestep_max_per_trajectorie))
-#         rewards = np.zeros(exp_spec.timestep_max_per_trajectorie)
-#
-#         """--Simulator code: time-step------------------------------------------------------------------------------"""
-#         for step in range(exp_spec.timestep_max_per_trajectorie):
-#             # env.render()  # (!) keep render() turn OFF during unit test
-#
-#             print(observation)
-#
-#             action = env.action_space.sample()  # sample a random action from the action space (aka: a random agent)
-#             observation, reward, done, info = env.step(action)
-#
-#             print("\ninfo: {}\n".format(info))
-#
-#             """ STEP-2: append sample to container"""
-#             actions[:, step] = action
-#             observations[:, step] = observation
-#             rewards[step] = reward
-#
-#             """ STEP-3: acces container"""
-#             if done or (step == exp_spec.timestep_max_per_trajectorie - 1):
-#                 print(
-#                     "\n\n----------------------------------------------------------------------------------------"
-#                     "\n Episode finished after {} timesteps".format(step + 1))
-#                 print("observation: {}".format(observations))
-#                 print("reward: {}".format(rewards))
-#                 break
-#
-# def test_SamplingContainer_BENCHMARK___ICEBOX(gym_continuous_setup):
-#
-#     raise NotImplementedError  # todo: (!) setup benchmark test
-#
-#     (exp_spec, playground) = gym_continuous_setup
-#     env = playground.env
-#
-#
-#     """ STEP-1: Container instantiation"""
-#     timestep_collector = bloc.TrajectoryCollector(exp_spec, playground)
-#
-#     """--Simulator code: trajectorie -------------------------------------------------------------------------------"""
-#     for traj in range(exp_spec.batch_size_in_ts):
-#         observation = env.reset()
-#
-#         """--Simulator code: time-step------------------------------------------------------------------------------"""
-#         for step in range(exp_spec.timestep_max_per_trajectorie):
-#             # env.render()  # (!) keep render() turn OFF during unit test
-#
-#             print(observation)
-#
-#             action = env.action_space.sample()  # sample a random action from the action space (aka: a random agent)
-#             observation, reward, done, info = env.step(action)
-#
-#             print("\ninfo: {}\n".format(info))
-#
-#             """ STEP-2: append sample to container"""
-#             timestep_collector.collect(observation, action, reward)
-#
-#             """ STEP-3: acces container"""
-#             if done or (step == exp_spec.timestep_max_per_trajectorie - 1):
-#                 trajectorie_container = timestep_collector.get_collected_trajectorie_and_reset()
-#                 np_array_obs, np_array_act, np_array_rew = trajectorie_container.unpack()
-#
-#                 print(
-#                     "\n\n----------------------------------------------------------------------------------------"
-#                     "\n Trajectorie finished after {} timesteps".format(step + 1))
-#                 print("observation: {}".format(np_array_obs))
-#                 print("reward: {}".format(np_array_rew))
-#                 break
 
 
 def test_SamplingContainer_DISCRETE_BASIC(gym_discrete_setup):
@@ -338,14 +261,17 @@ def test_SamplingContainer_DISCRETE_BASIC(gym_discrete_setup):
     # todo: finish implementing test case
 
     """ STEP-1: Container instantiation"""
-    timestep_collector = sample_container.TrajectoryCollector(exp_spec, playground)
+    the_TRAJECTORY_COLLECTOR = TrajectoryCollector(exp_spec, playground)
+    the_UNI_BATCH_COLLECTOR = UniformBatchCollector(capacity=exp_spec.batch_size_in_ts)
 
     """--Simulator code: trajectorie -------------------------------------------------------------------------------"""
-    for traj in range(exp_spec.batch_size_in_ts):
+    while the_UNI_BATCH_COLLECTOR.is_not_full():
         observation = env.reset()
 
+        step = 0
         """--Simulator code: time-step------------------------------------------------------------------------------"""
-        for step in range(exp_spec.timestep_max_per_trajectorie):
+        while True:
+            step += 1
             # env.render()  # (!) keep render() turn OFF during unit test
 
             print(observation)
@@ -356,14 +282,18 @@ def test_SamplingContainer_DISCRETE_BASIC(gym_discrete_setup):
             print("\ninfo: {}\n".format(info))
 
             """ STEP-2: append sample to container"""
-            timestep_collector.collect(observation, action, reward)
+            the_TRAJECTORY_COLLECTOR.collect(observation, action, reward)
 
-            """ STEP-3: acces container"""
-            if done or (timestep_collector.full()):
-                timestep_collector.trajectory_ended()
+            if done:
+                """ STEP-3: acces container"""
+                _ = the_TRAJECTORY_COLLECTOR.trajectory_ended()
 
-                trajectorie_container = timestep_collector.pop_trajectory_and_reset()
-                np_array_obs, np_array_act, np_array_rew, Q_values, trajectory_return, trajectory_lenght = trajectorie_container.unpack()
+                trj_container = the_TRAJECTORY_COLLECTOR.pop_trajectory_and_reset()
+                the_UNI_BATCH_COLLECTOR.collect(trj_container)
+                np_array_obs, np_array_act, np_array_rew, Q_values, trajectory_return, trajectory_lenght = trj_container.unpack()
+
+                collected_timestep = len(trj_container)
+                assert step == collected_timestep, "Trajectory lenght do not match nb collected_timestep"
 
                 print(
                     "\n\n----------------------------------------------------------------------------------------"
@@ -371,6 +301,7 @@ def test_SamplingContainer_DISCRETE_BASIC(gym_discrete_setup):
                 print("observation: {}".format(np_array_obs))
                 print("reward: {}".format(np_array_rew))
                 break
+
 
 
 # --- policy_theta ----------------------------------------------------------------------------------------------

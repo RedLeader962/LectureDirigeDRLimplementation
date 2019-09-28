@@ -38,7 +38,6 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
     cartpole_parma_dict = {
         'prefered_environment': 'CartPole-v1',
         'paramameter_set_name': 'CartPole-v1 - Training spec',
-        'timestep_max_per_trajectorie': 500,           # check the max_episode_steps specification of your chosen env
         'batch_size_in_ts': 40,
         'max_epoch': 5000,
         'discounted_reward_to_go': True,
@@ -55,7 +54,6 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
     cartpole_parma_dict_2 = {
         'prefered_environment': 'CartPole-v1',
         'paramameter_set_name': 'CartPole-v1',
-        'timestep_max_per_trajectorie': 500,           # check the max_episode_steps specification of your chosen env
         'batch_size_in_ts': 5000,
         'max_epoch': 50,
         'discounted_reward_to_go': False,
@@ -73,9 +71,8 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
     test_parma_dict = {
         'prefered_environment': 'CartPole-v0',
         'paramameter_set_name': 'Test spec',
-        'timestep_max_per_trajectorie': 200,
-        'batch_size_in_ts': 10,
-        'max_epoch': 20,
+        'batch_size_in_ts': 2000,
+        'max_epoch': 10,
         'discounted_reward_to_go': True,
         'discout_factor': 0.999,
         'learning_rate': 1e-2,
@@ -112,7 +109,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
     """
     # (nice to have) todo:refactor --> automate timestep_max_per_trajectorie field default: fetch the value from the selected env
-    exp_spec = ExperimentSpec(print_metric_every_what_epoch)
+    exp_spec = ExperimentSpec()
 
     # exp_spec.set_experiment_spec(test_parma_dict)
     exp_spec.set_experiment_spec(cartpole_parma_dict_2)
@@ -197,8 +194,10 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
                 consol_print_learning_stats.next_glorious_trajectory()
 
+                step = 0
                 """ ---- Simulator: time-steps ---- """
-                for step in range(exp_spec.timestep_max_per_trajectorie):
+                while True:
+                    step += 1
 
                     if (render_env and (epoch % exp_spec.render_env_every_What_epoch == 0)
                             and the_UNI_BATCH_COLLECTOR.trj_collected_so_far() == 0):
@@ -220,17 +219,21 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
                     #     epoch + 1, the_UNI_BATCH_COLLECTOR.trj_collected_so_far() + 1, step + 1, action, reward))
                     # endregion
 
-                    """ ---- Simulator: trajectory as ended ---- """
                     if done:
+                        """ ---- Simulator: trajectory as ended ---- """
                         trj_return = the_TRAJECTORY_COLLECTOR.trajectory_ended()
-
-                        consol_print_learning_stats.trajectory_training_stat(
-                            the_trajectory_return=trj_return, timestep=step)
 
                         """ ---- Agent: Collect the sampled trajectory  ---- """
                         trj_container = the_TRAJECTORY_COLLECTOR.pop_trajectory_and_reset()
                         the_UNI_BATCH_COLLECTOR.collect(trj_container)
+
+                        collected_timestep = len(trj_container)
+                        assert step == collected_timestep, "Trajectory lenght do not match nb collected_timestep"
+
+                        consol_print_learning_stats.trajectory_training_stat(
+                            the_trajectory_return=trj_return, timestep=collected_timestep)
                         break
+
 
 
             """ ---- Simulator: epoch as ended, it's time to learn! ---- """

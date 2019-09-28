@@ -1,19 +1,23 @@
-#!/usr/bin/env python
+# coding=utf-8
 import numpy as np
+from collections import namedtuple
 
 from DRL_building_bloc import ExperimentSpec, GymPlayground, discounted_reward_to_go, reward_to_go
 
 
 class TrajectoryContainer(object):
-    def __init__(self, observations: list, actions: list, rewards: list, Q_values: list, trajectory_return: list) -> None:
+    def __init__(self, observations: list, actions: list, rewards: list, Q_values: list, trajectory_return: list,
+                 trajectory_id) -> None:
         """
         Container for storage & retrieval of events collected at every timestep of a single batch of trajectories
 
-        todo --> validate dtype for discrete case
+        todo:assessment --> validate dtype for discrete case:
 
         Note: about dtype (source: Numpy doc)
          |      "This argument can only be used to 'upcast' the array.
          |          For downcasting, use the .astype(t) method."
+         :param trajectory_id:
+         :type trajectory_id:
 
         """
         assert isinstance(observations, list) and isinstance(actions, list) and isinstance(rewards, list), "wrong argument type"
@@ -23,18 +27,24 @@ class TrajectoryContainer(object):
         self.rewards = rewards
         self.Q_values = Q_values                        # Computed via reward to go or the discouted reward to go
         self.trajectory_return = trajectory_return
-        self.trajectory_lenght = len(self.actions)
+        self._trajectory_lenght = len(self.actions)
+
+        # Internal state
+        self.trajectory_id = trajectory_id
 
     def __len__(self):
         """In timestep"""
-        return self.trajectory_lenght
-
+        return self._trajectory_lenght
 
     def cut(self, max_lenght):
+        """Down size the number of timestep stored in the container"""
         self.observations = self.observations[:max_lenght]
         self.actions = self.actions[:max_lenght]
         self.rewards = self.rewards[:max_lenght]
         self.Q_values = self.Q_values[:max_lenght]
+
+        # update trajectory lenght
+        self._trajectory_lenght = len(self.actions)
 
     def unpack(self) -> (list, list, list, list, float, int):
         """
@@ -42,10 +52,10 @@ class TrajectoryContainer(object):
 
             Note: Q_values is a numpy ndarray view
 
-        :return: (observations, actions, rewards, Q_values, trajectory_return, trajectory_lenght)
+        :return: (observations, actions, rewards, Q_values, trajectory_return, _trajectory_lenght)
         :rtype: (list, list, list, list, float, int)
         """
-        tc = self.observations, self.actions, self.rewards, self.Q_values, self.trajectory_return, self.trajectory_lenght
+        tc = self.observations, self.actions, self.rewards, self.Q_values, self.trajectory_return, self._trajectory_lenght
         return tc
 
     def __repr__(self):
@@ -55,34 +65,47 @@ class TrajectoryContainer(object):
         myRep += ".rewards=\n{}\n\n".format(self.rewards)
         myRep += ".Q_values=\n{}\n\n".format(self.Q_values)
         myRep += ".trajectory_return=\n{}\n\n".format(self.trajectory_return)
-        myRep += ".trajectory_lenght=\n{}\n\n".format(self.trajectory_lenght)
+        myRep += "._trajectory_lenght=\n{}\n\n".format(self._trajectory_lenght)
         return myRep
 
 
 class TrajectoryCollector(object):
     """
-    Collect sampled timestep events and compute relevant information
+        1. Collect sampled timestep events of a single trajectory,
+        2. On trajectory end:
+            a. Compute relevant information
+            b. Output a TrajectoryContainer feed with collected sample
+            c. Reset ready for next trajectory
     """
     def __init__(self, experiment_spec: ExperimentSpec, playground: GymPlayground, discounted: bool = True):
         self._exp_spec = experiment_spec
         self._playground_spec = playground.get_environment_spec()
+        self.discounted = discounted
 
         self._observations = []
         self._actions = []
         self._rewards = []
 
-        self._curent_trj_rewards = []
-        self._trajectories_returns = []
-        self._q_values = []
-        self._trajectories_lenght = []
+        self._q_values = None
+        self._theReturn = None
+        self._lenght = None
 
+        # Internal state
+        # (nice to have) todo:refactor --> using the namedtuple InetrnalState:
+        self._step_count_since_begining_of_training = 0
+        self._trj_collected = 0
+        self._q_values_computed = False
 
-        self.step_count = 0
-        self.trj_count = 0
-        self._capacity = experiment_spec.batch_size_in_ts
+    def internal_state(self) -> namedtuple:
+        """Testing utility"""
+        TrajectoryCollectorInternalState = namedtuple('TrajectoryCollectorInternalState',
+                                   ['step_count_since_begining_of_training',
+                                    'trj_collected',
+                                    'q_values_computed_on_current_trj'], )
 
-        # self.trajectories_returns = np.sum(self.rewards, axis=None)
-        self.discounted = discounted
+        return TrajectoryCollectorInternalState(self._step_count_since_begining_of_training,
+                                                self._trj_collected,
+                                                self._q_values_computed, )
 
     def __call__(self, observation: np.ndarray, action, reward: float, *args, **kwargs) -> None:
         """ Collect observation, action, reward for one timestep
@@ -91,17 +114,10 @@ class TrajectoryCollector(object):
         :type action: int or float
         :type reward: float
         """
-        try:
-            assert not self.full()
-            self._observations.append(observation)
-            self._actions.append(action)
-            self._rewards.append(reward)
-            self._curent_trj_rewards.append(reward)
-            self.step_count += 1
-
-        except AssertionError as ae:
-            raise ae
-        return None
+        self._observations.append(observation)
+        self._actions.append(action)
+        self._rewards.append(reward)
+        self._step_count_since_begining_of_training += 1
 
     def collect(self, observation: np.ndarray, action, reward: float) -> None:
         """ Collect observation, action, reward for one timestep
@@ -116,42 +132,45 @@ class TrajectoryCollector(object):
     def trajectory_ended(self) -> float:
         """ Must be call at each trajectory end
 
-                1. Compute the return
-                2. compute the reward to go for the full trajectory
-                3. Flush curent trj rewars acumulator
-                :param adruptly:
-                :type adruptly:
+        Compute:
+            1. the trajectory lenght base on collected samples
+            2. the Q-values
+            3. the trajectory return
+
+        :param: the trajectory return
+        :rtype: float
         """
-        trj_return = self._compute_trajectory_return()
-        self._compute_reward_to_go()
-        self._trajectories_lenght.append(len(self._curent_trj_rewards))
-        self._curent_trj_rewards = []                                       # flush curent trj rewars acumulator
-        self.trj_count += 1
-        return trj_return
+        self._lenght = len(self._actions)
+        self._compute_Q_values()
+        self._trj_collected += 1
+        self._q_values_computed = True
+        return self._compute_trajectory_return()
 
     def _compute_trajectory_return(self) -> float:
-        trj_return = float(np.sum(self._curent_trj_rewards, axis=None))
-        self._trajectories_returns.append(trj_return)
+        trj_return = float(np.sum(self._rewards, axis=None))
+        self._theReturn = trj_return
         return trj_return
 
-    def _compute_reward_to_go(self) -> None:
+    def _compute_Q_values(self) -> None:
         if self.discounted:
-            self._q_values += discounted_reward_to_go(self._curent_trj_rewards, experiment_spec=self._exp_spec)
+            self._q_values = discounted_reward_to_go(self._rewards, experiment_spec=self._exp_spec)
         else:
-            self._q_values += reward_to_go(self._curent_trj_rewards)
+            self._q_values = reward_to_go(self._rewards)
         return None
 
     def pop_trajectory_and_reset(self) -> TrajectoryContainer:
         """
-            1.  Return the sampled trajectory in a TrajectoryContainer
-            2.  Reset the container ready for the next trajectorie sampling.
+            1.  Return the last sampled trajectory in a TrajectoryContainer
+            2.  Reset the container ready for the next trajectory sampling.
 
-        :return: A TrajectoryContainer with the full trajectory
+        :return: A TrajectoryContainer with a full trajectory
         :rtype: TrajectoryContainer
         """
+        assert self._q_values_computed, ("The return and the Q-values are not computed yet!!! "
+                                         "Call the method trajectory_ended() before pop_trajectory_and_reset()")
         trajectory_container = TrajectoryContainer(self._observations.copy(), self._actions.copy(),
-                                                   self._rewards.copy(), self._q_values.copy(),
-                                                   self._trajectories_returns.copy())
+                                                   self._rewards.copy(), self._q_values.copy(), self._theReturn,
+                                                   self._trj_collected)
 
         self._reset()
         return trajectory_container
@@ -160,11 +179,12 @@ class TrajectoryCollector(object):
         self._observations.clear()
         self._actions.clear()
         self._rewards.clear()
-        self._curent_trj_rewards.clear()
-        self._q_values.clear()
-        self._trajectories_lenght.clear()
-        self.step_count = 0
-        self.trj_count = 0
+
+        self._q_values = None
+        self._theReturn = None
+        self._lenght = None
+
+        self._q_values_computed = False
         return None
 
     def __del__(self):
@@ -269,7 +289,9 @@ class UniformBatchCollector(object):
         if self.remaining_space < len(trajectory):              # (Priority) todo:unit-test
             """ Cut the trajectory and append to batch """
             trajectory.cut(max_lenght=self.remaining_space)
-            assert len(trajectory) + self.remaining_space == self.CAPACITY
+            assert len(trajectory) - self.remaining_space == 0, ("The trajectory to collect should be downsized but it's not. "
+                                                                 "Actual downsized len: {} Expected: {}").format(len(trajectory),
+                                                                                                                 self.remaining_space)
 
         self.trajectories_list.append(trajectory)
         self._trajectory_count += 1
@@ -295,7 +317,7 @@ class UniformBatchCollector(object):
         :return: A batch of concatenated trajectories component
         :rtype: UniformeBatchContainer
         """
-        container = UniformeBatchContainer(self.trajectories_list, exp_spec)
+        container = UniformeBatchContainer(self.trajectories_list, self.CAPACITY)
 
         assert container
         # reset

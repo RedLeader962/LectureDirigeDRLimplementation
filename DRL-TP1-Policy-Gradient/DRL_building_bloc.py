@@ -1,6 +1,9 @@
 # coding=utf-8
+from typing import Any, Union
 
 import gym
+from gym.wrappers import TimeLimit
+
 import pretty_printing
 import numpy as np
 import tensorflow as tf
@@ -23,9 +26,9 @@ In browser, go to:
 """
 
 class ExperimentSpec(object):
-    def __init__(self, timestep_max_per_trajectorie=None, batch_size_in_ts=5000, max_epoch=2, discout_factor=1,
-                 learning_rate=1e-2, neural_net_hidden_layer_topology: tuple = (32, 32), random_seed=42,
-                 discounted_reward_to_go=True, environment_name='CartPole-v1', print_metric_every_what_epoch=5):
+    def __init__(self, batch_size_in_ts=5000, max_epoch=2, discout_factor=0.99, learning_rate=1e-2,
+                 neural_net_hidden_layer_topology: tuple = (32, 32), random_seed=42, discounted_reward_to_go=True,
+                 environment_name='CartPole-v1', print_metric_every_what_epoch=5):
         """
         Gather the specification for a experiement
         
@@ -46,8 +49,6 @@ class ExperimentSpec(object):
 
         self.paramameter_set_name = 'default'
         self.prefered_environment = environment_name
-
-        self.timestep_max_per_trajectorie = timestep_max_per_trajectorie
 
         self.batch_size_in_ts = batch_size_in_ts
         self.max_epoch = max_epoch
@@ -79,7 +80,6 @@ class ExperimentSpec(object):
         :rtype: (int, int, int)
         """
         return {
-            'timestep_max_per_trajectorie': self.timestep_max_per_trajectorie,
             'batch_size_in_ts': self.batch_size_in_ts,
             'max_epoch': self.max_epoch,
             'discout_factor': self.discout_factor,
@@ -115,7 +115,7 @@ class ExperimentSpec(object):
 
 
 class GymPlayground(object):
-    def __init__(self, environment_name='LunarLanderContinuous-v2'):
+    def __init__(self, environment_name='LunarLanderContinuous-v2', print_env_info=False):
         """
         Setup the learning playground for the agent (the environment in witch he will play) and gather relevant spec
 
@@ -158,6 +158,8 @@ class GymPlayground(object):
 
             REWARD range: (-inf, inf)
 
+        :param print_env_info:
+        :type print_env_info:
         :param environment_name: a gym environment
         :type environment_name: str
         """
@@ -165,33 +167,38 @@ class GymPlayground(object):
         self.ENVIRONMENT_NAME = environment_name
 
         try:
-            self.env = gym.make(self.ENVIRONMENT_NAME)
+            self._env = gym.make(self.ENVIRONMENT_NAME)
         except gym.error.Error as e:
             raise gym.error.Error("GymPlayground did not find the specified Gym environment.") from e
 
-
-        if isinstance(self.env.action_space, gym.spaces.Box):
-            print("\n\n>>> Action space is Contiuous")
-            self.ACTION_SPACE = self.env.action_space
+        info_str = ""
+        if isinstance(self._env.action_space, gym.spaces.Box):
+            info_str += "\n\n>>> Action space is Contiuous"
+            self.ACTION_SPACE = self._env.action_space
             dimension = self.ACTION_SPACE.shape
             self.ACTION_CHOICES = [*dimension][-1]
         else:
-            print("\n\n>>> Action space is Discrete")
-            self.ACTION_SPACE = self.env.action_space
+            info_str += "\n\n>>> Action space is Discrete"
+            self.ACTION_SPACE = self._env.action_space
             self.ACTION_CHOICES = self.ACTION_SPACE.n
 
-        self.OBSERVATION_SPACE = self.env.observation_space
+        self.OBSERVATION_SPACE = self._env.observation_space
 
-        if self.ENVIRONMENT_NAME == 'LunarLanderContinuous-v2':
-            action_space_doc = "\tAction is two floats [main engine, left-right engines].\n" \
-                           "\tMain engine: -1..0 off, 0..+1 throttle from 50% to 100% power.\n" \
-                           "\t\t\t\t(!) Engine can't work with less than 50% power.\n" \
-                           "\tLeft-right:  -1.0..-0.5 fire left engine, +0.5..+1.0 fire right engine, -0.5..0.5 off\n\n"
-            info_str = pretty_printing.environnement_doc_str(self.env, action_space_doc=action_space_doc)
-        else:
-            info_str = pretty_printing.environnement_doc_str(self.env)
+        if print_env_info:
+            if self.ENVIRONMENT_NAME == 'LunarLanderContinuous-v2':
+                action_space_doc = "\tAction is two floats [main engine, left-right engines].\n" \
+                               "\tMain engine: -1..0 off, 0..+1 throttle from 50% to 100% power.\n" \
+                               "\t\t\t\t(!) Engine can't work with less than 50% power.\n" \
+                               "\tLeft-right:  -1.0..-0.5 fire left engine, +0.5..+1.0 fire right engine, -0.5..0.5 off\n\n"
+                info_str += pretty_printing.environnement_doc_str(self._env, action_space_doc=action_space_doc)
+            else:
+                info_str += pretty_printing.environnement_doc_str(self._env)
 
-        print(info_str)
+            print(info_str)
+
+    @property
+    def env(self) -> Union[TimeLimit, Any]:
+        return self._env
 
 
     def get_environment_spec(self):
@@ -463,7 +470,8 @@ def discounted_reward_to_go(rewards: list, experiment_spec: ExperimentSpec) -> l
     """
     Compute the discounted reward to go iteratively
 
-    todo --> refactor using a gamma mask and matrix product & sum, instead of loop
+    (Priority) todo:refactor --> refactor using a gamma mask and matrix product & sum, instead of loop
+    (nice to have) todo:refactor --> fct signature: pass gamma (the discount factor) explicitely
 
     :param rewards:
     :type rewards:
