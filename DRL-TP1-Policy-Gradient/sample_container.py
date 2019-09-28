@@ -55,6 +55,7 @@ class TrajectoryContainer(object):
         :return: (observations, actions, rewards, Q_values, trajectory_return, _trajectory_lenght)
         :rtype: (list, list, list, list, float, int)
         """
+        # (nice to have) todo:refactor --> as a namedtuple
         tc = self.observations, self.actions, self.rewards, self.Q_values, self.trajectory_return, self._trajectory_lenght
         return tc
 
