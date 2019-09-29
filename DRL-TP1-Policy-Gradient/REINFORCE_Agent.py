@@ -52,8 +52,8 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
     }
 
     cartpole_parma_dict_2 = {
-        'prefered_environment': 'CartPole-v1',
-        'paramameter_set_name': 'CartPole-v1',
+        'prefered_environment': 'CartPole-v0',
+        'paramameter_set_name': 'CartPole-v0',
         'batch_size_in_ts': 5000,
         'max_epoch': 50,
         'discounted_reward_to_go': False,
@@ -65,7 +65,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
         'output_layers_activation': None,
         # 'output_layers_activation': tf.nn.sigmoid,
         'render_env_every_What_epoch': 100,
-        'print_metric_every_what_epoch': 2,
+        'print_metric_every_what_epoch': 1,
     }
 
     test_parma_dict = {
@@ -143,11 +143,6 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
     """ ---- Build the Policy_theta computation graph with theta as multi-layer perceptron ---- """
     # Placeholder
-    # (CRITICAL) todo:assessment --> uneven placeholder prevent the optimiser from minimizing the loss
-    obs_shape_constraint = tuple([exp_spec.max_epoch * exp_spec.timestep_max_per_trajectorie])  # <-- (!)
-    # act_pl_shape_constraint = (1, )
-    # observation_ph, action_ph, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
-    #     playground, act_pl_shape_constraint, obs_shape_constraint=obs_shape_constraint)
     observation_ph, action_ph, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
         playground, None, obs_shape_constraint=None)
 
@@ -161,7 +156,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
     """ ---- Collector instantiation ---- """
     the_TRAJECTORY_COLLECTOR = TrajectoryCollector(exp_spec, playground)
-    the_UNI_BATCH_COLLECTOR = UniformBatchCollector(exp_spec)
+    the_UNI_BATCH_COLLECTOR = UniformBatchCollector(exp_spec.batch_size_in_ts)
 
 
     """ ---- Optimizer ---- """
@@ -225,20 +220,22 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
                         """ ---- Agent: Collect the sampled trajectory  ---- """
                         trj_container = the_TRAJECTORY_COLLECTOR.pop_trajectory_and_reset()
+
+                        ## Local test
+                        # collected_timestep = len(trj_container)
+                        # assert step == collected_timestep, "Trajectory lenght do not match nb collected_timestep"
+
                         the_UNI_BATCH_COLLECTOR.collect(trj_container)
 
-                        collected_timestep = len(trj_container)
-                        assert step == collected_timestep, "Trajectory lenght do not match nb collected_timestep"
-
                         consol_print_learning_stats.trajectory_training_stat(
-                            the_trajectory_return=trj_return, timestep=collected_timestep)
+                            the_trajectory_return=trj_return, timestep=len(trj_container))
                         break
 
 
 
             """ ---- Simulator: epoch as ended, it's time to learn! ---- """
-            number_of_trj_collected = the_UNI_BATCH_COLLECTOR.trj_collected_so_far()
-            total_timestep_collected = the_UNI_BATCH_COLLECTOR.timestep_collected_so_far()
+            batch_trj_collected = the_UNI_BATCH_COLLECTOR.trj_collected_so_far()
+            batch_timestep_collected = the_UNI_BATCH_COLLECTOR.timestep_collected_so_far()
 
 
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
@@ -251,33 +248,32 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
             batch_container = the_UNI_BATCH_COLLECTOR.pop_batch_and_reset()
 
             # (Priority) todo:fixme!! --> must be compute by the batch_collector:
-            epoch_average_trjs_return, epoch_average_trjs_lenght = batch_container.compute_metric()
+            batch_average_trjs_return, batch_average_trjs_lenght = batch_container.compute_metric()
 
-            observations = batch_container.batch_observations
-            actions = batch_container.batch_actions
-            Q_values = batch_container.batch_Qvalues
+            batch_observations = batch_container.batch_observations
+            batch_actions = batch_container.batch_actions
+            batch_Q_values = batch_container.batch_Qvalues
 
             """ ---- Tensor/ndarray shape compatibility assessment ---- """
-            assert observation_ph.shape.is_compatible_with(np.array(observations).shape), \
-                "Obs: {} != {}".format(observation_ph.shape, np.array(observations).shape)
-            assert action_ph.shape.is_compatible_with(np.array(actions).shape), \
-                "Act: {} != {}".format(action_ph.shape, np.array(actions).shape)
-            assert Q_values_ph.shape.is_compatible_with(np.array(Q_values).shape), \
-                "Qval: {} != {}".format(Q_values_ph.shape, np.array(Q_values).shape)
+            assert observation_ph.shape.is_compatible_with(np.array(batch_observations).shape), \
+                "Obs: {} != {}".format(observation_ph.shape, np.array(batch_observations).shape)
+            assert action_ph.shape.is_compatible_with(np.array(batch_actions).shape), \
+                "Act: {} != {}".format(action_ph.shape, np.array(batch_actions).shape)
+            assert Q_values_ph.shape.is_compatible_with(np.array(batch_Q_values).shape), \
+                "Qval: {} != {}".format(Q_values_ph.shape, np.array(batch_Q_values).shape)
 
             """ ---- Agent: Compute gradient & update policy ---- """
             feed_dictionary = bloc.build_feed_dictionary([observation_ph, action_ph, Q_values_ph],
-                                                         [observations, actions, Q_values])
+                                                         [batch_observations, batch_actions, batch_Q_values])
             epoch_loss, _ = sess.run([pseudo_loss, policy_optimizer_op],
                                      feed_dict=feed_dictionary)
 
-
-
             consol_print_learning_stats.epoch_training_stat(
-                epoch_loss=epoch_loss, epoch_average_trjs_return=epoch_average_trjs_return,
-                epoch_average_trjs_lenght=epoch_average_trjs_lenght,
-                number_of_trj_collected=number_of_trj_collected,
-                total_timestep_collected=total_timestep_collected
+                epoch_loss=epoch_loss,
+                epoch_average_trjs_return=batch_average_trjs_return,
+                epoch_average_trjs_lenght=batch_average_trjs_lenght,
+                number_of_trj_collected=batch_trj_collected,
+                total_timestep_collected=batch_timestep_collected
             )
 
 

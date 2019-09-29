@@ -43,15 +43,17 @@ class ConsolPrintLearningStats(object):
         self.print_metric_every = print_metric_every_what_epoch
         self.span = consol_span
 
-        self.current_stats_batch_pseudo_loss = 0.0
-        self.last_stats_batch_mean_pseudo_lost = 0.0
+        self.loss_smoothing_buffer = 0.0
+        self.return_smoothing_buffer = 0.0
+        self.lenght_smoothing_buffer = 0.0
 
-        self.current_batch_return = 0
+        self.last_stats_batch_mean_pseudo_lost = 0.0
         self.last_batch_return = 0
 
         self.collected_experiment_stats = {
             'smoothed_average_return': [],
             'smoothed_average_peusdo_loss': [],
+            'smoothed_average_lenght': [],
         }
 
         self.exp_spec = experiment_spec
@@ -70,7 +72,7 @@ class ConsolPrintLearningStats(object):
 
         for m in message:
             print("\r{:^{span}}".format(m, span=self.span), end="", flush=True)
-            time.sleep(0.2)
+            time.sleep(0.1)
         # print("\r{:^{span}}".format("?", span=self.span), end="", flush=True)
         # time.sleep(0.01)
         print(
@@ -88,7 +90,8 @@ class ConsolPrintLearningStats(object):
 
         ultra_basic_ploter(self.collected_experiment_stats['smoothed_average_return'],
                            self.collected_experiment_stats['smoothed_average_peusdo_loss'],
-                           self.exp_spec, self.print_metric_every)
+                           self.collected_experiment_stats['smoothed_average_lenght'], self.exp_spec,
+                           self.print_metric_every)
 
         # print("\n\nCollected experiment stats:\n{}".format(self.collected_experiment_stats))
         return None
@@ -102,7 +105,7 @@ class ConsolPrintLearningStats(object):
         for c in range(nb_of_cycle):
             for i in range(self.span):
                 print(caracter, end="", flush=True)
-                time.sleep(0.005)
+                time.sleep(0.0005)
 
             if (c == nb_of_cycle -1) and not keep_cursor_at_same_line_on_exit:
                 print("\n", end="", flush=True)
@@ -132,20 +135,19 @@ class ConsolPrintLearningStats(object):
         """
         Call after a traing update as been done, at the end of a epoch.
         """
-        self.number_of_trj_collected = number_of_trj_collected
-        self.total_timestep_collected = total_timestep_collected
+        self.epoch_loss = epoch_loss
         self.average_trjs_return = epoch_average_trjs_return
         self.average_trjs_lenght = epoch_average_trjs_lenght
-        self.epoch_loss = epoch_loss
+        self.number_of_trj_collected = number_of_trj_collected
+        self.total_timestep_collected = total_timestep_collected
 
-        self.current_batch_return += epoch_average_trjs_return
-
-        self.current_stats_batch_pseudo_loss += self.epoch_loss
-
+        self.return_smoothing_buffer += epoch_average_trjs_return
+        self.loss_smoothing_buffer += epoch_loss
 
         if (self.epoch) % self.print_metric_every == 0:
-            mean_stats_batch_loss = self.current_stats_batch_pseudo_loss / self.print_metric_every
-            mean_stats_batch_return = self.current_batch_return / self.print_metric_every
+            smoothed_batch_loss = self.loss_smoothing_buffer / self.print_metric_every
+            smoothed_return = self.return_smoothing_buffer / self.print_metric_every
+            smoothed_lenght = self.lenght_smoothing_buffer / self.print_metric_every
             print(
                 "\r\t ↳ {:^3}".format(self.epoch),
                 ":: Collected {} trajectories for a total of {} timestep.".format(
@@ -155,26 +157,30 @@ class ConsolPrintLearningStats(object):
                     self.average_trjs_return, self.average_trjs_lenght),
                 end="\n", flush=True)
 
-            print("\n\tAverage pseudo lost: {:>6.3f} (over the past {} epoch)".format(
-                mean_stats_batch_loss, self.print_metric_every))
-            if abs(mean_stats_batch_loss) < abs(self.last_stats_batch_mean_pseudo_lost):
+            print("\n\tAverage pseudo lost: {:>6.4f} (over the past {} epoch)".format(
+                smoothed_batch_loss, self.print_metric_every))
+            if abs(smoothed_batch_loss) < abs(self.last_stats_batch_mean_pseudo_lost):
                 print("\t\t↳ is lowering ⬊  ...  goooood :)", end="", flush=True)
-            elif abs(mean_stats_batch_loss) > abs(self.last_stats_batch_mean_pseudo_lost):
+            elif abs(smoothed_batch_loss) > abs(self.last_stats_batch_mean_pseudo_lost):
                 print("\t\t↳ is rising ⬈", end="", flush=True)
 
-            self.collected_experiment_stats['smoothed_average_peusdo_loss'].append(mean_stats_batch_loss)
-            self.collected_experiment_stats['smoothed_average_return'].append(mean_stats_batch_return)
+            self.collected_experiment_stats['smoothed_average_peusdo_loss'].append(smoothed_batch_loss)
+            self.collected_experiment_stats['smoothed_average_return'].append(smoothed_return)
+            self.collected_experiment_stats['smoothed_average_lenght'].append(smoothed_lenght)
 
-            self.current_stats_batch_pseudo_loss = 0
-            self.last_stats_batch_mean_pseudo_lost = mean_stats_batch_loss
+            # reset smooting buffer
+            self.loss_smoothing_buffer = 0.0
+            self.return_smoothing_buffer = 0.0
+            self.lenght_smoothing_buffer = 0.0
 
-            self.current_batch_return = 0
-            self.last_batch_return = mean_stats_batch_return
+            self.last_stats_batch_mean_pseudo_lost = smoothed_batch_loss
+            self.last_batch_return = smoothed_return
 
             if (self.epoch) % (self.print_metric_every * 10) == 0:
                 ultra_basic_ploter(self.collected_experiment_stats['smoothed_average_return'],
                                    self.collected_experiment_stats['smoothed_average_peusdo_loss'],
-                                   self.exp_spec, self.print_metric_every)
+                                   self.collected_experiment_stats['smoothed_average_lenght'], self.exp_spec,
+                                   self.print_metric_every)
 
         return None
 
@@ -192,7 +198,7 @@ class ConsolPrintLearningStats(object):
         print("\r\t ↳ {:^3} :: Trajectory {:>4}  ".format(self.epoch, self.trj),
               ">"*self.cycle_indexer.i, " "*self.cycle_indexer.j,
               "  got return {:>8.2f}   after  {:>4}  timesteps".format(
-                  the_trajectory_return, timestep + 1),
+                  the_trajectory_return, timestep),
               sep='', end='', flush=True)
 
         self.the_trajectory_return = the_trajectory_return
@@ -201,11 +207,8 @@ class ConsolPrintLearningStats(object):
 
 
 class UltraBasicLivePloter(object):
+    # (Ice-Boxed) todo:implement --> live ploting for trainig: (!) alternative --> use TensorBoard
     def __init__(self):
-        """
-        (Ice-Boxed) todo:implement --> live ploting for trainig: (!) alternative --> use TensorBoard
-
-        """
         fig, ax = plt.subplots(figsize=(8, 6))
         self.fig = fig
         self.ax = ax
@@ -224,8 +227,8 @@ class UltraBasicLivePloter(object):
         return None
 
 
-def ultra_basic_ploter(epoch_average_return: list, epoch_average_loss: list, experiment_spec: ExperimentSpec,
-                       metric_computed_every_what_epoch: int) -> None:
+def ultra_basic_ploter(epoch_average_return: list, epoch_average_loss: list, epoch_average_lenght,
+                       experiment_spec: ExperimentSpec, metric_computed_every_what_epoch: int) -> None:
 
     fig, ax = plt.subplots(figsize=(8, 6))
 
