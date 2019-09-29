@@ -143,6 +143,7 @@ class ConsolPrintLearningStats(object):
 
         self.return_smoothing_buffer += epoch_average_trjs_return
         self.loss_smoothing_buffer += epoch_loss
+        self.lenght_smoothing_buffer += epoch_average_trjs_lenght
 
         if (self.epoch) % self.print_metric_every == 0:
             smoothed_batch_loss = self.loss_smoothing_buffer / self.print_metric_every
@@ -159,9 +160,9 @@ class ConsolPrintLearningStats(object):
 
             print("\n\tAverage pseudo lost: {:>6.3f} (over the past {} epoch)".format(
                 smoothed_batch_loss, self.print_metric_every))
-            if abs(smoothed_batch_loss) < abs(self.last_stats_batch_mean_pseudo_lost):
+            if abs(smoothed_batch_loss) > abs(self.last_stats_batch_mean_pseudo_lost):
                 print("\t\t↳ is lowering ⬊  ...  goooood :)", end="", flush=True)
-            elif abs(smoothed_batch_loss) > abs(self.last_stats_batch_mean_pseudo_lost):
+            elif abs(smoothed_batch_loss) < abs(self.last_stats_batch_mean_pseudo_lost):
                 print("\t\t↳ is rising ⬈", end="", flush=True)
 
             self.collected_experiment_stats['smoothed_average_peusdo_loss'].append(smoothed_batch_loss)

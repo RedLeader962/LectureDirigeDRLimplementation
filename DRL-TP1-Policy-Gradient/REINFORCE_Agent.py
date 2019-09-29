@@ -188,6 +188,10 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
                 while True:
                     step += 1
 
+                    # (CRITICAL) todo:implement --> the_TRAJECTORY_COLLECTOR.collect_current_observation():
+                    # (CRITICAL) todo:refactor --> the_TRAJECTORY_COLLECTOR.collect():
+                    #                    | 1. remove observation parameter
+                    #                    | 2. add assert .collect_current_observation() was executed
                     if (render_env and (epoch % exp_spec.render_env_every_What_epoch == 0)
                             and the_UNI_BATCH_COLLECTOR.trj_collected_so_far() == 0):
                         playground.env.render()  # keep environment rendering turned OFF during unit test
@@ -197,13 +201,13 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
                     action_array = sess.run(policy_action_sampler, feed_dict={observation_ph: step_observation})
 
                     action = bloc.format_single_step_action(action_array)
-                    new_observation, reward, done, _ = playground.env.step(action)
+                    reaction_observation, reward, done, _ = playground.env.step(action)
 
                     """ ---- Agent: Collect current timestep events ---- """
-                    # (Critical) | Login the observation S_t that trigered the action A_t is critical.
-                    #            | If the logged observation is the one at time S_t+1, the agent wont learn
+                    # (Critical) | Collecting the right observation S_t that trigered the action A_t is critical.
+                    #            | If you collect the reaction_observation S_t+1 with action A_t, the agent wont learn!
                     the_TRAJECTORY_COLLECTOR.collect(current_observation, action, reward)
-                    current_observation = new_observation  # <-- (!)
+                    current_observation = reaction_observation  # <-- (!)
 
                     # region ::Timestep consol print ...
                     # # Timestep consol print
