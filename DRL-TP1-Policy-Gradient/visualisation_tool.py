@@ -152,12 +152,12 @@ class ConsolPrintLearningStats(object):
                 "\r\t ↳ {:^3}".format(self.epoch),
                 ":: Collected {} trajectories for a total of {} timestep.".format(
                     self.number_of_trj_collected, self.total_timestep_collected),
-                "\n\t\t↳ pseudo loss: {:>6.2f} ".format(self.epoch_loss),
-                "| average trj return: {:>6.2f} | average trj lenght: {:>6.2f}".format(
+                "\n\t\t↳ pseudo loss: {:>6.3f} ".format(self.epoch_loss),
+                "| average trj return: {:>6.3f} | average trj lenght: {:>6.3f}".format(
                     self.average_trjs_return, self.average_trjs_lenght),
                 end="\n", flush=True)
 
-            print("\n\tAverage pseudo lost: {:>6.4f} (over the past {} epoch)".format(
+            print("\n\tAverage pseudo lost: {:>6.3f} (over the past {} epoch)".format(
                 smoothed_batch_loss, self.print_metric_every))
             if abs(smoothed_batch_loss) < abs(self.last_stats_batch_mean_pseudo_lost):
                 print("\t\t↳ is lowering ⬊  ...  goooood :)", end="", flush=True)
@@ -227,7 +227,7 @@ class UltraBasicLivePloter(object):
         return None
 
 
-def ultra_basic_ploter(epoch_average_return: list, epoch_average_loss: list, epoch_average_lenght,
+def ultra_basic_ploter(epoch_average_return: list, epoch_average_loss: list, epoch_average_lenght: list,
                        experiment_spec: ExperimentSpec, metric_computed_every_what_epoch: int) -> None:
 
     fig, ax = plt.subplots(figsize=(8, 6))
@@ -235,13 +235,11 @@ def ultra_basic_ploter(epoch_average_return: list, epoch_average_loss: list, epo
     x_axes = np.arange(0, len(epoch_average_return)) * metric_computed_every_what_epoch
     ax.plot(x_axes, epoch_average_return, label='Average Return')
     ax.plot(x_axes, epoch_average_loss, label='Average loss')
+    ax.plot(x_axes, epoch_average_lenght, label='Average lenght')
 
-    # plt.ylabel('Average Return')
     plt.xlabel('Epoch')
 
-    # utc_now = datetime.utcnow().strftime("%Y%m%d%H%M%S")
     now = datetime.now()
-    # time = datetime.time()
     ax.set_title("Experiment {} finished at {}:{} {}".format(experiment_spec.paramameter_set_name,
                                                        now.hour, now.minute, now.date()), fontsize='xx-large')
 

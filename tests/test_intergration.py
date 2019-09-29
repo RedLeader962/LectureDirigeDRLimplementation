@@ -71,7 +71,7 @@ def test_bloc_integration_to_working_REINFORCE_algo_PASS(setup_train_algo_genera
         """ Repeate the test if it fail. It's a work around reference the probabilistic nature of the algo. """
 
         trl = training_loop(epoch_generator(), env_max_return, max_epochs)
-        print("run:{} -- {}".format(run, trl))
+        print("\nrun:{} -- {}".format(run, trl))
         epoch_stats, agent_learned = trl
 
         i, batch_loss, mean_return, average_len = epoch_stats

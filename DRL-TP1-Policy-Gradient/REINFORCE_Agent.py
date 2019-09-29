@@ -129,8 +129,6 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
     print("\n\n>>> Environment rendering: {}".format(render_env))
 
-
-
     consol_print_learning_stats = ConsolPrintLearningStats(exp_spec, exp_spec.print_metric_every_what_epoch)
 
 
@@ -146,13 +144,9 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
     observation_ph, action_ph, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
         playground, None, obs_shape_constraint=None)
 
-
-
     # The policy & is neural net theta
     reinforce_policy = REINFORCE_policy(observation_ph, action_ph, Q_values_ph, exp_spec, playground)
     (policy_action_sampler, theta_mlp, pseudo_loss) = reinforce_policy
-    # Todo --> Refactor Q_values_ph: push inside gym_playground_to_tensorflow_graph_adapter
-
 
     """ ---- Collector instantiation ---- """
     the_TRAJECTORY_COLLECTOR = TrajectoryCollector(exp_spec, playground)
@@ -189,8 +183,8 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
                 consol_print_learning_stats.next_glorious_trajectory()
 
-                step = 0
                 """ ---- Simulator: time-steps ---- """
+                step = 0
                 while True:
                     step += 1
 
@@ -220,18 +214,11 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
                         """ ---- Agent: Collect the sampled trajectory  ---- """
                         trj_container = the_TRAJECTORY_COLLECTOR.pop_trajectory_and_reset()
-
-                        ## Local test
-                        # collected_timestep = len(trj_container)
-                        # assert step == collected_timestep, "Trajectory lenght do not match nb collected_timestep"
-
                         the_UNI_BATCH_COLLECTOR.collect(trj_container)
 
                         consol_print_learning_stats.trajectory_training_stat(
                             the_trajectory_return=trj_return, timestep=len(trj_container))
                         break
-
-
 
             """ ---- Simulator: epoch as ended, it's time to learn! ---- """
             batch_trj_collected = the_UNI_BATCH_COLLECTOR.trj_collected_so_far()
