@@ -180,8 +180,12 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
                     # batch_rets.append(ep_ret)
                     # batch_lens.append(ep_len)
 
+                    trj_return = the_TRAJECTORY_COLLECTOR.trajectory_ended()              # \\\\\\    My bloc    \\\\\\
+                    trj_container = the_TRAJECTORY_COLLECTOR.pop_trajectory_and_reset()   # \\\\\\    My bloc    \\\\\\
+                    the_UNI_BATCH_COLLECTOR.collect(trj_container)                        # \\\\\\    My bloc    \\\\\\
+
                     consol_print_learning_stats.trajectory_training_stat(
-                        the_trajectory_return=ep_ret, timestep=ep_len)                  # \\\\\\    My bloc    \\\\\\
+                        the_trajectory_return=trj_return, timestep=len(trj_container))    # \\\\\\    My bloc    \\\\\\
 
                     # the weight for each logprob(a_t|s_t) is reward-to-go from t
                     # batch_weights += list(reward_to_go(ep_rews))                        # ////// Original bloc //////
@@ -212,11 +216,16 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
             #                             weights_ph: np.array(batch_weights)
             #                          })
 
-            # \\\\\\    My bloc    \\\\\\
-            feed_dictionary = BLOC.build_feed_dictionary([obs_ph, act_ph, weights_ph],
-                                                         [batch_obs, batch_acts, batch_weights])
-            batch_loss, _ = sess.run([loss, train_op],
-                                     feed_dict=feed_dictionary)
+            batch_container = the_UNI_BATCH_COLLECTOR.pop_batch_and_reset()              # \\\\\\    My bloc    \\\\\\
+            batch_obs = batch_container.batch_observations                               # \\\\\\    My bloc    \\\\\\
+            batch_acts = batch_container.batch_actions                                   # \\\\\\    My bloc    \\\\\\
+            batch_weights = batch_container.batch_Qvalues                                # \\\\\\    My bloc    \\\\\\
+
+            feed_dictionary = BLOC.build_feed_dictionary([obs_ph, act_ph, weights_ph],   # \\\\\\    My bloc    \\\\\\
+                                                         [batch_obs,                     # \\\\\\    My bloc    \\\\\\
+                                                          batch_acts, batch_weights])    # \\\\\\    My bloc    \\\\\\
+            batch_loss, _ = sess.run([loss, train_op],                                   # \\\\\\    My bloc    \\\\\\
+                                     feed_dict=feed_dictionary)                          # \\\\\\    My bloc    \\\\\\
 
             return batch_loss, batch_rets, batch_lens
 
