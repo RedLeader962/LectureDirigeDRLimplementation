@@ -2,15 +2,15 @@ from datetime import datetime
 
 import tensorflow as tf
 
-from visualisation_tool import ConsolPrintLearningStats
 
 tf_cv1 = tf.compat.v1   # shortcut
 import numpy as np
 import gym
 from gym.spaces import Discrete, Box
 
-import DRL_building_bloc as BLOC                                                        # \\\\\\ My bloc \\\\\\
-import visualisation_tool as MY_VIZ                                                     # \\\\\\    My bloc    \\\\\\
+import DRL_building_bloc as BLOC                                                        # \\\\\\    My bloc    \\\\\\
+from visualisation_tool import ConsolPrintLearningStats                                 # \\\\\\    My bloc    \\\\\\
+from sample_container import TrajectoryCollector, UniformBatchCollector                 # \\\\\\    My bloc    \\\\\\
 
 
 """
@@ -19,19 +19,20 @@ Based on REINFOCE with reward to go simplest implementation from SpinniUp
 Refactor to serve as a integration test reference
 """
 
+# ////// Original bloc //////
+# def mlp(x, sizes, activation=tf.tanh, output_activation=None):
+#     # Build a feedforward neural network.
+#     for size in sizes[:-1]:
+#         x = tf.layers.dense(x, units=size, activation=activation)
+#     return tf.layers.dense(x, units=sizes[-1], activation=output_activation)
 
-def mlp(x, sizes, activation=tf.tanh, output_activation=None):
-    # Build a feedforward neural network.
-    for size in sizes[:-1]:
-        x = tf.layers.dense(x, units=size, activation=activation)
-    return tf.layers.dense(x, units=sizes[-1], activation=output_activation)
-
-def reward_to_go(rews):
-    n = len(rews)
-    rtgs = np.zeros_like(rews)
-    for i in reversed(range(n)):
-        rtgs[i] = rews[i] + (rtgs[i+1] if i+1 < n else 0)
-    return rtgs
+# ////// Original bloc //////
+# def reward_to_go(rews):
+#     n = len(rews)
+#     rtgs = np.zeros_like(rews)
+#     for i in reversed(range(n)):
+#         rtgs[i] = rews[i] + (rtgs[i+1] if i+1 < n else 0)
+#     return rtgs
 
 def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_size=5000, render=False):
 
@@ -107,6 +108,9 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
     run_str = "Run--{}h{}--{}-{}-{}".format(date_now.hour, date_now.minute, date_now.day, date_now.month, date_now.year)
     writer = tf_cv1.summary.FileWriter("./graph/integration_test/{}".format(run_str), tf_cv1.get_default_graph())
 
+    the_TRAJECTORY_COLLECTOR = TrajectoryCollector(exp_spec, playground)                  # \\\\\\    My bloc    \\\\\\
+    the_UNI_BATCH_COLLECTOR = UniformBatchCollector(exp_spec.batch_size_in_ts)            # \\\\\\    My bloc    \\\\\\
+
     # ////// Original bloc //////
     # sess = tf.InteractiveSession()
     # sess.run(tf.global_variables_initializer())
@@ -123,13 +127,14 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
         def train_one_epoch():
             consol_print_learning_stats.next_glorious_epoch()                            # \\\\\\    My bloc    \\\\\\
 
-            # make some empty lists for logging.
-            batch_obs = []          # for observations
-            batch_acts = []         # for actions
-            batch_weights = []      # for reward-to-go weighting in policy gradient
-            batch_rets = []         # for measuring episode returns
-            batch_lens = []         # for measuring episode lengths
-            ep_rews = []            # list for rewards accrued throughout ep
+            # ////// Original bloc //////
+            # # make some empty lists for logging.
+            # batch_obs = []          # for observations
+            # batch_acts = []         # for actions
+            # batch_weights = []      # for reward-to-go weighting in policy gradient
+            # batch_rets = []         # for measuring episode returns
+            # batch_lens = []         # for measuring episode lengths
+            # ep_rews = []            # list for rewards accrued throughout ep
 
             # reset episode-specific variables
             obs = env.reset()       # first obs comes from starting distribution
@@ -148,7 +153,7 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
                     env.render()
 
                 # save obs
-                batch_obs.append(obs.copy())
+                # batch_obs.append(obs.copy())  # (!)                                    # ////// Original bloc //////
 
                 # ////// Original bloc //////
                 # # act in the environment
@@ -160,22 +165,27 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
                 act = BLOC.format_single_step_action(action_array)                       # \\\\\\    My bloc    \\\\\\
                 obs, rew, done, _ = playground.env.step(act)                             # \\\\\\    My bloc    \\\\\\
 
-                # save action, reward
-                batch_acts.append(act)
-                ep_rews.append(rew)
+                # ////// Original bloc //////
+                # # save action, reward
+                # batch_acts.append(act)
+                # ep_rews.append(rew)
+
+                the_TRAJECTORY_COLLECTOR.collect(obs, act, rew)  # (!)                   # \\\\\\    My bloc    \\\\\\
 
                 if done:
-                    # if episode is over, record info about episode
-                    ep_ret, ep_len = sum(ep_rews), len(ep_rews)
-                    batch_rets.append(ep_ret)
-                    batch_lens.append(ep_len)
+
+                    # ////// Original bloc //////
+                    # # if episode is over, record info about episode
+                    # ep_ret, ep_len = sum(ep_rews), len(ep_rews)
+                    # batch_rets.append(ep_ret)
+                    # batch_lens.append(ep_len)
 
                     consol_print_learning_stats.trajectory_training_stat(
                         the_trajectory_return=ep_ret, timestep=ep_len)                  # \\\\\\    My bloc    \\\\\\
 
                     # the weight for each logprob(a_t|s_t) is reward-to-go from t
                     # batch_weights += list(reward_to_go(ep_rews))                        # ////// Original bloc //////
-                    batch_weights += BLOC.reward_to_go(ep_rews)                        # \\\\\\    My bloc    \\\\\\
+                    # batch_weights += BLOC.reward_to_go(ep_rews)                        # \\\\\\    My bloc    \\\\\\
 
                     # reset episode-specific variables
                     obs, done, ep_rews = env.reset(), False, []
@@ -185,9 +195,13 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
                     # won't render again this epoch
                     finished_rendering_this_epoch = True
 
-                    # end experience loop if we have enough of it
-                    if len(batch_obs) > batch_size:
-                        break
+                    # ////// Original bloc //////
+                    # # end experience loop if we have enough of it
+                    # if len(batch_obs) > batch_size:
+                    #     break
+
+                    if not the_UNI_BATCH_COLLECTOR.is_not_full():                        # \\\\\\    My bloc    \\\\\\
+                        break                                                            # \\\\\\    My bloc    \\\\\\
 
             # ////// Original bloc //////
             # # take a single policy gradient update step

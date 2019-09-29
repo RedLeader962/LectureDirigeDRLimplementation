@@ -37,7 +37,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
     cartpole_parma_dict = {
         'prefered_environment': 'CartPole-v1',
-        'paramameter_set_name': 'CartPole-v1 - Training spec',
+        'paramameter_set_name': 'RedLeader CartPole-v1',
         'batch_size_in_ts': 40,
         'max_epoch': 5000,
         'discounted_reward_to_go': True,
@@ -53,7 +53,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
     cartpole_parma_dict_2 = {
         'prefered_environment': 'CartPole-v0',
-        'paramameter_set_name': 'CartPole-v0',
+        'paramameter_set_name': 'RedLeader CartPole-v0',
         'batch_size_in_ts': 5000,
         'max_epoch': 50,
         'discounted_reward_to_go': False,
@@ -197,10 +197,13 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
                     action_array = sess.run(policy_action_sampler, feed_dict={observation_ph: step_observation})
 
                     action = bloc.format_single_step_action(action_array)
-                    observation, reward, done, _ = playground.env.step(action)
+                    new_observation, reward, done, _ = playground.env.step(action)
 
                     """ ---- Agent: Collect current timestep events ---- """
+                    # (Critical) | Login the observation S_t that trigered the action A_t is critical.
+                    #            | If the observation is the one at time S_t+1, the agent wont learn
                     the_TRAJECTORY_COLLECTOR.collect(observation, action, reward)
+                    observation = new_observation
 
                     # region ::Timestep consol print ...
                     # # Timestep consol print
