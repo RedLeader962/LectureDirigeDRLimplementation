@@ -8,10 +8,10 @@ tf_cv1 = tf.compat.v1   # shortcut
 import numpy as np
 import matplotlib.pyplot as plt
 
-import DRL_building_bloc as bloc
-from DRL_building_bloc import ExperimentSpec, GymPlayground, REINFORCE_policy
+import buildingbloc as bloc
+from buildingbloc import ExperimentSpec, GymPlayground, REINFORCE_policy
 from visualisation_tool import CycleIndexer, ConsolPrintLearningStats
-from sample_container import TrajectoryContainer, TrajectoryCollector, UniformeBatchContainer, UniformBatchCollector
+from samplecontainer import TrajectoryContainer, TrajectoryCollector, UniformeBatchContainer, UniformBatchCollector
 
 import tensorflow_weak_warning_supressor as no_cpu_compile_warn
 no_cpu_compile_warn.execute()
@@ -56,8 +56,8 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
         'paramameter_set_name': 'RedLeader CartPole-v0',
         'batch_size_in_ts': 5000,
         'max_epoch': 50,
-        'discounted_reward_to_go': False,
-        'discout_factor': 0.999,
+        'discounted_reward_to_go': True,
+        'discout_factor': 0.99,
         'learning_rate': 1e-2,
         'nn_h_layer_topo': (62, ),
         'random_seed': 42,
@@ -65,7 +65,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
         'output_layers_activation': None,
         # 'output_layers_activation': tf.nn.sigmoid,
         'render_env_every_What_epoch': 100,
-        'print_metric_every_what_epoch': 1,
+        'print_metric_every_what_epoch': 2,
     }
 
     test_parma_dict = {
@@ -188,10 +188,9 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
                 while True:
                     step += 1
 
-                    # (CRITICAL) todo:implement --> the_TRAJECTORY_COLLECTOR.collect_current_observation():
-                    # (CRITICAL) todo:refactor --> the_TRAJECTORY_COLLECTOR.collect():
-                    #                    | 1. remove observation parameter
-                    #                    | 2. add assert .collect_current_observation() was executed
+                    # (CRITICAL) todo:refactor --> the_TRAJECTORY_COLLECTOR.collect_S_t_A_t(): remove reward parameter
+                    # (CRITICAL) todo:implement --> the_TRAJECTORY_COLLECTOR.collect_reward():
+                    #                    | 1. add assert .collect_S_t_A_t() was executed
                     if (render_env and (epoch % exp_spec.render_env_every_What_epoch == 0)
                             and the_UNI_BATCH_COLLECTOR.trj_collected_so_far() == 0):
                         playground.env.render()  # keep environment rendering turned OFF during unit test

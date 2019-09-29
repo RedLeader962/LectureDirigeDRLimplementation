@@ -5,7 +5,7 @@
       <sourceFolder url="file://$MODULE_DIR$/utility" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/Dev_exploration/TensorFlow_exploration" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/Dev_exploration/FalconX_project" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/Dev_exploration/Python_exploration" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/Dev_exploration/pythonexploration" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/DRL-TP1-Policy-Gradient" isTestSource="false" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.7 (TF114_Gym_Ray_Python37)" jdkType="Python SDK" />

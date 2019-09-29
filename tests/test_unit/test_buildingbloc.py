@@ -7,13 +7,14 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
-import sample_container
+import rewardtogo as rtg
+import samplecontainer
 import visualisation_tool
 
 tf_cv1 = tf.compat.v1   # shortcut
 
-import DRL_building_bloc as bloc
-from sample_container import TrajectoryContainer, TrajectoryCollector, UniformeBatchContainer, UniformBatchCollector
+import buildingbloc as bloc
+from samplecontainer import TrajectoryContainer, TrajectoryCollector, UniformeBatchContainer, UniformBatchCollector
 from vocabulary import rl_name
 vocab = rl_name()
 
@@ -395,7 +396,7 @@ def test_build_feed_dictionary_FAIL(gym_and_tf_discrete_setup):
 def test_reward_to_go_PASS(gym_and_tf_continuous_setup):
     N = 20
     rewards = [x for x in range(N)]
-    reward_to_go = bloc.reward_to_go(rewards)
+    reward_to_go = rtg.reward_to_go(rewards)
 
     print(reward_to_go)
     assert reward_to_go[N-1] == N-1, "shape:{} - {}".format(reward_to_go.shape, reward_to_go)
@@ -408,7 +409,7 @@ def test_reward_to_go_DUMMY_PASS(gym_and_tf_continuous_setup):
     expected_reward_to_go = [x for x in range(N)]
     expected_reward_to_go.reverse()
 
-    reward_to_go = bloc.reward_to_go(rewards)
+    reward_to_go = rtg.reward_to_go(rewards)
 
     print(reward_to_go)
     assert np.equal(rewards, expected_reward_to_go).any()
@@ -420,9 +421,9 @@ def test_dicounted_reward_to_go_PASS(gym_and_tf_continuous_setup):
     exp_spec.discout_factor = 0.98  # (!)the last assert depend on this value
     N = 20
     rewards = [x for x in range(N)]
-    reward_to_go = bloc.reward_to_go(rewards)
+    reward_to_go = rtg.reward_to_go(rewards)
 
-    discounted_reward_to_go = bloc.discounted_reward_to_go(rewards, exp_spec)
+    discounted_reward_to_go = rtg.discounted_reward_to_go(rewards, exp_spec)
     print("discout_factor: {}\n".format(exp_spec.discout_factor))
     print("\t{} reward_to_go".format(reward_to_go))
     print("\t{} discounted_reward_to_go".format(discounted_reward_to_go))
@@ -438,18 +439,18 @@ def test_dicounted_reward_to_go_FAIL(gym_and_tf_continuous_setup):
 
     exp_spec.discout_factor = 2
     with pytest.raises(AssertionError):
-        bloc.discounted_reward_to_go(rewards, exp_spec)
+        rtg.discounted_reward_to_go(rewards, exp_spec)
 
     exp_spec.discout_factor = -0.1
     with pytest.raises(AssertionError):
-        bloc.discounted_reward_to_go(rewards, exp_spec)
+        rtg.discounted_reward_to_go(rewards, exp_spec)
 
 
 def test_reward_to_go_NP_PASS(gym_and_tf_continuous_setup):
     N = 20
     rewards = [x for x in range(N)]
     np_rewards = np.array(rewards)
-    reward_to_go = bloc.reward_to_go_np(np_rewards)
+    reward_to_go = rtg.reward_to_go_np(np_rewards)
 
     print(reward_to_go)
     assert reward_to_go[N-1] == N-1, "shape:{} - {}".format(reward_to_go.shape, reward_to_go)
@@ -462,9 +463,9 @@ def test_dicounted_reward_to_go_np_PASS(gym_and_tf_continuous_setup):
     N = 20
     rewards = [x for x in range(N)]
     np_rewards = np.array(rewards)
-    reward_to_go = bloc.reward_to_go_np(np_rewards)
+    reward_to_go = rtg.reward_to_go_np(np_rewards)
 
-    discounted_reward_to_go = bloc.discounted_reward_to_go_np(np_rewards, exp_spec)
+    discounted_reward_to_go = rtg.discounted_reward_to_go_np(np_rewards, exp_spec)
     print("discout_factor: {}\n".format(exp_spec.discout_factor))
     print("\t{} reward_to_go".format(reward_to_go))
     print("\t{} discounted_reward_to_go".format(discounted_reward_to_go))
@@ -481,16 +482,16 @@ def test_dicounted_reward_to_go_np_FAIL(gym_and_tf_continuous_setup):
 
     exp_spec.discout_factor = 2
     with pytest.raises(AssertionError):
-        bloc.discounted_reward_to_go_np(np_rewards, exp_spec)
+        rtg.discounted_reward_to_go_np(np_rewards, exp_spec)
 
     exp_spec.discout_factor = -0.1
     with pytest.raises(AssertionError):
-        bloc.discounted_reward_to_go_np(np_rewards, exp_spec)
+        rtg.discounted_reward_to_go_np(np_rewards, exp_spec)
 
     exp_spec.discout_factor = -0.5
     ones_2D = np.ones((4, 2))
     with pytest.raises(AssertionError):
-        bloc.discounted_reward_to_go_np(ones_2D, exp_spec)
+        rtg.discounted_reward_to_go_np(ones_2D, exp_spec)
 
 
 

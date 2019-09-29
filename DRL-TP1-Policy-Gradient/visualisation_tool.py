@@ -5,7 +5,7 @@ from datetime import datetime
 import numpy as np
 from matplotlib import pyplot as plt
 
-from DRL_building_bloc import ExperimentSpec
+from buildingbloc import ExperimentSpec
 
 
 class CycleIndexer(object):
@@ -160,10 +160,10 @@ class ConsolPrintLearningStats(object):
 
             print("\n\tAverage pseudo lost: {:>6.3f} (over the past {} epoch)".format(
                 smoothed_batch_loss, self.print_metric_every))
-            if abs(smoothed_batch_loss) > abs(self.last_stats_batch_mean_pseudo_lost):
-                print("\t\t↳ is lowering ⬊  ...  goooood :)", end="", flush=True)
-            elif abs(smoothed_batch_loss) < abs(self.last_stats_batch_mean_pseudo_lost):
-                print("\t\t↳ is rising ⬈", end="", flush=True)
+            if abs(smoothed_batch_loss) < abs(self.last_stats_batch_mean_pseudo_lost):
+                print("\t\t↳ is lowering ⬊", end="", flush=True)
+            elif abs(smoothed_batch_loss) > abs(self.last_stats_batch_mean_pseudo_lost):
+                print("\t\t↳ is rising ⬈  ...  goooood :)", end="", flush=True)
 
             self.collected_experiment_stats['smoothed_average_peusdo_loss'].append(smoothed_batch_loss)
             self.collected_experiment_stats['smoothed_average_return'].append(smoothed_return)

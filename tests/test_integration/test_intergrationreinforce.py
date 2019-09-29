@@ -1,7 +1,7 @@
 # coding=utf-8
 
 import pytest
-import REINFORCE_integration_reference as integration_ref
+import reinforceintegrationreference as integration_ref
 
 
 """
@@ -61,7 +61,7 @@ def training_loop(epoch_generator, env_max_return, max_epochs):
     return epoch_stats, agent_learned
 
 
-
+# @pytest.mark.skip(reason="MUTE FOR NOW")
 def test_bloc_integration_to_working_REINFORCE_algo_PASS(setup_train_algo_generator_with_PASSING_spec):
     epoch_generator, nb_of_try, env_name, env_max_return, max_epochs, hidden_sizes = setup_train_algo_generator_with_PASSING_spec
 

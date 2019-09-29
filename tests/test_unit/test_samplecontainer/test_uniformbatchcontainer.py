@@ -1,11 +1,9 @@
 from typing import Union, Any
 
-import pytest
 from gym.wrappers import TimeLimit
 
-from sample_container import TrajectoryCollector, UniformBatchCollector
-from DRL_building_bloc import ExperimentSpec, GymPlayground
-from tests.test_sampling_container.conftest import take_one_random_step
+from samplecontainer import TrajectoryCollector, UniformBatchCollector
+from buildingbloc import ExperimentSpec, GymPlayground
 
 import numpy as np
 
