@@ -179,7 +179,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
             """ ---- Simulator: trajectories ---- """
             while the_UNI_BATCH_COLLECTOR.is_not_full():      # (Priority) todo:fixme!! --> must be handle by the batch_collector:
-                observation = playground.env.reset()   # fetch initial observation
+                current_observation = playground.env.reset()   # fetch initial observation
 
                 consol_print_learning_stats.next_glorious_trajectory()
 
@@ -193,7 +193,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
                         playground.env.render()  # keep environment rendering turned OFF during unit test
 
                     """ ---- Agent: act in the environment ---- """
-                    step_observation = bloc.format_single_step_observation(observation)
+                    step_observation = bloc.format_single_step_observation(current_observation)
                     action_array = sess.run(policy_action_sampler, feed_dict={observation_ph: step_observation})
 
                     action = bloc.format_single_step_action(action_array)
@@ -201,9 +201,9 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
                     """ ---- Agent: Collect current timestep events ---- """
                     # (Critical) | Login the observation S_t that trigered the action A_t is critical.
-                    #            | If the observation is the one at time S_t+1, the agent wont learn
-                    the_TRAJECTORY_COLLECTOR.collect(observation, action, reward)
-                    observation = new_observation
+                    #            | If the logged observation is the one at time S_t+1, the agent wont learn
+                    the_TRAJECTORY_COLLECTOR.collect(current_observation, action, reward)
+                    current_observation = new_observation  # <-- (!)
 
                     # region ::Timestep consol print ...
                     # # Timestep consol print
@@ -236,8 +236,6 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
             """ ---- Prepare data for backpropagation in the neural net ---- """
             batch_container = the_UNI_BATCH_COLLECTOR.pop_batch_and_reset()
-
-            # (Priority) todo:fixme!! --> must be compute by the batch_collector:
             batch_average_trjs_return, batch_average_trjs_lenght = batch_container.compute_metric()
 
             batch_observations = batch_container.batch_observations

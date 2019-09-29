@@ -153,12 +153,12 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
                     env.render()
 
                 # save obs
-                # batch_obs.append(obs.copy())  # (!)                                    # ////// Original bloc //////
+                # batch_obs.append(obs.copy())  # <-- (!) (Critical)                     # ////// Original bloc //////
 
-                # ////// Original bloc //////
+
                 # # act in the environment
-                # act = sess.run(actions, {obs_ph: obs.reshape(1,-1)})[0]
-                # obs, rew, done, _ = env.step(act)
+                # act = sess.run(actions, {obs_ph: obs.reshape(1,-1)})[0]                # ////// Original bloc //////
+                # obs, rew, done, _ = env.step(act)                                      # ////// Original bloc //////
 
                 step_observation = BLOC.format_single_step_observation(obs)              # \\\\\\    My bloc    \\\\\\
                 action_array = sess.run(actions, feed_dict={obs_ph: step_observation})   # \\\\\\    My bloc    \\\\\\
@@ -170,7 +170,9 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
                 # batch_acts.append(act)
                 # ep_rews.append(rew)
 
-                the_TRAJECTORY_COLLECTOR.collect(obs, act, rew)  # (!)                   # \\\\\\    My bloc    \\\\\\
+                # (Critical) | Login the observation S_t that trigered the action A_t is critical.  # \\\\\\    My bloc    \\\\\\
+                #            | If the observation is the one at time S_t+1, the agent wont learn    # \\\\\\    My bloc    \\\\\\
+                the_TRAJECTORY_COLLECTOR.collect(obs, act, rew)  # <-- (!)                          # \\\\\\    My bloc    \\\\\\
 
                 if done:
 
@@ -217,6 +219,7 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
             #                          })
 
             batch_container = the_UNI_BATCH_COLLECTOR.pop_batch_and_reset()              # \\\\\\    My bloc    \\\\\\
+            (batch_rets, batch_lens) = batch_container.compute_metric()                  # \\\\\\    My bloc    \\\\\\
             batch_obs = batch_container.batch_observations                               # \\\\\\    My bloc    \\\\\\
             batch_acts = batch_container.batch_actions                                   # \\\\\\    My bloc    \\\\\\
             batch_weights = batch_container.batch_Qvalues                                # \\\\\\    My bloc    \\\\\\
