@@ -82,17 +82,14 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
 
     # make action selection op (outputs int actions, sampled from policy)
     # actions = tf.squeeze(tf.multinomial(logits=logits,num_samples=1), axis=1)        # ////// Original bloc //////
-    # actions, log_p_all = BLOC.policy_theta_discrete_space(logits, playground)          # \\\\\\    My bloc    \\\\\\
-
+    # actions, log_p_all = BLOC.policy_theta_discrete_space(logits, playground)        # \\\\\\    My bloc    \\\\\\
 
     # make loss function whose gradient, for the right data, is policy gradient
     # weights_ph = tf.placeholder(shape=(None,), dtype=tf.float32)                       # ////// Original bloc //////
     # act_ph = tf.placeholder(shape=(None,), dtype=tf.int32)                             # ////// Original bloc //////
-
-    # ////// Original bloc //////
-    # action_masks = tf.one_hot(act_ph, n_acts)
-    # log_probs = tf.reduce_sum(action_masks * tf.nn.log_softmax(logits), axis=1)
-    # loss = -tf.reduce_mean(weights_ph * log_probs)
+    # action_masks = tf.one_hot(act_ph, n_acts)                                          # ////// Original bloc //////
+    # log_probs = tf.reduce_sum(action_masks * tf.nn.log_softmax(logits), axis=1)        # ////// Original bloc //////
+    # loss = -tf.reduce_mean(weights_ph * log_probs)                                     # ////// Original bloc //////
     # loss = BLOC.discrete_pseudo_loss(log_p_all, act_ph, weights_ph, playground)        # \\\\\\    My bloc    \\\\\\
 
     reinforce_policy = BLOC.REINFORCE_policy(obs_ph, act_ph,                             # \\\\\\    My bloc    \\\\\\

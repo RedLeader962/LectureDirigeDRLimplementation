@@ -44,7 +44,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
         'discout_factor': 0.999,
         'learning_rate': 1e-3,
         'nn_h_layer_topo': (62, ),
-        'random_seed': 42,
+        'random_seed': 82,
         'hidden_layers_activation': tf.nn.tanh,
         'output_layers_activation': tf.nn.tanh,
         'render_env_every_What_epoch': 100,
@@ -60,7 +60,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
         'discout_factor': 0.99,
         'learning_rate': 1e-2,
         'nn_h_layer_topo': (62, ),
-        'random_seed': 42,
+        'random_seed': 82,
         'hidden_layers_activation': tf.nn.tanh,        # tf.nn.relu,
         'output_layers_activation': None,
         # 'output_layers_activation': tf.nn.sigmoid,
@@ -77,7 +77,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
         'discout_factor': 0.999,
         'learning_rate': 1e-2,
         'nn_h_layer_topo': (8, 8),
-        'random_seed': 42,
+        'random_seed': 82,
         'hidden_layers_activation': tf.nn.tanh,
         'output_layers_activation': tf.nn.tanh,
         'render_env_every_What_epoch': 5,
@@ -188,7 +188,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
                 while True:
                     step += 1
 
-                    # (CRITICAL) todo:refactor --> the_TRAJECTORY_COLLECTOR.collect_S_t_A_t(): remove reward parameter
+                    # (CRITICAL) todo:refactor --> the_TRAJECTORY_COLLECTOR.collect_S_t_A_t(): remove reward parammeter
                     # (CRITICAL) todo:implement --> the_TRAJECTORY_COLLECTOR.collect_reward():
                     #                    | 1. add assert .collect_S_t_A_t() was executed
                     if (render_env and (epoch % exp_spec.render_env_every_What_epoch == 0)

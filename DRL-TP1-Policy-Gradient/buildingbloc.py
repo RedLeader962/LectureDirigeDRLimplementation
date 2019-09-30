@@ -35,7 +35,7 @@ class ExperimentSpec(object):
         note:
           |     EPOCH definition:
           |         In our casse, collecting and updating the gradient of a set of trajectories of
-          |         size=trajectorie_batch_size is equal to one EPOCH
+          |         size=timestep_batch_size is equal to one EPOCH
 
 
         # todo: add a param for the neural net configuration via a dict fed as a argument
@@ -361,8 +361,8 @@ def policy_theta_discrete_space(logits_layer: tf.Tensor, playground: GymPlaygrou
         # Remove single-dimensional entries from the shape of the array since we only take one sample from the distribution
         sampled_action = tf.squeeze(oversize_policy_theta, axis=1)
 
-        # # Compute the log probabilitie from sampled action
         # # todo --> sampled_action_log_probability unit test
+        # # Compute the log probabilitie from sampled action
         # sampled_action_mask = tf.one_hot(sampled_action, depth=playground.ACTION_CHOICES)
         # log_probabilities_matrix = tf.multiply(sampled_action_mask, log_p_all)
         # sampled_action_log_probability = tf.reduce_sum(log_probabilities_matrix, axis=1)
@@ -459,20 +459,20 @@ def discrete_pseudo_loss(log_p_all, action_placeholder: tf.Tensor, Q_values_plac
     """
 
     # \\\\\\    My bloc    \\\\\\
-    # with tf.name_scope(vocab.pseudo_loss) as scope:
+    with tf.name_scope(vocab.pseudo_loss) as scope:
 
-    # Step 1: Compute the log probabilitie of the current policy over the action space
-    action_mask = tf.one_hot(action_placeholder, playground.ACTION_CHOICES)
-    log_probabilities_matrix = tf.multiply(action_mask, log_p_all)
-    log_probabilities = tf.reduce_sum(log_probabilities_matrix, axis=1)
+        # Step 1: Compute the log probabilitie of the current policy over the action space
+        action_mask = tf.one_hot(action_placeholder, playground.ACTION_CHOICES)
+        log_probabilities_matrix = tf.multiply(action_mask, log_p_all)
+        log_probabilities = tf.reduce_sum(log_probabilities_matrix, axis=1)
 
-    # Step 2: Compute the pseudo loss
-    # note: tf.stop_gradient(Q_values_placeholder) prevent the backpropagation into the Q_values_placeholder
-    #   |   witch contain rewards_to_go. It treat the values of the tensor as constant during backpropagation.
-    weighted_likelihoods = tf.multiply(
-        tf.stop_gradient(Q_values_placeholder), log_probabilities)
-    pseudo_loss = -tf.reduce_mean(weighted_likelihoods)
-    return pseudo_loss
+        # Step 2: Compute the pseudo loss
+        # note: tf.stop_gradient(Q_values_placeholder) prevent the backpropagation into the Q_values_placeholder
+        #   |   witch contain rewards_to_go. It treat the values of the tensor as constant during backpropagation.
+        weighted_likelihoods = tf.multiply(
+            tf.stop_gradient(Q_values_placeholder), log_probabilities)
+        pseudo_loss = -tf.reduce_mean(weighted_likelihoods)
+        return pseudo_loss
 
     # ////// Original bloc //////
     # action_masks = tf.one_hot(action_placeholder, playground.ACTION_CHOICES)
