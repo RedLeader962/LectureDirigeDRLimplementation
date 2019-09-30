@@ -8,15 +8,16 @@ import numpy as np
 import gym
 from gym.spaces import Discrete, Box
 
-import buildingbloc as BLOC                                                        # \\\\\\    My bloc    \\\\\\
+import buildingbloc as BLOC                                                             # \\\\\\    My bloc    \\\\\\
 from visualisation_tool import ConsolPrintLearningStats                                 # \\\\\\    My bloc    \\\\\\
-from samplecontainer import TrajectoryCollector, UniformBatchCollector                 # \\\\\\    My bloc    \\\\\\
+from samplecontainer import TrajectoryCollector, UniformBatchCollector                  # \\\\\\    My bloc    \\\\\\
 
 
 """
-Based on REINFOCE with reward to go simplest implementation from SpinniUp 
+Integration test based on 'REINFORCE with reward to go' simplest implementation from SpinniUp at:
+    https://github.com/openai/spinningup/blob/master/spinup/examples/pg_math/2_rtg_pg.py
 
-Refactor to serve as a integration test reference
+Use in conjunction with: ../tests/test_integration/test_intergrationreinforce.py
 """
 
 # ////// Original bloc //////
@@ -37,8 +38,7 @@ Refactor to serve as a integration test reference
 def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_size=5000, render=False):
 
     # make environment, check spaces, get obs / act dims
-    # env = gym.make(env_name)                                                        # ////// Original bloc //////
-
+    # env = gym.make(env_name)                                                          # ////// Original bloc //////
 
     REINFORCE_integration_test = {                                                      # \\\\\\    My bloc    \\\\\\
         'prefered_environment': env_name,
@@ -72,8 +72,8 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
     n_acts = env.action_space.n
 
     # make core of policy network
-    # obs_ph = tf.placeholder(shape=(None, obs_dim), dtype=tf.float32)                  # ////// Original bloc //////
-    obs_ph, act_ph, weights_ph = BLOC.gym_playground_to_tensorflow_graph_adapter(playground)  # \\\\\\    My bloc    \\\\\\
+    # obs_ph = tf.placeholder(shape=(None, obs_dim), dtype=tf.float32)                          # ////// Original bloc //////
+    obs_ph, act_ph, weights_ph = BLOC.gym_playground_to_tensorflow_graph_adapter(playground)    # \\\\\\    My bloc    \\\\\\
 
     # logits = mlp(obs_ph, sizes=hidden_sizes+[n_acts])                                    # ////// Original bloc //////
     # logits = BLOC.build_MLP_computation_graph(obs_ph, playground,                        # \\\\\\    My bloc    \\\\\\
@@ -81,20 +81,22 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
 
 
     # make action selection op (outputs int actions, sampled from policy)
-    # actions = tf.squeeze(tf.multinomial(logits=logits,num_samples=1), axis=1)        # ////// Original bloc //////
-    # actions, log_p_all = BLOC.policy_theta_discrete_space(logits, playground)        # \\\\\\    My bloc    \\\\\\
+    # actions = tf.squeeze(tf.multinomial(logits=logits,num_samples=1), axis=1)            # ////// Original bloc //////
+    # actions, log_p_all = BLOC.policy_theta_discrete_space(logits, playground)            # \\\\\\    My bloc    \\\\\\
 
     # make loss function whose gradient, for the right data, is policy gradient
-    # weights_ph = tf.placeholder(shape=(None,), dtype=tf.float32)                       # ////// Original bloc //////
-    # act_ph = tf.placeholder(shape=(None,), dtype=tf.int32)                             # ////// Original bloc //////
-    # action_masks = tf.one_hot(act_ph, n_acts)                                          # ////// Original bloc //////
-    # log_probs = tf.reduce_sum(action_masks * tf.nn.log_softmax(logits), axis=1)        # ////// Original bloc //////
-    # loss = -tf.reduce_mean(weights_ph * log_probs)                                     # ////// Original bloc //////
-    # loss = BLOC.discrete_pseudo_loss(log_p_all, act_ph, weights_ph, playground)        # \\\\\\    My bloc    \\\\\\
+    # weights_ph = tf.placeholder(shape=(None,), dtype=tf.float32)                         # ////// Original bloc //////
+    # act_ph = tf.placeholder(shape=(None,), dtype=tf.int32)                               # ////// Original bloc //////
+    # action_masks = tf.one_hot(act_ph, n_acts)                                            # ////// Original bloc //////
+    # log_probs = tf.reduce_sum(action_masks * tf.nn.log_softmax(logits), axis=1)          # ////// Original bloc //////
+    # loss = -tf.reduce_mean(weights_ph * log_probs)                                       # ////// Original bloc //////
 
-    reinforce_policy = BLOC.REINFORCE_policy(obs_ph, act_ph,                             # \\\\\\    My bloc    \\\\\\
-                                             weights_ph, exp_spec, playground)           # \\\\\\    My bloc    \\\\\\
-    (actions, _, loss) = reinforce_policy                                                # \\\\\\    My bloc    \\\\\\
+    # (!) First silent error cause by uneven batch size                                    # \\\\\\    My bloc    \\\\\\
+    # loss = BLOC.discrete_pseudo_loss(log_p_all, act_ph, weights_ph, playground)          # \\\\\\    My bloc    \\\\\\
+
+    reinforce_policy = BLOC.REINFORCE_policy(obs_ph, act_ph,                               # \\\\\\    My bloc    \\\\\\
+                                             weights_ph, exp_spec, playground)             # \\\\\\    My bloc    \\\\\\
+    (actions, _, loss) = reinforce_policy                                                  # \\\\\\    My bloc    \\\\\\
 
     # make train op
     # train_op = tf.train.AdamOptimizer(learning_rate=lr).minimize(loss)                   # ////// Original bloc //////
@@ -105,8 +107,8 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
     run_str = "Run--{}h{}--{}-{}-{}".format(date_now.hour, date_now.minute, date_now.day, date_now.month, date_now.year)
     writer = tf_cv1.summary.FileWriter("./test_integration/graph/integration_test/{}".format(run_str), tf_cv1.get_default_graph())
 
-    the_TRAJECTORY_COLLECTOR = TrajectoryCollector(exp_spec, playground)                  # \\\\\\    My bloc    \\\\\\
-    the_UNI_BATCH_COLLECTOR = UniformBatchCollector(exp_spec.batch_size_in_ts)            # \\\\\\    My bloc    \\\\\\
+    the_TRAJECTORY_COLLECTOR = TrajectoryCollector(exp_spec, playground)                   # \\\\\\    My bloc    \\\\\\
+    the_UNI_BATCH_COLLECTOR = UniformBatchCollector(exp_spec.batch_size_in_ts)             # \\\\\\    My bloc    \\\\\\
 
     # ////// Original bloc //////
     # sess = tf.InteractiveSession()
@@ -122,7 +124,7 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
 
         # for training policy
         def train_one_epoch():
-            consol_print_learning_stats.next_glorious_epoch()                            # \\\\\\    My bloc    \\\\\\
+            consol_print_learning_stats.next_glorious_epoch()                              # \\\\\\    My bloc    \\\\\\
 
             # ////// Original bloc //////
             # # make some empty lists for logging.
@@ -169,7 +171,7 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
 
                 # (Critical) | Login the observation S_t that trigered the action A_t is critical.  # \\\\\\    My bloc    \\\\\\
                 #            | If the observation is the one at time S_t+1, the agent wont learn    # \\\\\\    My bloc    \\\\\\
-                the_TRAJECTORY_COLLECTOR.collect(obs, act, rew)  # <-- (!)                          # \\\\\\    My bloc    \\\\\\
+                the_TRAJECTORY_COLLECTOR.collect(obs, act, rew)  # <-- (!) Second silent error      # \\\\\\    My bloc    \\\\\\
 
                 if done:
 
