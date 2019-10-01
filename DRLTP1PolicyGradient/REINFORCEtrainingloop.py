@@ -148,7 +148,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
     """ ---- setup summary collection for TensorBoard ---- """
     date_now = datetime.now()
     run_str = "Run--{}h{}--{}-{}-{}".format(date_now.hour, date_now.minute, date_now.day, date_now.month, date_now.year)
-    writer = tf_cv1.summary.FileWriter("./graph/{}".format(run_str), tf_cv1.get_default_graph())
+    writer = tf_cv1.summary.FileWriter("./graph/runs/{}".format(run_str), tf_cv1.get_default_graph())
 
 
     """ ---- Setup parameters saving ---- """
