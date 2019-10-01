@@ -1,5 +1,5 @@
 Repository for the course IFT-7014: Directed reading on
-#Deep Reinforcement Learning 
+# Deep Reinforcement Learning 
 
 by **Luc Coupal**,
 Université Laval,
@@ -16,7 +16,7 @@ Québec, QC, Canada,
 ---
 
 ## [Basic policy gradient](https://github.com/RedLeader962/LectureDirigeDRLimplementation/tree/master/DRL-TP1-Policy-Gradient)
-Policy gradient is a on-policy method which seek to directly optimize the policy $\pi_\theta$ by using sampled trajectories $\tau$ as weight. Those weights will then be used to indicate how good the policy performed. Based on that knowledge, the algorithm updates the parameters $\theta$ of his policy to make action leading to similar good trajectories more likely and similar bad trajectories less likely. In the case of Deep Reinforcement Learning, the policy parameter $\theta$ is a neural net. For this essay, I've studied and implemented the basic version of policy gradient also known as REINFORCE. I've also complemented my reading with the following ressources:
+Policy gradient is a on-policy method which seek to directly optimize the policy  by using sampled trajectories as weight. Those weights will then be used to indicate how good the policy performed. Based on that knowledge, the algorithm updates the parameters of his policy to make action leading to similar good trajectories more likely and similar bad trajectories less likely. In the case of Deep Reinforcement Learning, the policy parameter is a neural net. For this essay, I've studied and implemented the basic version of policy gradient also known as REINFORCE. I've also complemented my reading with the following ressources:
 
 - [CS 294--112 Deep Reinforcement Learning](http://rail.eecs.berkeley.edu/deeprlcourse-fa18/): lecture 4, 5 and 9 by Sergey Levine from University Berkeley;
 - [OpenAI: Spinning Up: Intro to Policy Optimization](https://spinningup.openai.com/en/latest/spinningup/rl_intro3.html), by Josh Achiam;
