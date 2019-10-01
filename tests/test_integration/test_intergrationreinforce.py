@@ -1,7 +1,7 @@
 # coding=utf-8
 
 import pytest
-import reinforceintegrationreference as integration_ref
+import referenceimplementation as integration_ref
 
 
 """

@@ -9,7 +9,7 @@ import gym
 from gym.spaces import Discrete, Box
 
 import buildingbloc as BLOC                                                             # \\\\\\    My bloc    \\\\\\
-from visualisation_tool import ConsolPrintLearningStats                                 # \\\\\\    My bloc    \\\\\\
+from visualisationtools import ConsolPrintLearningStats                                 # \\\\\\    My bloc    \\\\\\
 from samplecontainer import TrajectoryCollector, UniformBatchCollector                  # \\\\\\    My bloc    \\\\\\
 
 

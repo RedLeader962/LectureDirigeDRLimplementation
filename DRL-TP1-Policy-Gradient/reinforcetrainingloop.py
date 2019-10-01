@@ -11,7 +11,7 @@ from datetime import datetime
 
 import buildingbloc as bloc
 from buildingbloc import ExperimentSpec, GymPlayground, REINFORCE_policy
-from visualisation_tool import CycleIndexer, ConsolPrintLearningStats
+from visualisationtools import CycleIndexer, ConsolPrintLearningStats
 from samplecontainer import TrajectoryContainer, TrajectoryCollector, UniformeBatchContainer, UniformBatchCollector
 
 import tensorflow_weak_warning_supressor as no_cpu_compile_warn

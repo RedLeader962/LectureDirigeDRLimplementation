@@ -472,17 +472,11 @@ def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
     :return: a feed dictionary
     :rtype: dict
     """
-    # todo --> finish implementing
-    # todo --> unit test
     assert isinstance(placeholders, list), "Wrong input type, placeholders must be a list of tensorflow placeholder"
     assert isinstance(arrays_of_values, list), "Wrong input type, arrays_of_values must be a list of numpy array"
     assert len(placeholders) == len(arrays_of_values), "placeholders and arrays_of_values must be of the same lenght"
     for placeholder in placeholders:
         assert isinstance(placeholder, tf.Tensor), "Wrong input type, placeholders must be a list of tensorflow placeholder"
-
-    # (Iceboxed) todo:investigate?? --> it's probably not required anymore:
-    # for ar in arrays_of_values:
-    #     assert isinstance(ar, np.ndarray), "Wrong input type, arrays_of_values must be a list of numpy array"
 
     feed_dict = dict()
     for placeholder, array in zip(placeholders, arrays_of_values):
@@ -491,7 +485,6 @@ def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
     return feed_dict
 
 
-# todo:validate --> possible source of graph data input error:
 def format_single_step_observation(observation: np.ndarray):
     """ Single trajectorie batch size hack for the computation graph observation placeholder
             Ex:
@@ -503,7 +496,6 @@ def format_single_step_observation(observation: np.ndarray):
     batch_size_one_observation = np.expand_dims(observation, axis=0)
     return batch_size_one_observation
 
-# todo:validate --> possible source of graph data input error:
 def format_single_step_action(action_array: np.ndarray):
     # todo --> unitest
     action = None
@@ -517,7 +509,7 @@ def format_single_step_action(action_array: np.ndarray):
         else:
             action = action_array
         assert isinstance(action, int), ("something is wrong with the 'format_single_step_action'. "
-                                        "Should output a int instead of {}".format(action))
+                                         "Should output a int instead of {}".format(action))
     finally:
         return action
 

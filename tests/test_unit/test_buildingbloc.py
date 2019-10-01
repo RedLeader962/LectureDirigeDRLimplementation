@@ -9,7 +9,7 @@ from tensorflow import keras
 
 import rewardtogo as rtg
 import samplecontainer
-import visualisation_tool
+import visualisationtools
 
 tf_cv1 = tf.compat.v1   # shortcut
 
@@ -516,7 +516,7 @@ def test_vocab_PASS():
     print(vocab)
 
 def test_CycleIndexer_PASS():
-    cycle_indexer = visualisation_tool.CycleIndexer(20)
+    cycle_indexer = visualisationtools.CycleIndexer(20)
 
     for _ in range(40):
         i, j = cycle_indexer.__next__()
