@@ -27,6 +27,6 @@ Policy gradient is a on-policy method which seek to directly optimize the policy
 The REINFORCE implementation:
 - training loop is in /DRLTP1PolicyGradient REINFORCEtrainingloop.py 
 - playing loop is in /DRLTP1PolicyGradient REINFORCEplayingloop.py
-- video example are in DRLTP1PolicyGradient/video
+- [video example](https://github.com/RedLeader962/LectureDirigeDRLimplementation/tree/IMPLEMENT-predict_loop/DRLTP1PolicyGradient/video) 
 
 
