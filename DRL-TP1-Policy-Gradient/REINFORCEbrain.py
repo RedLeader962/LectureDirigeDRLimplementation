@@ -30,8 +30,10 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
                                                 output_layers_activation=experiment_spec.output_layers_activation,
                                                 name_scope=vocab.theta_NeuralNet)
 
-        # /---- discrete case -----
+        # ::Discrete case
         if isinstance(playground.env.action_space, gym.spaces.Discrete):
+
+            """ ---- Assess the input shape compatibility ---- """
             are_compatible = observation_placeholder.shape.as_list()[-1] == playground.OBSERVATION_SPACE.shape[0]
             assert are_compatible, ("the observation_placeholder is incompatible with environment, "
                                     "{} != {}").format(observation_placeholder.shape.as_list()[-1],
@@ -43,16 +45,11 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
             """ ---- Build the pseudo loss function ---- """
             pseudo_loss = discrete_pseudo_loss(log_p_all, action_placeholder, Q_values_placeholder, playground)
 
-
-        # /---- continuous case -----
-        # (Ice-Boxed) todo:implement -->  for continuous space:
+        # ::Continuous case
         elif isinstance(playground.env.action_space, gym.spaces.Box):
-            raise NotImplementedError
-            # policy_theta, log_standard_deviation = policy_theta_continuous_space(theta_mlp, playground)
-            # sampled_action = NotImplemented
-            # sampled_action_log_probability = NotImplemented
+            raise NotImplementedError   # (Ice-Boxed) todo:implement -->  for policy for continuous space:
 
-        # /---- other gym environment -----
+        # ::Other gym environment
         else:
             print("\n>>> The agent implementation does not support environment space "
                   "{} yet.\n\n".format(playground.env.action_space))

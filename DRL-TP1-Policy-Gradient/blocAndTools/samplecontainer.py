@@ -17,8 +17,6 @@ class TrajectoryContainer(object):
         Note: about dtype (source: Numpy doc)
          |      "This argument can only be used to 'upcast' the array.
          |          For downcasting, use the .astype(t) method."
-         :param trajectory_id:
-         :type trajectory_id:
 
         """
         assert isinstance(observations, list) and isinstance(actions, list) and isinstance(rewards, list), "wrong argument type"
@@ -199,8 +197,7 @@ class UniformeBatchContainer(object):
         Container for storage & retrieval of sampled trajectories
         Is a component of the UniformBatchCollector
 
-        (nice to have) todo:implement --> convert each list to tupple
-        Once initialize, what was stored in it become immutable
+        (nice to have) todo:implement --> make the container immutable: convert each list to tupple once initialized
 
         :param batch_constraint:
         :type batch_constraint:
@@ -274,8 +271,6 @@ class UniformBatchCollector(object):
     Collect sampled trajectories and agregate them in multiple batch container of uniforme dimension.
     (!) Is responsible of batch dimension uniformity across the experiement.
 
-    (CRITICAL) todo:unit-test --> tensor shape must be equal across trajectory for loss optimization:
-
     note: Optimization consideration --> why collect numpy ndarray in python list?
       |   It's a order of magnitude faster to collect ndarray in a list and then convert the list
       |       to a long ndarray than it is to append ndarray to each other
@@ -297,7 +292,7 @@ class UniformBatchCollector(object):
     def __call__(self, trajectory: TrajectoryContainer, *args, **kwargs) -> None:
         assert self.is_not_full(), "The batch is full: {} timesteps collected! Execute pop_batch_and_reset()".format(self._timestep_count)
 
-        if self.remaining_space < len(trajectory):              # (Priority) todo:unit-test
+        if self.remaining_space < len(trajectory):
             """ Cut the trajectory and append to batch """
             trajectory.cut(max_lenght=self.remaining_space)
             assert len(trajectory) - self.remaining_space == 0, ("The trajectory to collect should be downsized but it's not. "

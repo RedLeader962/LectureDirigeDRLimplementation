@@ -58,7 +58,6 @@ class ConsolPrintLearningStats(object):
 
         self.exp_spec = experiment_spec
 
-
     def _assert_all_property_are_feed(self) -> bool:
         if ((self.number_of_trj_collected is not None) and (self.total_timestep_collected is not None) and
                 (self.epoch_loss is not None) and (self.average_trjs_return is not None) and
@@ -93,7 +92,6 @@ class ConsolPrintLearningStats(object):
                            self.collected_experiment_stats['smoothed_average_lenght'], self.exp_spec,
                            self.print_metric_every)
 
-        # print("\n\nCollected experiment stats:\n{}".format(self.collected_experiment_stats))
         return None
 
     def anim_line(self, caracter=">", nb_of_cycle=2,
