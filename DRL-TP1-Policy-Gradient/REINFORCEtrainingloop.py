@@ -164,8 +164,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
             """ ---- Simulator: trajectories ---- """
             while the_UNI_BATCH_COLLECTOR.is_not_full():
-                current_observation = playground.env.reset()   # fetch initial observation
-
+                current_observation = playground.env.reset()    # <-- fetch initial observation
                 consol_print_learning_stats.next_glorious_trajectory()
 
                 """ ---- Simulator: time-steps ---- """
@@ -173,9 +172,9 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
                 while True:
                     step += 1
 
-                    # (CRITICAL) todo:refactor --> the_TRAJECTORY_COLLECTOR.collect_S_t_A_t(): remove reward parammeter
-                    # (CRITICAL) todo:implement --> the_TRAJECTORY_COLLECTOR.collect_reward():
-                    #                    | 1. add assert .collect_S_t_A_t() was executed
+                    # (Priority) todo:refactor --> the_TRAJECTORY_COLLECTOR.collect_S_t_A_t(): remove reward parammeter
+                    # (Priority) todo:implement --> the_TRAJECTORY_COLLECTOR.collect_reward():
+                    #     |                                        add assertion that .collect_S_t_A_t() was executed
                     if (render_env and (epoch % exp_spec.render_env_every_What_epoch == 0)
                             and the_UNI_BATCH_COLLECTOR.trj_collected_so_far() == 0):
                         playground.env.render()  # keep environment rendering turned OFF during unit test
@@ -189,7 +188,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
                     """ ---- Agent: Collect current timestep events ---- """
                     # (Critical) | Collecting the right observation S_t that trigered the action A_t is critical.
-                    #            | If you collect the observe_reaction S_t+1 with action A_t, the agent wont learn!
+                    #            | If you collect the observe_reaction S_t+1 coupled to action A_t, the agent is doomed!
                     the_TRAJECTORY_COLLECTOR.collect(current_observation, action, reward)
                     current_observation = observe_reaction  # <-- (!)
 
