@@ -73,7 +73,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
         'prefered_environment': 'CartPole-v0',
         'paramameter_set_name': 'RedLeader CartPole-v0',
         'batch_size_in_ts': 5000,
-        'max_epoch': 50,
+        'max_epoch': 40,
         'discounted_reward_to_go': True,
         'discout_factor': 0.999,
         'learning_rate': 1e-2,

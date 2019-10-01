@@ -65,7 +65,7 @@ def play_REINFORCE_agent_discrete(env='CartPole-v0'):
     saver = tf.train.Saver()
 
     with tf_cv1.Session() as sess:
-        saver.restore(sess, 'checkpoint_directory/REINFORCE_agent-27')
+        saver.restore(sess, 'checkpoint_directory/REINFORCE_agent-49')
 
         while True: #keep playing
         # for run in range(3):      #recorder version
