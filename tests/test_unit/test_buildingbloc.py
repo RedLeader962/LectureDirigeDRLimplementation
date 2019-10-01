@@ -13,7 +13,7 @@ tf_cv1 = tf.compat.v1   # shortcut
 
 from blocAndTools import buildingbloc as bloc, rewardtogo as rtg, visualisationtools
 from blocAndTools.samplecontainer import TrajectoryCollector, UniformBatchCollector
-from rl_vocabulary import rl_name
+from blocAndTools.rl_vocabulary import rl_name
 vocab = rl_name()
 
 

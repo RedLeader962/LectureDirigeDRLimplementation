@@ -15,10 +15,10 @@ from REINFORCEbrain import REINFORCE_policy
 from blocAndTools.visualisationtools import ConsolPrintLearningStats
 from blocAndTools.samplecontainer import TrajectoryCollector, UniformBatchCollector
 
-import tensorflow_weak_warning_supressor as no_cpu_compile_warn
-no_cpu_compile_warn.execute()
+# import tensorflow_weak_warning_supressor as no_cpu_compile_warn
+# no_cpu_compile_warn.execute()
 
-from rl_vocabulary import rl_name
+from blocAndTools.rl_vocabulary import rl_name
 vocab = rl_name()
 # endregion
 

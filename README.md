@@ -24,10 +24,27 @@ Policy gradient is a on-policy method which seek to directly optimize the policy
 
 ---
 
-The REINFORCE implementation:
-- training loop is in /DRLTP1PolicyGradient REINFORCEtrainingloop.py 
-- playing loop is in /DRLTP1PolicyGradient REINFORCEplayingloop.py
-- [video example](https://github.com/RedLeader962/LectureDirigeDRLimplementation/tree/IMPLEMENT-predict_loop/DRLTP1PolicyGradient/video) 
+### The REINFORCE implementation:
+**To watch the trained algorithm**
+
+```bash
+cd DRLTP1PolicyGradient/
+python REINFORCEplayingloop.py 
+```
+
+**To execute the training loop**
+```bash
+cd DRLTP1PolicyGradient/
+python REINFORCEtrainingloop.py
+```
+
+**To navigate trough the computation graph in TensorBoard**
+```bash
+tensorboard --logdir=DRL-TP1-Policy-Gradient/graph/
+```
+
+
+To see [video example](https://github.com/RedLeader962/LectureDirigeDRLimplementation/tree/IMPLEMENT-predict_loop/DRLTP1PolicyGradient/video) 
 
 
 ![Training run](DRLTP1PolicyGradient/video/training_run.png)

@@ -7,16 +7,15 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 # region ::Import statement ...
 import tensorflow as tf
 tf_cv1 = tf.compat.v1   # shortcut
-from gym.wrappers.monitoring.video_recorder import VideoRecorder
 
 from blocAndTools import buildingbloc as bloc
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 from REINFORCEbrain import REINFORCE_policy
 
-import tensorflow_weak_warning_supressor as no_cpu_compile_warn
-no_cpu_compile_warn.execute()
+# import tensorflow_weak_warning_supressor as no_cpu_compile_warn
+# no_cpu_compile_warn.execute()
 
-from rl_vocabulary import rl_name
+from blocAndTools.rl_vocabulary import rl_name
 vocab = rl_name()
 # endregion
 
