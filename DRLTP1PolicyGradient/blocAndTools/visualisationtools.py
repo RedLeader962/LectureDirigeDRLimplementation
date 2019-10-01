@@ -175,11 +175,11 @@ class ConsolPrintLearningStats(object):
             self.last_batch_lost = smoothed_batch_loss
             self.last_batch_return = smoothed_return
 
-            if (self.epoch) % (self.print_metric_every * 10) == 0:
-                ultra_basic_ploter(self.collected_experiment_stats['smoothed_average_return'],
-                                   self.collected_experiment_stats['smoothed_average_peusdo_loss'],
-                                   self.collected_experiment_stats['smoothed_average_lenght'], self.exp_spec,
-                                   self.print_metric_every)
+            # if (self.epoch) % (self.print_metric_every * 10) == 0:
+            #     ultra_basic_ploter(self.collected_experiment_stats['smoothed_average_return'],
+            #                        self.collected_experiment_stats['smoothed_average_peusdo_loss'],
+            #                        self.collected_experiment_stats['smoothed_average_lenght'], self.exp_spec,
+            #                        self.print_metric_every)
 
         return None
 
