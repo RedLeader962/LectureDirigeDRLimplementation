@@ -1,8 +1,6 @@
 # coding=utf-8
 
-# coding=utf-8
 from __future__ import absolute_import, division, print_function, unicode_literals
-
 
 # region ::Import statement ...
 import tensorflow as tf
@@ -11,18 +9,17 @@ tf_cv1 = tf.compat.v1   # shortcut
 from blocAndTools import buildingbloc as bloc
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 from REINFORCEbrain import REINFORCE_policy
-
-# import tensorflow_weak_warning_supressor as no_cpu_compile_warn
-# no_cpu_compile_warn.execute()
-
 from blocAndTools.rl_vocabulary import rl_name
 vocab = rl_name()
 # endregion
 
 
 def play_REINFORCE_agent_discrete(env='CartPole-v0'):
-    exp_spec = ExperimentSpec()
+    """
+    Execute playing loop of a previously trained REINFORCE agent in the 'CartPole-v0' environment
 
+    """
+    exp_spec = ExperimentSpec()
 
     cartpole_param_dict_2 = {
         'prefered_environment': 'CartPole-v0',
@@ -47,7 +44,7 @@ def play_REINFORCE_agent_discrete(env='CartPole-v0'):
 
     # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
     # *                                                                                                               *
-    # *                                  Build computation graph & data collector                                     *
+    # *                                          Build computation graph                                              *
     # *                                                                                                               *
     # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
@@ -60,9 +57,7 @@ def play_REINFORCE_agent_discrete(env='CartPole-v0'):
     reinforce_policy = REINFORCE_policy(observation_ph, action_ph, Q_values_ph, exp_spec, playground)
     (policy_action_sampler, theta_mlp, pseudo_loss) = reinforce_policy
 
-
-
-    saver = tf.train.Saver()
+    saver = tf_cv1.train.Saver()
 
     with tf_cv1.Session() as sess:
         saver.restore(sess, 'checkpoint_directory/REINFORCE_agent-49')

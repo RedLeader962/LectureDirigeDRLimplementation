@@ -148,20 +148,20 @@ class ConsolPrintLearningStats(object):
             smoothed_return = self.return_smoothing_buffer / self.print_metric_every
             smoothed_lenght = self.lenght_smoothing_buffer / self.print_metric_every
             print(
-                "\r\t ↳ {:^3}".format(self.epoch),
+                "\r      ↳ {:^3}".format(self.epoch),
                 ":: Collected {} trajectories for a total of {} timestep.".format(
                     self.number_of_trj_collected, self.total_timestep_collected),
-                "\n\t\t↳ pseudo loss: {:>6.3f} ".format(self.epoch_loss),
+                "\n         ↳ pseudo loss: {:>6.3f} ".format(self.epoch_loss),
                 "| average trj return: {:>6.3f} | average trj lenght: {:>6.3f}".format(
                     self.average_trjs_return, self.average_trjs_lenght),
                 end="\n", flush=True)
 
-            print("\n\t\t\t\t\t\tAverage return over the past {} epoch: {:>6.3f}".format(
+            print("\n                    Average return over the past {} epoch: {:>6.3f}".format(
                 self.print_metric_every, smoothed_return))
             if abs(smoothed_return) < abs(self.last_batch_return):
-                print("\t\t\t\t\t\t\t↳ is lowering ⬊", end="", flush=True)
+                print("                        ↳ is lowering ⬊", end="", flush=True)
             elif abs(smoothed_return) > abs(self.last_batch_return):
-                print("\t\t\t\t\t\t\t↳ is rising ⬈  ...  goooood :)", end="", flush=True)
+                print("                        ↳ is rising ⬈  ...  goooood :)", end="", flush=True)
 
             self.collected_experiment_stats['smoothed_average_peusdo_loss'].append(smoothed_batch_loss)
             self.collected_experiment_stats['smoothed_average_return'].append(smoothed_return)
@@ -194,7 +194,7 @@ class ConsolPrintLearningStats(object):
         :return:
         :rtype: None
         """
-        print("\r\t ↳ {:^3} :: Trajectory {:>4}  ".format(self.epoch, self.trj),
+        print("\r      ↳ {:^3} :: Trajectory {:>4}  ".format(self.epoch, self.trj),
               ">"*self.cycle_indexer.i, " "*self.cycle_indexer.j,
               "  got return {:>8.2f}   after  {:>4}  timesteps".format(
                   the_trajectory_return, timestep),
