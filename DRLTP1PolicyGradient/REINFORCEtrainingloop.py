@@ -145,10 +145,16 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
     policy_optimizer_op = bloc.policy_optimizer(pseudo_loss, exp_spec.learning_rate)
 
 
-    """ ---- Warm-up the computation graph and start learning! ---- """
+    """ ---- setup summary collection for TensorBoard ---- """
     date_now = datetime.now()
     run_str = "Run--{}h{}--{}-{}-{}".format(date_now.hour, date_now.minute, date_now.day, date_now.month, date_now.year)
     writer = tf_cv1.summary.FileWriter("./graph/{}".format(run_str), tf_cv1.get_default_graph())
+
+
+    """ ---- Setup parameters saving ---- """
+    # saver = tf.train.Saver()
+
+    """ ---- Warm-up the computation graph and start learning! ---- """
     tf_cv1.set_random_seed(exp_spec.random_seed)
     np.random.seed(exp_spec.random_seed)
     with tf_cv1.Session() as sess:
