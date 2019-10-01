@@ -456,7 +456,7 @@ def policy_optimizer(pseudo_loss: tf.Tensor, learning_rate: ExperimentSpec) -> t
     """
     Define the optimizing methode for training the REINFORE agent
     """
-    return tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(pseudo_loss, name=vocab.optimizer)
+    return tf_cv1.train.AdamOptimizer(learning_rate=learning_rate).minimize(pseudo_loss, name=vocab.optimizer)
 
 
 def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
