@@ -5,7 +5,7 @@ from datetime import datetime
 import numpy as np
 from matplotlib import pyplot as plt
 
-from buildingbloc import ExperimentSpec
+from blocAndTools.buildingbloc import ExperimentSpec
 
 
 class CycleIndexer(object):

@@ -373,63 +373,6 @@ def policy_theta_continuous_space(logits_layer: tf.Tensor, playground: GymPlaygr
         # return sampled_action, log_standard_deviation
 
 
-def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.Tensor, Q_values_placeholder: tf.Tensor,
-                     experiment_spec: ExperimentSpec, playground: GymPlayground) -> (tf.Tensor, tf.Tensor, tf.Tensor):
-    """
-    The learning agent: REINFORCE (aka: Vanila policy gradient)
-    Based on the paper by Williams, R. J.
-         Simple statistical gradient-following algorithms for connectionist reinforcement learning. (1992)
-
-
-
-    :param observation_placeholder:
-    :type observation_placeholder: tf.Tensor
-    :param action_placeholder:
-    :type action_placeholder: tf.Tensor
-    :param Q_values_placeholder:
-    :type Q_values_placeholder: tf.Tensor
-    :param playground:
-    :type playground: GymPlayground
-    :param experiment_spec:
-    :type experiment_spec: ExperimentSpec
-    :return: (sampled_action, theta_mlp, pseudo_loss)
-    :rtype: (tf.Tensor, tf.Tensor, tf.Tensor)
-    """
-
-    with tf.name_scope(vocab.REINFORCE) as scope:
-        theta_mlp = build_MLP_computation_graph(observation_placeholder, playground,
-                                                experiment_spec.nn_h_layer_topo,
-                                                hidden_layers_activation=experiment_spec.hidden_layers_activation,
-                                                output_layers_activation=experiment_spec.output_layers_activation,
-                                                name_scope=vocab.theta_NeuralNet)
-
-        # /---- discrete case -----
-        if isinstance(playground.env.action_space, gym.spaces.Discrete):
-            assert observation_placeholder.shape.as_list()[-1] == playground.OBSERVATION_SPACE.shape[0], \
-                "the observation_placeholder is incompatible with environment, " \
-                "{} != {}".format(observation_placeholder.shape.as_list()[-1], playground.OBSERVATION_SPACE.shape[0])
-
-            sampled_action, log_p_all = policy_theta_discrete_space(theta_mlp, playground)
-
-            pseudo_loss = discrete_pseudo_loss(log_p_all, action_placeholder, Q_values_placeholder, playground)
-
-        # /---- continuous case -----
-        # (Ice-Boxed) todo:implement --> implement for continuous space:
-        elif isinstance(playground.env.action_space, gym.spaces.Box):
-            raise NotImplementedError
-            # policy_theta, log_standard_deviation = policy_theta_continuous_space(theta_mlp, playground)
-            # sampled_action = NotImplemented
-            # sampled_action_log_probability = NotImplemented
-
-        # /---- other gym environment -----
-        else:
-            print("\n>>> The agent implementation does not support environment space "
-                  "{} yet.\n\n".format(playground.env.action_space))
-            raise NotImplementedError
-
-    return sampled_action, theta_mlp, pseudo_loss
-
-
 def discrete_pseudo_loss(log_p_all, action_placeholder: tf.Tensor, Q_values_placeholder: tf.Tensor,
                          playground: GymPlayground) -> tf.Tensor:
     """
@@ -449,7 +392,6 @@ def discrete_pseudo_loss(log_p_all, action_placeholder: tf.Tensor, Q_values_plac
             tf.stop_gradient(Q_values_placeholder), log_probabilities)
         pseudo_loss = -tf.reduce_mean(weighted_likelihoods)
         return pseudo_loss
-
 
 
 def policy_optimizer(pseudo_loss: tf.Tensor, learning_rate: ExperimentSpec) -> tf.Operation:

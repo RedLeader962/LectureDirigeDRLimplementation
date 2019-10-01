@@ -2,15 +2,15 @@ from datetime import datetime
 
 import tensorflow as tf
 
+import REINFORCEbrain
 
 tf_cv1 = tf.compat.v1   # shortcut
 import numpy as np
-import gym
 from gym.spaces import Discrete, Box
 
-import buildingbloc as BLOC                                                             # \\\\\\    My bloc    \\\\\\
-from visualisationtools import ConsolPrintLearningStats                                 # \\\\\\    My bloc    \\\\\\
-from samplecontainer import TrajectoryCollector, UniformBatchCollector                  # \\\\\\    My bloc    \\\\\\
+from blocAndTools import buildingbloc as BLOC
+from blocAndTools.visualisationtools import ConsolPrintLearningStats                                 # \\\\\\    My bloc    \\\\\\
+from blocAndTools.samplecontainer import TrajectoryCollector, UniformBatchCollector                  # \\\\\\    My bloc    \\\\\\
 
 
 """
@@ -94,8 +94,8 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
     # (!) First silent error cause by uneven batch size                                    # \\\\\\    My bloc    \\\\\\
     # loss = BLOC.discrete_pseudo_loss(log_p_all, act_ph, weights_ph, playground)          # \\\\\\    My bloc    \\\\\\
 
-    reinforce_policy = BLOC.REINFORCE_policy(obs_ph, act_ph,                               # \\\\\\    My bloc    \\\\\\
-                                             weights_ph, exp_spec, playground)             # \\\\\\    My bloc    \\\\\\
+    reinforce_policy = REINFORCEbrain.REINFORCE_policy(obs_ph, act_ph,  # \\\\\\    My bloc    \\\\\\
+                                                       weights_ph, exp_spec, playground)             # \\\\\\    My bloc    \\\\\\
     (actions, _, loss) = reinforce_policy                                                  # \\\\\\    My bloc    \\\\\\
 
     # make train op

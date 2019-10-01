@@ -9,10 +9,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
 
-import buildingbloc as bloc
-from buildingbloc import ExperimentSpec, GymPlayground, REINFORCE_policy
-from visualisationtools import CycleIndexer, ConsolPrintLearningStats
-from samplecontainer import TrajectoryContainer, TrajectoryCollector, UniformeBatchContainer, UniformBatchCollector
+from blocAndTools import buildingbloc as bloc
+from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
+from REINFORCEbrain import REINFORCE_policy
+from blocAndTools.visualisationtools import ConsolPrintLearningStats
+from blocAndTools.samplecontainer import TrajectoryCollector, UniformBatchCollector
 
 import tensorflow_weak_warning_supressor as no_cpu_compile_warn
 no_cpu_compile_warn.execute()

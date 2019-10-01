@@ -2,8 +2,8 @@
 import numpy as np
 from collections import namedtuple
 
-from buildingbloc import ExperimentSpec, GymPlayground
-from rewardtogo import reward_to_go, discounted_reward_to_go
+from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
+from blocAndTools.rewardtogo import reward_to_go, discounted_reward_to_go
 
 
 class TrajectoryContainer(object):

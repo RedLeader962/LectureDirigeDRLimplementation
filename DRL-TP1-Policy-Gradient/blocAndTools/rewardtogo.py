@@ -1,7 +1,7 @@
 # coding=utf-8
 import numpy as np
 
-from buildingbloc import ExperimentSpec
+from blocAndTools.buildingbloc import ExperimentSpec
 
 
 def reward_to_go(rewards: list) -> list:

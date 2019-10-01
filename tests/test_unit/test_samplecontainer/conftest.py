@@ -2,8 +2,8 @@
 
 import pytest
 
-from samplecontainer import TrajectoryCollector, UniformBatchCollector
-from buildingbloc import ExperimentSpec, GymPlayground
+from blocAndTools.samplecontainer import TrajectoryCollector, UniformBatchCollector
+from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 
 # Do not rename that file (!) "conftest.py" is required for Pytest test discovery.
 

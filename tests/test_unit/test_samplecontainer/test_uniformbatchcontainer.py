@@ -2,8 +2,8 @@ from typing import Union, Any
 
 from gym.wrappers import TimeLimit
 
-from samplecontainer import TrajectoryCollector, UniformBatchCollector
-from buildingbloc import ExperimentSpec, GymPlayground
+from blocAndTools.samplecontainer import TrajectoryCollector, UniformBatchCollector
+from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 
 import numpy as np
 

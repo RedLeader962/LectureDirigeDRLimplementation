@@ -7,14 +7,12 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
-import rewardtogo as rtg
-import samplecontainer
-import visualisationtools
+import REINFORCEbrain
 
 tf_cv1 = tf.compat.v1   # shortcut
 
-import buildingbloc as bloc
-from samplecontainer import TrajectoryContainer, TrajectoryCollector, UniformeBatchContainer, UniformBatchCollector
+from blocAndTools import buildingbloc as bloc, rewardtogo as rtg, visualisationtools
+from blocAndTools.samplecontainer import TrajectoryCollector, UniformBatchCollector
 from vocabulary import rl_name
 vocab = rl_name()
 
@@ -365,7 +363,7 @@ def test_REINFORCE_agent_DISCRETE_PASS(gym_and_tf_discrete_setup):
     obs_p, act_p, exp_spec, playground = gym_and_tf_discrete_setup
     q_values_p = tf_cv1.placeholder(tf.float32, shape=(None,), name='q_values_placeholder')
 
-    reinforce_policy = bloc.REINFORCE_policy(obs_p, act_p, q_values_p, exp_spec, playground)
+    reinforce_policy = REINFORCEbrain.REINFORCE_policy(obs_p, act_p, q_values_p, exp_spec, playground)
     sampled_action, theta_mlp, pseudo_loss = reinforce_policy
 
     # todo: finish test case
