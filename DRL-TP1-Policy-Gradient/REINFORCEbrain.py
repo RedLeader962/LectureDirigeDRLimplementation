@@ -13,6 +13,12 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
     Based on the paper by Williams, R. J.
          Simple statistical gradient-following algorithms for connectionist reinforcement learning. (1992)
 
+    Policy gradient is a on-policy method which seek to directly optimize the policy π_θ by using sampled trajectories τ
+    as weight. Those weight will then be used to indicate how good the policy performed.
+    Based on that knowledge, the algorithm update the parameter θ of his policy to make action leading to similar good
+    trajectories more likely and similar bad trajectories less likely.
+    In the case of Deep Reinforcement Learning, the policy parameter θ is a neural net.
+
     :type observation_placeholder: tf.Tensor
     :type action_placeholder: tf.Tensor
     :type Q_values_placeholder: tf.Tensor

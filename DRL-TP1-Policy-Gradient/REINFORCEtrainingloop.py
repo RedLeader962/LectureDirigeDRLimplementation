@@ -27,15 +27,47 @@ vocab = rl_name()
 RENDER_ENV = False
 
 
-"""
+""" --- TensorBoard ----------------------------------------------------------------------------------------------------
+
 Start TensorBoard in terminal:
     tensorboard --logdir=DRL-TP1-Policy-Gradient/graph/
 
 In browser, go to:
     http://0.0.0.0:6006/ 
-"""
+
+
+------- OpenAi Gym -----------------------------------------------------------------------------------------------------
+
+For OpenAi Gym registered environment, go to:
+
+    * Bird eye view: https://gym.openai.com/envs
+    * Specification: https://github.com/openai/gym/blob/master/gym/envs/__init__.py 
+
+        eg:
+            register(
+                id='CartPole-v1',
+                entry_point='gym.envs.classic_control:CartPoleEnv',
+                max_episode_steps=500,
+                reward_threshold=475.0,
+            )
+
+        'MountainCar-v0', 'MountainCarContinuous-v0', 
+        'CartPole-v1', 'Pendulum-v0', 
+        'LunarLander-v2', 'LunarLanderContinuous-v2', 
+        ...
+
+---------------------------------------------------------------------------------------------------------------------"""
 
 def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None):
+
+    exp_spec = ExperimentSpec()
+
+    # Note: Gamma value is critical.
+    #       Big difference between 0.9 and 0.999.
+    #       Also you need to take into account the experiment average number of step per episode
+    #
+    #           Example with experiment average step of 100:
+    #              0.9^100 = 0.000026 vs 0.99^100 = 0.366003 vs 0.999^100 = 0.904792
 
     cartpole_param_dict_2 = {
         'prefered_environment': 'CartPole-v0',
@@ -69,32 +101,6 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
         'print_metric_every_what_epoch': 5,
     }
 
-    # Note: Gamma value is critical.
-    #       Big difference between 0.9 and 0.999.
-    #       Also you need to take into account the experiment average number of step per episode
-    #
-    #           Example with experiment average step of 100:
-    #              0.9^100 = 0.000026 vs 0.99^100 = 0.366003 vs 0.999^100 = 0.904792
-
-    """
-    For OpenAi Gym registered environment, go to:
-
-        * Bird eye view: https://gym.openai.com/envs
-        * Specification: https://github.com/openai/gym/blob/master/gym/envs/__init__.py 
-
-                eg:
-                    register(
-                        id='CartPole-v1',
-                        entry_point='gym.envs.classic_control:CartPoleEnv',
-                        max_episode_steps=500,
-                        reward_threshold=475.0,
-                    )
-                    
-        'MountainCar-v0', 'MountainCarContinuous-v0', 'CartPole-v1', 'Pendulum-v0', 'LunarLander-v2', 'LunarLanderContinuous-v2', ...
-
-    """
-    exp_spec = ExperimentSpec()
-
     # exp_spec.set_experiment_spec(test_param_dict)
     exp_spec.set_experiment_spec(cartpole_param_dict_2)
     # exp_spec.set_experiment_spec(cartpole_param_dict)
@@ -111,17 +117,15 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
     if RENDER_ENV is not None:
         render_env = RENDER_ENV
 
-    print("\n\n>>> Environment rendering: {}".format(render_env))
+    print("\n\n:: Environment rendering: {}".format(render_env))
 
     consol_print_learning_stats = ConsolPrintLearningStats(exp_spec, exp_spec.print_metric_every_what_epoch)
-
 
     # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
     # *                                                                                                               *
     # *                                  Build computation graph & data collector                                     *
     # *                                                                                                               *
     # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-
 
     """ ---- Build the Policy_theta computation graph with theta as multi-layer perceptron ---- """
     # Placeholder
