@@ -5,7 +5,7 @@ from blocAndTools import referenceimplementation as integration_ref
 
 """
 Start TensorBoard in terminal:
-    tensorboard --logdir=tests/graph/integration_test
+    tensorboard --logdir=DRLTP1PolicyGradient/tests/graph/integration_test
     
 In browser, go to:
     http://0.0.0.0:6006/ 

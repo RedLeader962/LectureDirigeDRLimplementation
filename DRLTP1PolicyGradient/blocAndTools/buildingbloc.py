@@ -7,11 +7,10 @@ from gym.wrappers import TimeLimit
 # import env_spec_pretty_printing
 import numpy as np
 import tensorflow as tf
-
 tf_cv1 = tf.compat.v1   # shortcut
 
-# import tensorflow_weak_warning_supressor as no_cpu_compile_warn
-# no_cpu_compile_warn.execute()
+import tensorflow.python.util.deprecation as deprecation
+deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 from blocAndTools.rl_vocabulary import rl_name
 vocab = rl_name()
@@ -107,10 +106,9 @@ class ExperimentSpec(object):
 
         self._assert_param()
 
-        print("\n\n>>> Switching to parameter: {}".format(self.paramameter_set_name),
+        print("\n\n:: Switching to parameter: {}".format(self.paramameter_set_name),
               self.get_agent_training_spec(),
-              self.get_neural_net_spec(),
-              "\n")
+              self.get_neural_net_spec())
         return None
 
 
@@ -173,12 +171,12 @@ class GymPlayground(object):
 
         info_str = ""
         if isinstance(self._env.action_space, gym.spaces.Box):
-            info_str += "\n\n>>> Action space is Contiuous"
+            info_str += "\n\n:: Action space is Contiuous\n"
             self.ACTION_SPACE = self._env.action_space
             dimension = self.ACTION_SPACE.shape
             self.ACTION_CHOICES = [*dimension][-1]
         else:
-            info_str += "\n\n>>> Action space is Discrete"
+            info_str += "\n\n:: Action space is Discrete\n"
             self.ACTION_SPACE = self._env.action_space
             self.ACTION_CHOICES = self.ACTION_SPACE.n
 
@@ -200,7 +198,6 @@ class GymPlayground(object):
     @property
     def env(self) -> Union[TimeLimit, Any]:
         return self._env
-
 
     def get_environment_spec(self):
         """

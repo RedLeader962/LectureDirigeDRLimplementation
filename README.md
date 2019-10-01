@@ -67,13 +67,13 @@ python REINFORCEtrainingloop.py
 
 **To navigate trough the computation graph in TensorBoard**
 ```bash
-tensorboard --logdir=DRL-TP1-Policy-Gradient/graph/
+tensorboard --logdir=DRLTP1PolicyGradient/graph/runs
 ```
 
 To see [video example](video/) 
 
 
-![Training run](video/training_run.png)
+![Training run](video/training_run_3.png)
 
 ---
 

@@ -5,19 +5,18 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 # region ::Import statement ...
 import tensorflow as tf
 tf_cv1 = tf.compat.v1   # shortcut
+import tensorflow.python.util.deprecation as deprecation
+deprecation._PRINT_DEPRECATION_WARNINGS = False
+
 import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
 
+from REINFORCEbrain import REINFORCE_policy
 from blocAndTools import buildingbloc as bloc
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
-from REINFORCEbrain import REINFORCE_policy
 from blocAndTools.visualisationtools import ConsolPrintLearningStats
 from blocAndTools.samplecontainer import TrajectoryCollector, UniformBatchCollector
-
-# import tensorflow_weak_warning_supressor as no_cpu_compile_warn
-# no_cpu_compile_warn.execute()
-
 from blocAndTools.rl_vocabulary import rl_name
 vocab = rl_name()
 # endregion
@@ -30,7 +29,7 @@ RENDER_ENV = False
 """ --- TensorBoard ----------------------------------------------------------------------------------------------------
 
 Start TensorBoard in terminal:
-    tensorboard --logdir=DRLTP1PolicyGradient/graph/
+    tensorboard --logdir=DRLTP1PolicyGradient/graph/runs
 
 In browser, go to:
     http://0.0.0.0:6006/ 
@@ -117,7 +116,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
     if RENDER_ENV is not None:
         render_env = RENDER_ENV
 
-    print("\n\n:: Environment rendering: {}".format(render_env))
+    print("\n\n:: Environment rendering: {}\n\n".format(render_env))
 
     consol_print_learning_stats = ConsolPrintLearningStats(exp_spec, exp_spec.print_metric_every_what_epoch)
 
@@ -152,7 +151,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
 
     """ ---- Setup parameters saving ---- """
-    saver = tf.train.Saver()
+    saver = tf_cv1.train.Saver()
 
 
     """ ---- Warm-up the computation graph and start learning! ---- """
@@ -258,8 +257,8 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
             """ ---- Save learned model ---- """
             if batch_average_trjs_return == 200:
-                saver.save(sess, 'checkpoint_directory/REINFORCE_agent', global_step=epoch)
-                print("\n::Policy_theta parameters were saved\n")
+                saver.save(sess, 'graph/checkpoint_directory/REINFORCE_agent', global_step=epoch)
+                print("\n\n    :: Policy_theta parameters were saved\n")
 
     consol_print_learning_stats.print_experiment_stats()
     writer.close()
