@@ -35,7 +35,7 @@ class ExperimentSpec(object):
         note:
           |     EPOCH definition:
           |         In our casse, collecting and updating the gradient of a set of trajectories of
-          |         size=timestep_batch_size is equal to one EPOCH
+          |         size=batch_size_in_ts is equal to one EPOCH
 
 
         # todo: add a param for the neural net configuration via a dict fed as a argument
@@ -119,7 +119,7 @@ class GymPlayground(object):
         """
         Setup the learning playground for the agent (the environment in witch he will play) and gather relevant spec
 
-        Note: 'LunarLanderContinuous-v2' (DEFAUT environment)
+        Note: 'LunarLanderContinuous-v2' (DEFAUT continuous environment)
                 env: <TimeLimit<LunarLanderContinuous<LunarLanderContinuous-v2>>>
                 Metadata:
                     {'render.modes': ['human', 'rgb_array'], 'video.frames_per_second': 50}
@@ -244,25 +244,7 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, playground: GymPla
     assert isinstance(playground, GymPlayground)
     assert isinstance(hidden_layer_topology, tuple)
 
-    # with tf.name_scope(name_scope) as scope:
-    #     # Create input layer
-    #     ops = keras.layers.Dense(hidden_layer_topology[0], input_shape=input_placeholder.shape,
-    #                               activation=hidden_layers_activation, name=vocab.input_layer)
-    #
-    #     parent_layer = ops(input_placeholder)
-    #
-    #     # create & connect all hidden layer
-    #     for id in range(len(hidden_layer_topology)):
-    #         h_layer = keras.layers.Dense(hidden_layer_topology[id], activation=hidden_layers_activation, name='{}{}'.format(vocab.hidden_, id + 1))
-    #         parent_layer = h_layer(parent_layer)
-    #
-    #     # create & connect the ouput layer: the logits
-    #     logits = keras.layers.Dense(playground.ACTION_CHOICES, activation=output_layers_activation, name=vocab.logits)
-    #
-    #     return logits(parent_layer)
-
-    with tf.variable_scope(name_or_scope=name_scope):
-    # with tf.name_scope(name_scope) as scope:
+    with tf_cv1.variable_scope(name_or_scope=name_scope):
         h_layer = input_placeholder
 
         # create & connect all hidden layer
@@ -310,7 +292,6 @@ def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground, action
     :rtype: (tf.Tensor, tf.Tensor, tf.Tensor)
     """
     assert isinstance(playground, GymPlayground), "\n\n>>> Expected a builded GymPlayground.\n\n"
-
 
     if isinstance(playground.env.observation_space, gym.spaces.Box):
         """observation space is continuous"""
@@ -361,16 +342,16 @@ def policy_theta_discrete_space(logits_layer: tf.Tensor, playground: GymPlaygrou
         # Remove single-dimensional entries from the shape of the array since we only take one sample from the distribution
         sampled_action = tf.squeeze(oversize_policy_theta, axis=1)
 
-        # # todo --> sampled_action_log_probability unit test
+        # (Ice-Boxed) todo:implement --> sampled_action_log_probability unit test:
         # # Compute the log probabilitie from sampled action
         # sampled_action_mask = tf.one_hot(sampled_action, depth=playground.ACTION_CHOICES)
         # log_probabilities_matrix = tf.multiply(sampled_action_mask, log_p_all)
         # sampled_action_log_probability = tf.reduce_sum(log_probabilities_matrix, axis=1)
 
-
         return sampled_action, log_p_all
 
 
+# (Ice-Boxed) todo:implement --> implement policy_theta for continuous space: ice-boxed until next sprint
 def policy_theta_continuous_space(logits_layer: tf.Tensor, playground: GymPlayground):
     """
     Policy theta for continuous space --> actions are sampled from a gausian distribution
@@ -395,9 +376,11 @@ def policy_theta_continuous_space(logits_layer: tf.Tensor, playground: GymPlaygr
 def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.Tensor, Q_values_placeholder: tf.Tensor,
                      experiment_spec: ExperimentSpec, playground: GymPlayground) -> (tf.Tensor, tf.Tensor, tf.Tensor):
     """
-    The learning agent. Base on the REINFORCE paper (aka: Vanila policy gradient)
-    todo --> add references
-    todo --> implement for continuous space (status: Ice-box until next sprint)
+    The learning agent: REINFORCE (aka: Vanila policy gradient)
+    Based on the paper by Williams, R. J.
+         Simple statistical gradient-following algorithms for connectionist reinforcement learning. (1992)
+
+
 
     :param observation_placeholder:
     :type observation_placeholder: tf.Tensor
@@ -414,7 +397,6 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
     """
 
     with tf.name_scope(vocab.REINFORCE) as scope:
-
         theta_mlp = build_MLP_computation_graph(observation_placeholder, playground,
                                                 experiment_spec.nn_h_layer_topo,
                                                 hidden_layers_activation=experiment_spec.hidden_layers_activation,
@@ -431,13 +413,10 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
 
             pseudo_loss = discrete_pseudo_loss(log_p_all, action_placeholder, Q_values_placeholder, playground)
 
-            # pseudo_loss = tf.reduce_mean(tf.stop_gradient(Q_values_placeholder) * tf.nn.sparse_softmax_cross_entropy_with_logits(logits=theta_mlp, labels=action_placeholder), name=vocab.pseudo_loss)
-
-
         # /---- continuous case -----
+        # (Ice-Boxed) todo:implement --> implement for continuous space:
         elif isinstance(playground.env.action_space, gym.spaces.Box):
-            raise NotImplementedError   # todo: implement <-- ice-box until next sprint
-
+            raise NotImplementedError
             # policy_theta, log_standard_deviation = policy_theta_continuous_space(theta_mlp, playground)
             # sampled_action = NotImplemented
             # sampled_action_log_probability = NotImplemented
@@ -451,14 +430,11 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
     return sampled_action, theta_mlp, pseudo_loss
 
 
-
 def discrete_pseudo_loss(log_p_all, action_placeholder: tf.Tensor, Q_values_placeholder: tf.Tensor,
                          playground: GymPlayground) -> tf.Tensor:
     """
-    Pseudo loss for discrete action space only using Softmax cross entropy with logits
+    Pseudo loss for discrete action space
     """
-
-    # \\\\\\    My bloc    \\\\\\
     with tf.name_scope(vocab.pseudo_loss) as scope:
 
         # Step 1: Compute the log probabilitie of the current policy over the action space
@@ -474,12 +450,6 @@ def discrete_pseudo_loss(log_p_all, action_placeholder: tf.Tensor, Q_values_plac
         pseudo_loss = -tf.reduce_mean(weighted_likelihoods)
         return pseudo_loss
 
-    # ////// Original bloc //////
-    # action_masks = tf.one_hot(action_placeholder, playground.ACTION_CHOICES)
-    # # log_probs = tf.reduce_sum(action_masks * tf.nn.log_softmax(logits), axis=1)
-    # log_probs = tf.reduce_sum(action_masks * log_p_all, axis=1)
-    # loss = -tf.reduce_mean(Q_values_placeholder * log_probs)
-    return loss
 
 
 def policy_optimizer(pseudo_loss: tf.Tensor, learning_rate: ExperimentSpec) -> tf.Operation:

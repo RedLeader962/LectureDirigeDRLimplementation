@@ -256,7 +256,7 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
     print("\n>>> Close session\n")
     writer.close()
     playground.env.close()
-    tf.reset_default_graph()
+    tf_cv1.reset_default_graph()
     sess.close()
 
 

@@ -7,6 +7,7 @@ import tensorflow as tf
 tf_cv1 = tf.compat.v1   # shortcut
 import numpy as np
 import matplotlib.pyplot as plt
+from datetime import datetime
 
 import buildingbloc as bloc
 from buildingbloc import ExperimentSpec, GymPlayground, REINFORCE_policy
@@ -33,42 +34,25 @@ In browser, go to:
     http://0.0.0.0:6006/ 
 """
 
-def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None, print_metric_every_what_epoch=5):
+def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None):
 
-    cartpole_parma_dict = {
-        'prefered_environment': 'CartPole-v1',
-        'paramameter_set_name': 'RedLeader CartPole-v1',
-        'batch_size_in_ts': 40,
-        'max_epoch': 5000,
-        'discounted_reward_to_go': True,
-        'discout_factor': 0.999,
-        'learning_rate': 1e-3,
-        'nn_h_layer_topo': (62, ),
-        'random_seed': 82,
-        'hidden_layers_activation': tf.nn.tanh,
-        'output_layers_activation': tf.nn.tanh,
-        'render_env_every_What_epoch': 100,
-        'print_metric_every_what_epoch': 10,
-    }
-
-    cartpole_parma_dict_2 = {
+    cartpole_param_dict_2 = {
         'prefered_environment': 'CartPole-v0',
         'paramameter_set_name': 'RedLeader CartPole-v0',
         'batch_size_in_ts': 5000,
         'max_epoch': 50,
         'discounted_reward_to_go': True,
-        'discout_factor': 0.99,
+        'discout_factor': 0.999,
         'learning_rate': 1e-2,
         'nn_h_layer_topo': (62, ),
         'random_seed': 82,
         'hidden_layers_activation': tf.nn.tanh,        # tf.nn.relu,
         'output_layers_activation': None,
-        # 'output_layers_activation': tf.nn.sigmoid,
         'render_env_every_What_epoch': 100,
         'print_metric_every_what_epoch': 2,
     }
 
-    test_parma_dict = {
+    test_param_dict = {
         'prefered_environment': 'CartPole-v0',
         'paramameter_set_name': 'Test spec',
         'batch_size_in_ts': 2000,
@@ -79,7 +63,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
         'nn_h_layer_topo': (8, 8),
         'random_seed': 82,
         'hidden_layers_activation': tf.nn.tanh,
-        'output_layers_activation': tf.nn.tanh,
+        'output_layers_activation': None,
         'render_env_every_What_epoch': 5,
         'print_metric_every_what_epoch': 5,
     }
@@ -108,12 +92,11 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
         'MountainCar-v0', 'MountainCarContinuous-v0', 'CartPole-v1', 'Pendulum-v0', 'LunarLander-v2', 'LunarLanderContinuous-v2', ...
 
     """
-    # (nice to have) todo:refactor --> automate timestep_max_per_trajectorie field default: fetch the value from the selected env
     exp_spec = ExperimentSpec()
 
-    # exp_spec.set_experiment_spec(test_parma_dict)
-    exp_spec.set_experiment_spec(cartpole_parma_dict_2)
-    # exp_spec.set_experiment_spec(cartpole_parma_dict)
+    # exp_spec.set_experiment_spec(test_param_dict)
+    exp_spec.set_experiment_spec(cartpole_param_dict_2)
+    # exp_spec.set_experiment_spec(cartpole_param_dict)
 
     playground = GymPlayground(environment_name=exp_spec.prefered_environment)
 
@@ -158,7 +141,9 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
 
     """ ---- Warm-up the computation graph and start learning! ---- """
-    writer = tf_cv1.summary.FileWriter('./graph', tf_cv1.get_default_graph())
+    date_now = datetime.now()
+    run_str = "Run--{}h{}--{}-{}-{}".format(date_now.hour, date_now.minute, date_now.day, date_now.month, date_now.year)
+    writer = tf_cv1.summary.FileWriter("./graph/{}".format(run_str), tf_cv1.get_default_graph())
     tf_cv1.set_random_seed(exp_spec.random_seed)
     np.random.seed(exp_spec.random_seed)
     with tf_cv1.Session() as sess:
@@ -174,11 +159,10 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
         """ ---- Simulator: Epochs ---- """
         for epoch in range(exp_spec.max_epoch):
-
             consol_print_learning_stats.next_glorious_epoch()
 
             """ ---- Simulator: trajectories ---- """
-            while the_UNI_BATCH_COLLECTOR.is_not_full():      # (Priority) todo:fixme!! --> must be handle by the batch_collector:
+            while the_UNI_BATCH_COLLECTOR.is_not_full():
                 current_observation = playground.env.reset()   # fetch initial observation
 
                 consol_print_learning_stats.next_glorious_trajectory()
@@ -200,19 +184,13 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
                     action_array = sess.run(policy_action_sampler, feed_dict={observation_ph: step_observation})
 
                     action = bloc.format_single_step_action(action_array)
-                    reaction_observation, reward, done, _ = playground.env.step(action)
+                    observe_reaction, reward, done, _ = playground.env.step(action)
 
                     """ ---- Agent: Collect current timestep events ---- """
                     # (Critical) | Collecting the right observation S_t that trigered the action A_t is critical.
-                    #            | If you collect the reaction_observation S_t+1 with action A_t, the agent wont learn!
+                    #            | If you collect the observe_reaction S_t+1 with action A_t, the agent wont learn!
                     the_TRAJECTORY_COLLECTOR.collect(current_observation, action, reward)
-                    current_observation = reaction_observation  # <-- (!)
-
-                    # region ::Timestep consol print ...
-                    # # Timestep consol print
-                    # print("\t\t E:{} Tr:{} TS:{}\t\t|\taction[{}]\t--> \treward = {}".format(
-                    #     epoch + 1, the_UNI_BATCH_COLLECTOR.trj_collected_so_far() + 1, step + 1, action, reward))
-                    # endregion
+                    current_observation = observe_reaction  # <-- (!)
 
                     if done:
                         """ ---- Simulator: trajectory as ended ---- """
@@ -267,12 +245,10 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
                 total_timestep_collected=batch_timestep_collected
             )
 
-
-
     consol_print_learning_stats.print_experiment_stats()
     writer.close()
     tf_cv1.reset_default_graph()
-    sess.close()
+    # sess.close()
     playground.env.close()
 
     plt.close()

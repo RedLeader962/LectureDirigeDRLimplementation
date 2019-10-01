@@ -48,7 +48,7 @@ def gym_continuous_setup():
     exp_spec = bloc.ExperimentSpec(batch_size_in_ts=1000, max_epoch=2, neural_net_hidden_layer_topology=(2, 2))
     playground = bloc.GymPlayground('LunarLanderContinuous-v2')
     yield exp_spec, playground
-    tf.reset_default_graph()
+    tf_cv1.reset_default_graph()
 
 @pytest.fixture
 def gym_discrete_setup():
@@ -59,7 +59,7 @@ def gym_discrete_setup():
     exp_spec = bloc.ExperimentSpec(batch_size_in_ts=1000, max_epoch=2, neural_net_hidden_layer_topology=(2, 2))
     playground = bloc.GymPlayground('LunarLander-v2')
     yield exp_spec, playground
-    tf.reset_default_graph()
+    tf_cv1.reset_default_graph()
 
 @pytest.fixture
 def gym_and_tf_continuous_setup():
@@ -71,7 +71,7 @@ def gym_and_tf_continuous_setup():
     playground = bloc.GymPlayground('LunarLanderContinuous-v2')
     obs_p, act_p, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground, (1,))
     yield obs_p, act_p, exp_spec, playground
-    tf.reset_default_graph()
+    tf_cv1.reset_default_graph()
 
 @pytest.fixture
 def gym_and_tf_discrete_setup():
@@ -83,7 +83,7 @@ def gym_and_tf_discrete_setup():
     playground = bloc.GymPlayground('LunarLander-v2')
     obs_p, act_p, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground, (1,))
     yield obs_p, act_p, exp_spec, playground
-    tf.reset_default_graph()
+    tf_cv1.reset_default_graph()
 
 
 
