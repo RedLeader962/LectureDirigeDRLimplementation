@@ -43,7 +43,6 @@ python REINFORCEtrainingloop.py
 tensorboard --logdir=DRL-TP1-Policy-Gradient/graph/
 ```
 
-
 To see [video example](https://github.com/RedLeader962/LectureDirigeDRLimplementation/tree/IMPLEMENT-predict_loop/DRLTP1PolicyGradient/video) 
 
 

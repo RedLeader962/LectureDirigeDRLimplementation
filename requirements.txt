@@ -1,0 +1,5 @@
+matplotlib==3.1.0
+tensorflow>=1.14.0,<2.0
+gym>=0.10.8
+numpy
+pytest
