@@ -4,7 +4,7 @@ from typing import Any, Union
 import gym
 from gym.wrappers import TimeLimit
 
-import pretty_printing
+import env_spec_pretty_printing
 import numpy as np
 import tensorflow as tf
 
@@ -13,7 +13,7 @@ tf_cv1 = tf.compat.v1   # shortcut
 import tensorflow_weak_warning_supressor as no_cpu_compile_warn
 no_cpu_compile_warn.execute()
 
-from vocabulary import rl_name
+from rl_vocabulary import rl_name
 vocab = rl_name()
 
 
@@ -190,9 +190,9 @@ class GymPlayground(object):
                                "\tMain engine: -1..0 off, 0..+1 throttle from 50% to 100% power.\n" \
                                "\t\t\t\t(!) Engine can't work with less than 50% power.\n" \
                                "\tLeft-right:  -1.0..-0.5 fire left engine, +0.5..+1.0 fire right engine, -0.5..0.5 off\n\n"
-                info_str += pretty_printing.environnement_doc_str(self._env, action_space_doc=action_space_doc)
+                info_str += env_spec_pretty_printing.environnement_doc_str(self._env, action_space_doc=action_space_doc)
             else:
-                info_str += pretty_printing.environnement_doc_str(self._env)
+                info_str += env_spec_pretty_printing.environnement_doc_str(self._env)
 
             print(info_str)
 

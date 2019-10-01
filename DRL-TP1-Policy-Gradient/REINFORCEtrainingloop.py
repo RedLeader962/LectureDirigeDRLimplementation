@@ -18,7 +18,7 @@ from blocAndTools.samplecontainer import TrajectoryCollector, UniformBatchCollec
 import tensorflow_weak_warning_supressor as no_cpu_compile_warn
 no_cpu_compile_warn.execute()
 
-from vocabulary import rl_name
+from rl_vocabulary import rl_name
 vocab = rl_name()
 # endregion
 

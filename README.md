@@ -1,12 +1,12 @@
 Repository for the course IFT-7014: Directed reading on
 #Deep Reinforcement Learning 
 
-**Luc Coupal**,
+by **Luc Coupal**,
 Université Laval,
 Montréal, QC, Canada,
 [Luc.Coupal.1@uLaval.ca](Luc.Coupal.1@uLaval.ca) 
 
-Under the supervision of:
+#### Under the supervision of:
 
 **Professor Brahim Chaib-draa**,
 Directeur du programme de baccalauréat en génie logiciel de l'Université Laval,
