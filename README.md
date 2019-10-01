@@ -16,7 +16,7 @@ Québec, QC, Canada,
 
 ---
 
-### Dependencies:
+#### Dependencies:
     'gym>=0.14.0'
     'tensorflow>=1.14.0,<2.0',
     'matplotlib>=3.1.0',
@@ -24,21 +24,23 @@ Québec, QC, Canada,
     'seaborn>=0.9.0',
     'pytest',
     
-### Install instruction:
-1) Create & activate a new virtuel environment (I recommand using [conda](https://www.anaconda.com/distribution/), ... it's a walk in the park)
+#### Install instruction:
+1) **Create & activate a new virtuel environment** (I recommand using [conda](https://www.anaconda.com/distribution/), ... it's a walk in the park)
     ```bash
     conda create --name myNewVirtualEnvironmentName python=3.7
     conda activate myNewVirtualEnvironmentName
     ```
-2) Clone the GitHub repository & install
+2) **Clone the GitHub repository & install**:
     ```bash
-    git clone git@github.com:RedLeader962/LectureDirigeDRLimplementation.git
-    cd deep-reinforcement-learning-gym
+    git clone https://github.com/RedLeader962/LectureDirigeDRLimplementation.git
+    cd LectureDirigeDRLimplementation
     pip install -e .
     ```
-3) Enjoy DRL
+3) **Enjoy** DRL script
+
 ---
 
+**First of many:**
 
 ## [Basic policy gradient](https://github.com/RedLeader962/LectureDirigeDRLimplementation/tree/master/DRL-TP1-Policy-Gradient)
 Policy gradient is a on-policy method which seek to directly optimize the policy  by using sampled trajectories as weight. Those weights will then be used to indicate how good the policy performed. Based on that knowledge, the algorithm updates the parameters of his policy to make action leading to similar good trajectories more likely and similar bad trajectories less likely. In the case of Deep Reinforcement Learning, the policy parameter is a neural net. For this essay, I've studied and implemented the basic version of policy gradient also known as REINFORCE. I've also complemented my reading with the following ressources:
