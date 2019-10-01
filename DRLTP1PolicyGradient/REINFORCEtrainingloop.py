@@ -30,7 +30,7 @@ RENDER_ENV = False
 """ --- TensorBoard ----------------------------------------------------------------------------------------------------
 
 Start TensorBoard in terminal:
-    tensorboard --logdir=DRL-TP1-Policy-Gradient/graph/
+    tensorboard --logdir=DRLTP1PolicyGradient/graph/
 
 In browser, go to:
     http://0.0.0.0:6006/ 
