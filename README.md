@@ -30,3 +30,6 @@ The REINFORCE implementation:
 - [video example](https://github.com/RedLeader962/LectureDirigeDRLimplementation/tree/IMPLEMENT-predict_loop/DRLTP1PolicyGradient/video) 
 
 
+![Training run](DRLTP1PolicyGradient/video/training_run.png)
+
+![Trained REINFORCE agent](DRLTP1PolicyGradient/video/cartpole_2.mp4)
