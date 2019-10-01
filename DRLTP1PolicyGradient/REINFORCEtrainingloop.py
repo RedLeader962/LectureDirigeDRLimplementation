@@ -152,7 +152,8 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
 
     """ ---- Setup parameters saving ---- """
-    # saver = tf.train.Saver()
+    saver = tf.train.Saver()
+
 
     """ ---- Warm-up the computation graph and start learning! ---- """
     tf_cv1.set_random_seed(exp_spec.random_seed)
@@ -255,10 +256,14 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
                 total_timestep_collected=batch_timestep_collected
             )
 
+            """ ---- Save learned model ---- """
+            if batch_average_trjs_return == 200:
+                saver.save(sess, 'checkpoint_directory/REINFORCE_agent', global_step=epoch)
+                print("\n::Policy_theta parameters were saved\n")
+
     consol_print_learning_stats.print_experiment_stats()
     writer.close()
     tf_cv1.reset_default_graph()
-    # sess.close()
     playground.env.close()
 
     plt.close()

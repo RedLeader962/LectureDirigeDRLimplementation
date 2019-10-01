@@ -23,3 +23,10 @@ Policy gradient is a on-policy method which seek to directly optimize the policy
 - and also [Lil' Log blog:Policy Gradient Algorithms](https://lilianweng.github.io/lil-log/2018/04/08/policy-gradient-algorithms.html) by Lilian Weng, research intern at OpenAI
 
 ---
+
+The REINFORCE 
+- training loop is in /DRLTP1PolicyGradient REINFORCEtrainingloop.py 
+- playing loop is in /DRLTP1PolicyGradient REINFORCEplayingloop.py
+- video example are in DRLTP1PolicyGradient/video
+
+

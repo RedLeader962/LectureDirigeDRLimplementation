@@ -340,7 +340,7 @@ def policy_theta_discrete_space(logits_layer: tf.Tensor, playground: GymPlaygrou
         oversize_policy_theta = tf.random.categorical(logits_layer, num_samples=1)
 
         # Remove single-dimensional entries from the shape of the array since we only take one sample from the distribution
-        sampled_action = tf.squeeze(oversize_policy_theta, axis=1)
+        sampled_action = tf.squeeze(oversize_policy_theta, axis=1, )
 
         # (Ice-Boxed) todo:implement --> sampled_action_log_probability unit test:
         # # Compute the log probabilitie from sampled action
