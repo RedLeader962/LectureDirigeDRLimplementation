@@ -41,7 +41,6 @@ Québec, QC, Canada,
 
 ---
 ### Essay on:
-- **[Basic policy gradient](https://github.com/RedLeader962/LectureDirigeDRLimplementation/tree/master/DRLTP1PolicyGradient)**
 - **[Basic policy gradient](DRLTP1PolicyGradient)**
 - Actor-Critic
 - Maximum Entropy DRL
