@@ -102,7 +102,6 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
     # exp_spec.set_experiment_spec(test_param_dict)
     exp_spec.set_experiment_spec(cartpole_param_dict_2)
-    # exp_spec.set_experiment_spec(cartpole_param_dict)
 
     playground = GymPlayground(environment_name=exp_spec.prefered_environment)
 
