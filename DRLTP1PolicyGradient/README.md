@@ -1,5 +1,5 @@
 [<< Back to home page](https://github.com/RedLeader962/LectureDirigeDRLimplementation/tree/master)
-[<< Back to home page](../)
+[<< Back to home page](..)
 # Deep Reinforcement Learning  
 
 ## [Basic policy gradient](https://github.com/RedLeader962/LectureDirigeDRLimplementation/tree/master/DRL-TP1-Policy-Gradient)
