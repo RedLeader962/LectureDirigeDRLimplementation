@@ -13,10 +13,17 @@ Directeur du programme de baccalauréat en génie logiciel de l'Université Lava
 Québec, QC, Canada,
 [Brahim.Chaib-draa@ift.ulaval.ca](Brahim.Chaib-draa@ift.ulaval.ca)
 
+---
+### Essay on:
+- **[Basic policy gradient](DRLTP1PolicyGradient)**
+- Actor-Critic
+- Maximum Entropy DRL
+- Inverse DRL
+- Meta-DRL
 
 ---
     
-#### Install instruction:
+### Install instruction:
 1) **Create & activate a new virtual environment** (I recommand using [conda](https://www.anaconda.com/distribution/), ... it's a walk in the park)
     ```bash
     conda create --name myNewVirtualEnvironmentName python=3.7
@@ -38,14 +45,6 @@ Québec, QC, Canada,
         'pytest',
     
 3) **Enjoy** DRL script
-
----
-### Essay on:
-- **[Basic policy gradient](DRLTP1PolicyGradient)**
-- Actor-Critic
-- Maximum Entropy DRL
-- Inverse DRL
-- Meta-DRL
 
 ![Trained agent in action](video/REINFORCE_agent_cartpole_2.gif)
 
