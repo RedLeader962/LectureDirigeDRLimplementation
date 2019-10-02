@@ -8,6 +8,11 @@ Policy gradient is a on-policy method which seek to directly optimize the policy
 - and [Lil' Log blog:Policy Gradient Algorithms](https://lilianweng.github.io/lil-log/2018/04/08/policy-gradient-algorithms.html) by Lilian Weng, research intern at OpenAI
 
 ---
+[Download the essay pdf](https://github.com/RedLeader962/LectureDirigeDRLimplementation/raw/master/Policy_gradient_LucCoupal_v1-1.pdf) 
+
+Watch [recorded agent](../video) 
+
+---
 
 ### The REINFORCE implementation:
 **To watch the trained algorithm**
@@ -28,11 +33,8 @@ python REINFORCEtrainingloop.py
 tensorboard --logdir=DRLTP1PolicyGradient/graph/runs
 ```
 
-To see [video example](../video/) 
-
 ![Trained agent in action](../video/REINFORCE_agent_cartpole_2.gif)
 
 ![Training run](../video/training_run_3.png)
 
 ---
-
