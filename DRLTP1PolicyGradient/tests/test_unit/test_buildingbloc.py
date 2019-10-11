@@ -7,8 +7,6 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
-import REINFORCEbrain
-
 tf_cv1 = tf.compat.v1   # shortcut
 
 from blocAndTools import buildingbloc as bloc, rewardtogo as rtg, visualisationtools
@@ -355,18 +353,6 @@ def test_policy_theta_continuous_space_ENV_NOT_DISCRETE(gym_and_tf_discrete_setu
 
     with pytest.raises(AssertionError):
         bloc.policy_theta_continuous_space(theta_mlp, discrete_playground)
-
-
-# --- REINFORCED_agent -------------------------------------------------------------------------------------------
-def test_REINFORCE_agent_DISCRETE_PASS(gym_and_tf_discrete_setup):
-
-    obs_p, act_p, exp_spec, playground = gym_and_tf_discrete_setup
-    q_values_p = tf_cv1.placeholder(tf.float32, shape=(None,), name='q_values_placeholder')
-
-    reinforce_policy = REINFORCEbrain.REINFORCE_policy(obs_p, act_p, q_values_p, exp_spec, playground)
-    sampled_action, theta_mlp, pseudo_loss = reinforce_policy
-
-    # todo: finish test case
 
 
 
