@@ -13,11 +13,11 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 
 from REINFORCEbrain import REINFORCE_policy
-from blocAndTools import buildingbloc as bloc
-from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
-from blocAndTools.visualisationtools import ConsolPrintLearningStats
-from blocAndTools.samplecontainer import TrajectoryCollector, UniformBatchCollector
-from blocAndTools.rl_vocabulary import rl_name
+from DRLimplementation.blocAndTools import buildingbloc as bloc
+from DRLimplementation.blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
+from DRLimplementation.blocAndTools.visualisationtools import ConsolPrintLearningStats
+from DRLimplementation.blocAndTools.samplecontainer import TrajectoryCollector, UniformBatchCollector
+from DRLimplementation.blocAndTools.rl_vocabulary import rl_name
 vocab = rl_name()
 # endregion
 

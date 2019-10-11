@@ -1,7 +1,7 @@
 # coding=utf-8
 
 import pytest
-from blocAndTools import referenceimplementation as integration_ref
+from DRLimplementation.blocAndTools import referenceimplementation as integration_ref
 
 """
 Start TensorBoard in terminal:

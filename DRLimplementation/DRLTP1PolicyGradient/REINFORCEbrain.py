@@ -2,7 +2,7 @@
 import gym
 import tensorflow as tf
 
-from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground, vocab, build_MLP_computation_graph, \
+from DRLimplementation.blocAndTools.buildingbloc import ExperimentSpec, GymPlayground, vocab, build_MLP_computation_graph, \
     policy_theta_discrete_space, discrete_pseudo_loss
 
 

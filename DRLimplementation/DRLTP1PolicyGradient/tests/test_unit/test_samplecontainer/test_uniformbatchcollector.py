@@ -4,8 +4,8 @@ from typing import Union, Any
 import pytest
 from gym.wrappers import TimeLimit
 
-from blocAndTools.samplecontainer import TrajectoryCollector, UniformBatchCollector
-from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
+from DRLimplementation.blocAndTools import TrajectoryCollector, UniformBatchCollector
+from DRLimplementation.blocAndTools import ExperimentSpec, GymPlayground
 from tests.test_unit.test_samplecontainer.conftest import take_one_random_step
 
 import numpy as np

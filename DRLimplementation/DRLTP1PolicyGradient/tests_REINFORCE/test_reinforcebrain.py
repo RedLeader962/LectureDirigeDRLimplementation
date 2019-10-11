@@ -1,13 +1,11 @@
 # coding=utf-8
-import gym
 import pytest
-import numpy as np
 import tensorflow as tf
-from tensorflow import keras
+
 tf_cv1 = tf.compat.v1   # shortcut
 
 import REINFORCEbrain
-from blocAndTools import buildingbloc as bloc
+from DRLimplementation.blocAndTools import buildingbloc as bloc
 
 
 @pytest.fixture

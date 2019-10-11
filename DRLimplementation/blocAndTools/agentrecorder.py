@@ -3,22 +3,30 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 # region ::Import statement ...
+from datetime import datetime
+
 import tensorflow as tf
 tf_cv1 = tf.compat.v1   # shortcut
 
-from blocAndTools import buildingbloc as bloc
-from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
+from gym.wrappers.monitoring.video_recorder import VideoRecorder
+
+from DRLimplementation.blocAndTools import buildingbloc as bloc
+from DRLimplementation.blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 from REINFORCEbrain import REINFORCE_policy
-from blocAndTools.rl_vocabulary import rl_name
+from DRLimplementation.blocAndTools.rl_vocabulary import rl_name
 vocab = rl_name()
 # endregion
 
 
-def play_REINFORCE_agent_discrete(env='CartPole-v0'):
+# (Ice-Boxed) todo:assessment -->  functionality of this module could go in REINFORCEplayingloop.py
+#                                                                since VideoRecorder can be enable/disable:
+# todo:refactor --> exp_spec must follow the saved computation grah: find a way to assert compatibility between those
+def record_REINFORCE_agent_discrete(env='CartPole-v0', nb_of_clip_recorded=5):
     """
-    Execute playing loop of a previously trained REINFORCE agent in the 'CartPole-v0' environment
+    Record playing loop of a previously trained REINFORCE agent in the 'CartPole-v0' environment
 
     """
+
     exp_spec = ExperimentSpec()
 
     cartpole_param_dict_2 = {
@@ -37,10 +45,7 @@ def play_REINFORCE_agent_discrete(env='CartPole-v0'):
         'print_metric_every_what_epoch': 2,
     }
     exp_spec.set_experiment_spec(cartpole_param_dict_2)
-
-
     playground = GymPlayground(environment_name=exp_spec.prefered_environment)
-
 
     # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
     # *                                                                                                               *
@@ -60,19 +65,24 @@ def play_REINFORCE_agent_discrete(env='CartPole-v0'):
     saver = tf_cv1.train.Saver()
 
     with tf_cv1.Session() as sess:
-        saver.restore(sess, 'graph/saved_training/REINFORCE_agent-39')
 
-        while True: #keep playing
-        # for run in range(3):      #recorder version
+        """ ---- Restore a trained REINFORCE agent computation graph ---- """
+        saver.restore(sess, '../graph/saved_training/REINFORCE_agent-39')
 
-            # recorder = VideoRecorder(playground.env, '../video/cartpole_{}.mp4'.format(run))
+        """ ---- Execute recording loop ---- """
+        for run in range(nb_of_clip_recorded):
             current_observation = playground.env.reset()    # <-- fetch initial observation
+
+            date_now = datetime.now()
+            timestamp = "{}{}".format(date_now.minute, date_now.microsecond)
+            recorder = VideoRecorder(playground.env, '../../video/REINFORCE_agent_cartpole_{}--{}.mp4'.format(run+1, timestamp))
+            print("\n:: Start recording trajectory {}\n".format(run+1))
 
             """ ---- Simulator: time-steps ---- """
             while True:
 
-                playground.env.render()  # keep environment rendering turned OFF during unit test
-                # recorder.capture_frame()
+                """ ---- Record one timestep ---- """
+                recorder.capture_frame()
 
                 """ ---- Agent: act in the environment ---- """
                 step_observation = bloc.format_single_step_observation(current_observation)
@@ -83,12 +93,10 @@ def play_REINFORCE_agent_discrete(env='CartPole-v0'):
                 current_observation = observe_reaction  # <-- (!)
 
                 if done:
+                    recorder.close()
                     break
 
-
-    # recorder.close()
     playground.env.close()
-
 
 
 if __name__ == '__main__':
@@ -98,6 +106,6 @@ if __name__ == '__main__':
     parser.add_argument('--env', type=str, default='CartPole-v0')
     args = parser.parse_args()
 
-    play_REINFORCE_agent_discrete(env=args.env)
+    record_REINFORCE_agent_discrete(env=args.env)
 
 

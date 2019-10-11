@@ -10,7 +10,7 @@ Policy gradient is a on-policy method which seek to directly optimize the policy
 ---
 [Download the essay pdf](https://github.com/RedLeader962/LectureDirigeDRLimplementation/raw/master/Policy_gradient_LucCoupal_v1-1.pdf) 
 
-Watch [recorded agent](../video) 
+Watch [recorded agent](../../video) 
 
 ---
 
@@ -18,23 +18,23 @@ Watch [recorded agent](../video)
 **To watch the trained algorithm**
 
 ```bash
-cd DRLTP1PolicyGradient/
+cd DRLimplementation/DRLTP1PolicyGradient/
 python REINFORCEplayingloop.py 
 ```
 
 **To execute the training loop**
 ```bash
-cd DRLTP1PolicyGradient/
+cd DRLimplementation/DRLTP1PolicyGradient/
 python REINFORCEtrainingloop.py
 ```
 
 **To navigate trough the computation graph in TensorBoard**
 ```bash
-tensorboard --logdir=DRLTP1PolicyGradient/graph/runs
+tensorboard --logdir=DRLimplementation/DRLTP1PolicyGradient/graph/runs
 ```
 
-![Trained agent in action](../video/REINFORCE_agent_cartpole_2.gif)
+![Trained agent in action](../../video/REINFORCE_agent_cartpole_2.gif)
 
-![Training run](../video/training_run_3.png)
+![Training run](../../video/training_run_3.png)
 
 ---
