@@ -52,7 +52,6 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
         'random_seed': 42,
         'hidden_layers_activation': tf.nn.tanh,  # tf.nn.relu,
         'output_layers_activation': None,
-        # 'output_layers_activation': tf.nn.sigmoid,
         'render_env_every_What_epoch': 100,
         'print_metric_every_what_epoch': 5,
     }
@@ -94,8 +93,8 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
     # (!) First silent error cause by uneven batch size                                    # \\\\\\    My bloc    \\\\\\
     # loss = BLOC.discrete_pseudo_loss(log_p_all, act_ph, weights_ph, playground)          # \\\\\\    My bloc    \\\\\\
 
-    reinforce_policy = REINFORCEbrain.REINFORCE_policy(obs_ph, act_ph,  # \\\\\\    My bloc    \\\\\\
-                                                       weights_ph, exp_spec, playground)             # \\\\\\    My bloc    \\\\\\
+    reinforce_policy = REINFORCEbrain.REINFORCE_policy(obs_ph, act_ph,                     # \\\\\\    My bloc    \\\\\\
+                                                       weights_ph, exp_spec, playground)   # \\\\\\    My bloc    \\\\\\
     (actions, _, loss) = reinforce_policy                                                  # \\\\\\    My bloc    \\\\\\
 
     # make train op
@@ -152,7 +151,7 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
                     env.render()
 
                 # save obs
-                # batch_obs.append(obs.copy())  # <-- (!) (Critical)                     # ////// Original bloc //////
+                # batch_obs.append(obs.copy())  # <-- (!) (Critical) append S_t not S_{t+1} ////// Original bloc //////
 
 
                 # # act in the environment
@@ -162,19 +161,22 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
                 step_observation = BLOC.format_single_step_observation(obs)              # \\\\\\    My bloc    \\\\\\
                 action_array = sess.run(actions, feed_dict={obs_ph: step_observation})   # \\\\\\    My bloc    \\\\\\
                 act = BLOC.format_single_step_action(action_array)                       # \\\\\\    My bloc    \\\\\\
-                obs, rew, done, _ = playground.env.step(act)                             # \\\\\\    My bloc    \\\\\\
+                # obs, rew, done, _ = playground.env.step(act)   <-- (!) mistake         # \\\\\\    My bloc    \\\\\\
+                # (!) Solution to silent error 2: dont ovewrite S_t                        \\\\\\    My bloc    \\\\\\
+                obs_prime, rew, done, _ = playground.env.step(act) # <-- (!) Solution      \\\\\\    My bloc    \\\\\\
 
                 # ////// Original bloc //////
                 # # save action, reward
                 # batch_acts.append(act)
                 # ep_rews.append(rew)
 
-                # (Critical) | Login the observation S_t that trigered the action A_t is critical.  # \\\\\\    My bloc    \\\\\\
-                #            | If the observation is the one at time S_t+1, the agent wont learn    # \\\\\\    My bloc    \\\\\\
-                the_TRAJECTORY_COLLECTOR.collect(obs, act, rew)  # <-- (!) Second silent error      # \\\\\\    My bloc    \\\\\\
+                # (Critical) | Append the observation S_t that trigered the action A_t is critical.  \\\\\\    My bloc    \\\\\\
+                #            | If the observation is the one at time S_{t+1}, the agent wont learn   \\\\\\    My bloc    \\\\\\
+                the_TRAJECTORY_COLLECTOR.collect(obs, act, rew)  # <-- (!) Silent error 2            \\\\\\    My bloc    \\\\\\
+                obs = obs_prime                                  # <-- (!) Solution to silent error 2 \\\\\\    My bloc    \\\\\\
+
 
                 if done:
-
                     # ////// Original bloc //////
                     # # if episode is over, record info about episode
                     # ep_ret, ep_len = sum(ep_rews), len(ep_rews)
@@ -257,7 +259,6 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
     writer.close()
     playground.env.close()
     tf_cv1.reset_default_graph()
-    sess.close()
 
 
 if __name__ == '__main__':
