@@ -5,9 +5,9 @@ import pytest
 TARGET_WORKING_DIRECTORY = "DRLTP1PolicyGradient"
 
 def set_up_cwd(initial_working_directory):
-    print(":: set_up_cwd, Initial was: ", initial_working_directory)
+    print("\n:: START set_up_cwd, Initial was: ", initial_working_directory)
 
-    if os.path.basename(initial_working_directory) is not TARGET_WORKING_DIRECTORY:
+    if os.path.basename(initial_working_directory) != TARGET_WORKING_DIRECTORY:
         os.chdir("..")
         print(":: change cwd to: ", os.getcwd())
     return None
@@ -15,9 +15,10 @@ def set_up_cwd(initial_working_directory):
 
 def return_to_initial_working_directory(initial_working_directory):
     print(":: return_to_initial_working_directory")
-    if os.path.basename(os.getcwd()) is not os.path.basename(initial_working_directory):
+    if os.path.basename(os.getcwd()) != os.path.basename(initial_working_directory):
         os.chdir(initial_working_directory)
         print(":: change cwd to: ", os.getcwd())
+    print(":: Teardown END\n")
     return None
 
 
