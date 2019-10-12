@@ -12,12 +12,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
 
-from REINFORCEbrain import REINFORCE_policy
-from DRLimplementation.blocAndTools import buildingbloc as bloc
-from DRLimplementation.blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
-from DRLimplementation.blocAndTools.visualisationtools import ConsolPrintLearningStats
-from DRLimplementation.blocAndTools.samplecontainer import TrajectoryCollector, UniformBatchCollector
-from DRLimplementation.blocAndTools.rl_vocabulary import rl_name
+from drlimplementation.DRLTP1PolicyGradient.REINFORCEbrain import REINFORCE_policy
+from drlimplementation.blocAndTools import buildingbloc as bloc
+from drlimplementation.blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
+from drlimplementation.blocAndTools.visualisationtools import ConsolPrintLearningStats
+from drlimplementation.blocAndTools.samplecontainer import TrajectoryCollector, UniformBatchCollector
+from drlimplementation.blocAndTools.rl_vocabulary import rl_name
 vocab = rl_name()
 # endregion
 

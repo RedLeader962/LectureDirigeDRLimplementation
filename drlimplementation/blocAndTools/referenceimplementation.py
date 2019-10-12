@@ -2,7 +2,7 @@ from datetime import datetime
 
 import tensorflow as tf
 
-import REINFORCEbrain
+from DRLTP1PolicyGradient import REINFORCEbrain
 
 tf_cv1 = tf.compat.v1   # shortcut
 import numpy as np

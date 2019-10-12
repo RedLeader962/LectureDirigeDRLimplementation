@@ -1,0 +1,3 @@
+# coding=utf-8
+
+from DRLTP1PolicyGradient.REINFORCEplayingloop import play_REINFORCE_agent_discrete

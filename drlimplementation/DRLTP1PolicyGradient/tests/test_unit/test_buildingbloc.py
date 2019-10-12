@@ -9,9 +9,9 @@ from tensorflow import keras
 
 tf_cv1 = tf.compat.v1   # shortcut
 
-from DRLimplementation.blocAndTools import buildingbloc as bloc, rewardtogo as rtg, visualisationtools
-from DRLimplementation.blocAndTools.samplecontainer import TrajectoryCollector, UniformBatchCollector
-from DRLimplementation.blocAndTools.rl_vocabulary import rl_name
+from blocAndTools import buildingbloc as bloc, rewardtogo as rtg, visualisationtools
+from blocAndTools.samplecontainer import TrajectoryCollector, UniformBatchCollector
+from blocAndTools.rl_vocabulary import rl_name
 vocab = rl_name()
 
 

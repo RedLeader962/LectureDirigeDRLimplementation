@@ -15,7 +15,7 @@ Québec, QC, Canada,
 
 ---
 ### Essay on:
-- **[Basic policy gradient](DRLimplementation/DRLTP1PolicyGradient)**
+- **[Basic policy gradient](drlimplementation/DRLTP1PolicyGradient)**
 - Actor-Critic
 - Maximum Entropy DRL
 - Inverse DRL

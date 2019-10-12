@@ -2,31 +2,41 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-# region ::Import statement ...
-from datetime import datetime
+# --- broken system path from command line hack ------------------------------------------------------------------------
+# (CRITICAL) todo --> must be appended in each file that are going to be invocated from command line:
 
+import sys
+import os
+absolute_current_dir = os.getcwd()
+absolute_parent_dir, curent_dir = os.path.split(absolute_current_dir)
+sys.path.insert(0, absolute_parent_dir)
+assert os.path.exists(absolute_parent_dir), "Something is wrong with path resolution"
+print(sys.path)
+# ----------------------------------------------------------------------------------------------------------------end---
+
+
+# region ::Import statement ...
 import tensorflow as tf
 tf_cv1 = tf.compat.v1   # shortcut
 
-from gym.wrappers.monitoring.video_recorder import VideoRecorder
 
-from DRLimplementation.blocAndTools import buildingbloc as bloc
-from DRLimplementation.blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
-from REINFORCEbrain import REINFORCE_policy
-from DRLimplementation.blocAndTools.rl_vocabulary import rl_name
+
+# import drlimplementation.blocAndTools.buildingbloc as bloc
+# from drlimplementation.blocAndTools import buildingbloc as bloc
+from blocAndTools import buildingbloc as bloc
+
+from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
+from blocAndTools.rl_vocabulary import rl_name
+from DRLTP1PolicyGradient.REINFORCEbrain import REINFORCE_policy
 vocab = rl_name()
 # endregion
 
 
-# (Ice-Boxed) todo:assessment -->  functionality of this module could go in REINFORCEplayingloop.py
-#                                                                since VideoRecorder can be enable/disable:
-# todo:refactor --> exp_spec must follow the saved computation grah: find a way to assert compatibility between those
-def record_REINFORCE_agent_discrete(env='CartPole-v0', nb_of_clip_recorded=5):
+def play_REINFORCE_agent_discrete(env='CartPole-v0'):
     """
-    Record playing loop of a previously trained REINFORCE agent in the 'CartPole-v0' environment
+    Execute playing loop of a previously trained REINFORCE agent in the 'CartPole-v0' environment
 
     """
-
     exp_spec = ExperimentSpec()
 
     cartpole_param_dict_2 = {
@@ -45,7 +55,10 @@ def record_REINFORCE_agent_discrete(env='CartPole-v0', nb_of_clip_recorded=5):
         'print_metric_every_what_epoch': 2,
     }
     exp_spec.set_experiment_spec(cartpole_param_dict_2)
+
+
     playground = GymPlayground(environment_name=exp_spec.prefered_environment)
+
 
     # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
     # *                                                                                                               *
@@ -65,24 +78,19 @@ def record_REINFORCE_agent_discrete(env='CartPole-v0', nb_of_clip_recorded=5):
     saver = tf_cv1.train.Saver()
 
     with tf_cv1.Session() as sess:
+        saver.restore(sess, 'graph/saved_training/REINFORCE_agent-39')
 
-        """ ---- Restore a trained REINFORCE agent computation graph ---- """
-        saver.restore(sess, '../graph/saved_training/REINFORCE_agent-39')
+        while True: #keep playing
+        # for run in range(3):      #recorder version
 
-        """ ---- Execute recording loop ---- """
-        for run in range(nb_of_clip_recorded):
+            # recorder = VideoRecorder(playground.env, '../video/cartpole_{}.mp4'.format(run))
             current_observation = playground.env.reset()    # <-- fetch initial observation
-
-            date_now = datetime.now()
-            timestamp = "{}{}".format(date_now.minute, date_now.microsecond)
-            recorder = VideoRecorder(playground.env, '../../video/REINFORCE_agent_cartpole_{}--{}.mp4'.format(run+1, timestamp))
-            print("\n:: Start recording trajectory {}\n".format(run+1))
 
             """ ---- Simulator: time-steps ---- """
             while True:
 
-                """ ---- Record one timestep ---- """
-                recorder.capture_frame()
+                playground.env.render()  # keep environment rendering turned OFF during unit test
+                # recorder.capture_frame()
 
                 """ ---- Agent: act in the environment ---- """
                 step_observation = bloc.format_single_step_observation(current_observation)
@@ -93,10 +101,12 @@ def record_REINFORCE_agent_discrete(env='CartPole-v0', nb_of_clip_recorded=5):
                 current_observation = observe_reaction  # <-- (!)
 
                 if done:
-                    recorder.close()
                     break
 
+
+    # recorder.close()
     playground.env.close()
+
 
 
 if __name__ == '__main__':
@@ -106,6 +116,6 @@ if __name__ == '__main__':
     parser.add_argument('--env', type=str, default='CartPole-v0')
     args = parser.parse_args()
 
-    record_REINFORCE_agent_discrete(env=args.env)
+    play_REINFORCE_agent_discrete(env=args.env)
 
 

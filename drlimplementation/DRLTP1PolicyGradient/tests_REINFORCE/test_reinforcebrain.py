@@ -4,8 +4,8 @@ import tensorflow as tf
 
 tf_cv1 = tf.compat.v1   # shortcut
 
-import REINFORCEbrain
-from DRLimplementation.blocAndTools import buildingbloc as bloc
+from DRLTP1PolicyGradient import REINFORCEbrain
+from blocAndTools import buildingbloc as bloc
 
 
 @pytest.fixture
