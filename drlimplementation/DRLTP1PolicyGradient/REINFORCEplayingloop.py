@@ -2,29 +2,11 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-# --- broken system path from command line hack ------------------------------------------------------------------------
-# (CRITICAL) todo --> must be appended in each file that are going to be invocated from command line:
-
-import sys
-import os
-absolute_current_dir = os.getcwd()
-absolute_parent_dir, curent_dir = os.path.split(absolute_current_dir)
-sys.path.insert(0, absolute_parent_dir)
-assert os.path.exists(absolute_parent_dir), "Something is wrong with path resolution"
-# print(sys.path)  # todo --> remove line:
-# ----------------------------------------------------------------------------------------------------------------end---
-
-
 # region ::Import statement ...
 import tensorflow as tf
 tf_cv1 = tf.compat.v1   # shortcut
 
-
-
-# import drlimplementation.blocAndTools.buildingbloc as bloc
-# from drlimplementation.blocAndTools import buildingbloc as bloc
 from blocAndTools import buildingbloc as bloc
-
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 from blocAndTools.rl_vocabulary import rl_name
 from DRLTP1PolicyGradient.REINFORCEbrain import REINFORCE_policy

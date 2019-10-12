@@ -10,10 +10,10 @@ tf_cv1 = tf.compat.v1   # shortcut
 
 from gym.wrappers.monitoring.video_recorder import VideoRecorder
 
+from DRLTP1PolicyGradient.REINFORCEbrain import REINFORCE_policy
 from blocAndTools import buildingbloc as bloc
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
-from DRLTP1PolicyGradient.REINFORCEbrain import REINFORCE_policy
-from drlimplementation.blocAndTools.rl_vocabulary import rl_name
+from blocAndTools.rl_vocabulary import rl_name
 vocab = rl_name()
 # endregion
 
