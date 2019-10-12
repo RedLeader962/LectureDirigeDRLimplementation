@@ -11,7 +11,7 @@ absolute_current_dir = os.getcwd()
 absolute_parent_dir, curent_dir = os.path.split(absolute_current_dir)
 sys.path.insert(0, absolute_parent_dir)
 assert os.path.exists(absolute_parent_dir), "Something is wrong with path resolution"
-print(sys.path)
+# print(sys.path)  # todo --> remove line:
 # ----------------------------------------------------------------------------------------------------------------end---
 
 
@@ -32,11 +32,16 @@ vocab = rl_name()
 # endregion
 
 
-def play_REINFORCE_agent_discrete(env='CartPole-v0'):
+def play_REINFORCE_agent_discrete(env='CartPole-v0', max_trajectories=20, test_run=False):
     """
     Execute playing loop of a previously trained REINFORCE agent in the 'CartPole-v0' environment
+    :param max_trajectories:
+    :type max_trajectories:
+    :param test_run:
+    :type test_run:
 
     """
+
     exp_spec = ExperimentSpec()
 
     cartpole_param_dict_2 = {
@@ -79,33 +84,41 @@ def play_REINFORCE_agent_discrete(env='CartPole-v0'):
 
     with tf_cv1.Session() as sess:
         saver.restore(sess, 'graph/saved_training/REINFORCE_agent-39')
+        print(":: Agent player >>> LOCK & LOAD\n"
+              "           ↳ Execute {} run\n           ↳ Test run={}".format(max_trajectories, test_run)
+              )
 
-        while True: #keep playing
-        # for run in range(3):      #recorder version
+        print("           START ", end=" ", flush=True)
+        for run in range(max_trajectories):
+            print(run+1, end=" ", flush=True)
 
+            obs = playground.env.reset()    # <-- fetch initial observation
             # recorder = VideoRecorder(playground.env, '../video/cartpole_{}.mp4'.format(run))
-            current_observation = playground.env.reset()    # <-- fetch initial observation
 
             """ ---- Simulator: time-steps ---- """
             while True:
 
-                playground.env.render()  # keep environment rendering turned OFF during unit test
-                # recorder.capture_frame()
+                if not test_run:     # keep environment rendering turned OFF during unit test
+                    playground.env.render()
+                    # recorder.capture_frame()
 
                 """ ---- Agent: act in the environment ---- """
-                step_observation = bloc.format_single_step_observation(current_observation)
+                step_observation = bloc.format_single_step_observation(obs)
                 action_array = sess.run(policy_action_sampler, feed_dict={observation_ph: step_observation})
 
                 action = bloc.format_single_step_action(action_array)
-                observe_reaction, reward, done, _ = playground.env.step(action)
-                current_observation = observe_reaction  # <-- (!)
+                obs_prime, reward, done, _ = playground.env.step(action)
+                obs = obs_prime  # <-- (!)
 
                 if done:
                     break
 
+        print("END")
+
 
     # recorder.close()
     playground.env.close()
+    print(":: Agent player >>> TERMINATED")
 
 
 
@@ -114,8 +127,10 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description="Command line arg for agent playing")
     parser.add_argument('--env', type=str, default='CartPole-v0')
+    parser.add_argument('--max_trj', type=int, default=20)
+    parser.add_argument('--test_run', type=bool, default=False)
     args = parser.parse_args()
 
-    play_REINFORCE_agent_discrete(env=args.env)
+    play_REINFORCE_agent_discrete(env=args.env, max_trajectories=args.max_trj, test_run=args.test_run)
 
 
