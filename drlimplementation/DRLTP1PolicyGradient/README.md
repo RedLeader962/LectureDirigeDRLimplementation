@@ -18,19 +18,23 @@ Watch [recorded agent](../../video)
 **To watch the trained algorithm**
 
 ```bash
-cd DRLimplementation/DRLTP1PolicyGradient/
-python REINFORCEplayingloop.py 
+cd drlimplementation
+python -m DRLTP1PolicyGradient [--play_for]    # optional argument --play_for=max trajectories (default=20) 
 ```
 
 **To execute the training loop**
 ```bash
-cd DRLimplementation/DRLTP1PolicyGradient/
-python REINFORCEtrainingloop.py
+cd drlimplementation
+python -m DRLTP1PolicyGradient --train
+```
+**To consult help**
+```bash
+python -m DRLTP1PolicyGradient --help
 ```
 
 **To navigate trough the computation graph in TensorBoard**
 ```bash
-tensorboard --logdir=DRLimplementation/DRLTP1PolicyGradient/graph/runs
+tensorboard --logdir=drlimplementation/DRLTP1PolicyGradient/graph/runs
 ```
 
 ![Trained agent in action](../../video/REINFORCE_agent_cartpole_2.gif)

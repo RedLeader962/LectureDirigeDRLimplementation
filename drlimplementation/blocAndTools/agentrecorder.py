@@ -102,7 +102,7 @@ def record_REINFORCE_agent_discrete(env='CartPole-v0', nb_of_clip_recorded=5):
 if __name__ == '__main__':
 
     import argparse
-    parser = argparse.ArgumentParser(description="Command line arg for agent playing")
+    parser = argparse.ArgumentParser(description="Command line arg for agent recording")
     parser.add_argument('--env', type=str, default='CartPole-v0')
     args = parser.parse_args()
 

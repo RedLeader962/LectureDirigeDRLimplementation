@@ -1,7 +1,6 @@
 # coding=utf-8
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-
 # region ::Import statement ...
 import tensorflow as tf
 tf_cv1 = tf.compat.v1   # shortcut
@@ -21,8 +20,8 @@ from blocAndTools.rl_vocabulary import rl_name
 vocab = rl_name()
 # endregion
 
-# (!) Environment rendering manual selection.
-# RENDER_ENV = True
+# (!) Environment rendering manual overide.
+# RENDER_ENV = None
 RENDER_ENV = False
 
 
@@ -57,7 +56,7 @@ For OpenAi Gym registered environment, go to:
 
 ---------------------------------------------------------------------------------------------------------------------"""
 
-def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None):
+def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None, test_run=False):
 
     exp_spec = ExperimentSpec()
 
@@ -87,8 +86,8 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
     test_param_dict = {
         'prefered_environment': 'CartPole-v0',
         'paramameter_set_name': 'Test spec',
-        'batch_size_in_ts': 2000,
-        'max_epoch': 10,
+        'batch_size_in_ts': 1000,
+        'max_epoch': 5,
         'discounted_reward_to_go': True,
         'discout_factor': 0.999,
         'learning_rate': 1e-2,
@@ -97,11 +96,13 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
         'hidden_layers_activation': tf.nn.tanh,
         'output_layers_activation': None,
         'render_env_every_What_epoch': 5,
-        'print_metric_every_what_epoch': 5,
+        'print_metric_every_what_epoch': 2,
     }
 
-    # exp_spec.set_experiment_spec(test_param_dict)
-    exp_spec.set_experiment_spec(cartpole_param_dict_2)
+    if test_run:
+        exp_spec.set_experiment_spec(test_param_dict)
+    else:
+        exp_spec.set_experiment_spec(cartpole_param_dict_2)
 
     playground = GymPlayground(environment_name=exp_spec.prefered_environment)
 
@@ -112,7 +113,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
             }
         )
 
-    if RENDER_ENV is not None:
+    if render_env is None:
         render_env = RENDER_ENV
 
     print("\n\n:: Environment rendering: {}\n\n".format(render_env))
@@ -259,24 +260,9 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
                 saver.save(sess, 'graph/checkpoint_directory/REINFORCE_agent', global_step=epoch)
                 print("\n\n    :: Policy_theta parameters were saved\n")
 
-    consol_print_learning_stats.print_experiment_stats()
+    consol_print_learning_stats.print_experiment_stats(print_plot=not test_run)
     writer.close()
     tf_cv1.reset_default_graph()
     playground.env.close()
 
     plt.close()
-
-
-
-
-if __name__ == '__main__':
-
-    import argparse
-    parser = argparse.ArgumentParser(description="Command line arg for agent traning")
-    parser.add_argument('--render_env', type=bool, default=False)
-    parser.add_argument('--discounted_reward_to_go', type=bool, default=None)
-    args = parser.parse_args()
-
-    train_REINFORCE_agent_discrete(render_env=args.render_env, discounted_reward_to_go=args.discounted_reward_to_go)
-
-

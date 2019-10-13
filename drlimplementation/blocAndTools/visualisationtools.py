@@ -78,7 +78,7 @@ class ConsolPrintLearningStats(object):
             "\r{:=<{span}}\r".format("=== EXPERIMENT START ", span=self.span), end="", flush=True)
         return None
 
-    def print_experiment_stats(self):
+    def print_experiment_stats(self, print_plot=True):
         print("\n\n\n{:^{span}}".format("Experiment stoped", span=self.span))
         stats_str = "Collected {} trajectories over {} epoch".format(self.trj, self.epoch)
         print("{:^{span}}".format(
@@ -87,10 +87,11 @@ class ConsolPrintLearningStats(object):
         self.anim_line(caracter=">", nb_of_cycle=1, start_anim_at_a_new_line=False)
         self.anim_line(caracter="<", nb_of_cycle=1, keep_cursor_at_same_line_on_exit=False)
 
-        ultra_basic_ploter(self.collected_experiment_stats['smoothed_average_return'],
-                           self.collected_experiment_stats['smoothed_average_peusdo_loss'],
-                           self.collected_experiment_stats['smoothed_average_lenght'], self.exp_spec,
-                           self.print_metric_every)
+        if print_plot:
+            ultra_basic_ploter(self.collected_experiment_stats['smoothed_average_return'],
+                               self.collected_experiment_stats['smoothed_average_peusdo_loss'],
+                               self.collected_experiment_stats['smoothed_average_lenght'], self.exp_spec,
+                               self.print_metric_every)
 
         return None
 

@@ -6,21 +6,23 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import tensorflow as tf
 tf_cv1 = tf.compat.v1   # shortcut
 
+
+from DRLTP1PolicyGradient.REINFORCEbrain import REINFORCE_policy
 from blocAndTools import buildingbloc as bloc
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 from blocAndTools.rl_vocabulary import rl_name
-from DRLTP1PolicyGradient.REINFORCEbrain import REINFORCE_policy
 vocab = rl_name()
 # endregion
 
 
-def play_REINFORCE_agent_discrete(env='CartPole-v0', max_trajectories=20, test_run=False):
+def play_REINFORCE_agent_discrete(max_trajectories=20, test_run=False):
     """
     Execute playing loop of a previously trained REINFORCE agent in the 'CartPole-v0' environment
+
     :param max_trajectories:
-    :type max_trajectories:
+    :type max_trajectories: int
     :param test_run:
-    :type test_run:
+    :type test_run: bool
 
     """
 
@@ -65,7 +67,7 @@ def play_REINFORCE_agent_discrete(env='CartPole-v0', max_trajectories=20, test_r
     saver = tf_cv1.train.Saver()
 
     with tf_cv1.Session() as sess:
-        saver.restore(sess, 'graph/saved_training/REINFORCE_agent-39')
+        saver.restore(sess, 'DRLTP1PolicyGradient/graph/saved_training/REINFORCE_agent-39')
         print(":: Agent player >>> LOCK & LOAD\n"
               "           ↳ Execute {} run\n           ↳ Test run={}".format(max_trajectories, test_run)
               )
@@ -101,18 +103,3 @@ def play_REINFORCE_agent_discrete(env='CartPole-v0', max_trajectories=20, test_r
     # recorder.close()
     playground.env.close()
     print(":: Agent player >>> TERMINATED")
-
-
-
-if __name__ == '__main__':
-
-    import argparse
-    parser = argparse.ArgumentParser(description="Command line arg for agent playing")
-    parser.add_argument('--env', type=str, default='CartPole-v0')
-    parser.add_argument('--max_trj', type=int, default=20)
-    parser.add_argument('--test_run', type=bool, default=False)
-    args = parser.parse_args()
-
-    play_REINFORCE_agent_discrete(env=args.env, max_trajectories=args.max_trj, test_run=args.test_run)
-
-
