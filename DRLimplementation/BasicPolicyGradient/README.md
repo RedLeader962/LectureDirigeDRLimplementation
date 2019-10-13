@@ -19,21 +19,21 @@ Watch [recorded agent](../../video)
 ### The REINFORCE implementation:
 Note: You can check explanation on how to use the package by using the `--help` flag
 
-#### To watch the trained algorithm 
+##### To watch the trained algorithm 
 
 ```bash
 cd DRLimplementation
 python -m BasicPolicyGradient [--play_for]    # optional argument --play_for=max trajectories (default=20) 
 ```
 
-#### To execute the training loop
+##### To execute the training loop
 ```bash
 cd DRLimplementation
 python -m BasicPolicyGradient --train
 ```
 
 
-#### To navigate trough the computation graph in TensorBoard
+##### To navigate trough the computation graph in TensorBoard
 ```bash
 tensorboard --logdir=DRLimplementation/BasicPolicyGradient/graph/runs
 ```
