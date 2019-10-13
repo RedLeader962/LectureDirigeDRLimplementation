@@ -4,7 +4,7 @@ import tensorflow as tf
 
 tf_cv1 = tf.compat.v1   # shortcut
 
-from DRLTP1PolicyGradient import REINFORCEbrain
+from BasicPolicyGradient import REINFORCEbrain
 from blocAndTools import buildingbloc as bloc
 
 

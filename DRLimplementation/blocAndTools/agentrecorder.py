@@ -3,11 +3,14 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 # region ::Import statement ...
+from datetime import datetime
+
 import tensorflow as tf
 tf_cv1 = tf.compat.v1   # shortcut
 
+from gym.wrappers.monitoring.video_recorder import VideoRecorder
 
-from DRLTP1PolicyGradient.REINFORCEbrain import REINFORCE_policy
+from BasicPolicyGradient.REINFORCEbrain import REINFORCE_policy
 from blocAndTools import buildingbloc as bloc
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 from blocAndTools.rl_vocabulary import rl_name
@@ -15,14 +18,12 @@ vocab = rl_name()
 # endregion
 
 
-def play_REINFORCE_agent_discrete(max_trajectories=20, test_run=False):
+# (Ice-Boxed) todo:assessment -->  functionality of this module could go in REINFORCEplayingloop.py
+#                                                                since VideoRecorder can be enable/disable:
+# todo:refactor --> exp_spec must follow the saved computation grah: find a way to assert compatibility between those
+def record_REINFORCE_agent_discrete(env='CartPole-v0', nb_of_clip_recorded=5):
     """
-    Execute playing loop of a previously trained REINFORCE agent in the 'CartPole-v0' environment
-
-    :param max_trajectories:
-    :type max_trajectories: int
-    :param test_run:
-    :type test_run: bool
+    Record playing loop of a previously trained REINFORCE agent in the 'CartPole-v0' environment
 
     """
 
@@ -44,10 +45,7 @@ def play_REINFORCE_agent_discrete(max_trajectories=20, test_run=False):
         'print_metric_every_what_epoch': 2,
     }
     exp_spec.set_experiment_spec(cartpole_param_dict_2)
-
-
     playground = GymPlayground(environment_name=exp_spec.prefered_environment)
-
 
     # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
     # *                                                                                                               *
@@ -67,39 +65,47 @@ def play_REINFORCE_agent_discrete(max_trajectories=20, test_run=False):
     saver = tf_cv1.train.Saver()
 
     with tf_cv1.Session() as sess:
-        saver.restore(sess, 'DRLTP1PolicyGradient/graph/saved_training/REINFORCE_agent-39')
-        print(":: Agent player >>> LOCK & LOAD\n"
-              "           ↳ Execute {} run\n           ↳ Test run={}".format(max_trajectories, test_run)
-              )
 
-        print("           START ", end=" ", flush=True)
-        for run in range(max_trajectories):
-            print(run+1, end=" ", flush=True)
+        """ ---- Restore a trained REINFORCE agent computation graph ---- """
+        saver.restore(sess, '../graph/saved_training/REINFORCE_agent-39')
 
-            obs = playground.env.reset()    # <-- fetch initial observation
-            # recorder = VideoRecorder(playground.env, '../video/cartpole_{}.mp4'.format(run))
+        """ ---- Execute recording loop ---- """
+        for run in range(nb_of_clip_recorded):
+            current_observation = playground.env.reset()    # <-- fetch initial observation
+
+            date_now = datetime.now()
+            timestamp = "{}{}".format(date_now.minute, date_now.microsecond)
+            recorder = VideoRecorder(playground.env, '../../video/REINFORCE_agent_cartpole_{}--{}.mp4'.format(run+1, timestamp))
+            print("\n:: Start recording trajectory {}\n".format(run+1))
 
             """ ---- Simulator: time-steps ---- """
             while True:
 
-                if not test_run:     # keep environment rendering turned OFF during unit test
-                    playground.env.render()
-                    # recorder.capture_frame()
+                """ ---- Record one timestep ---- """
+                recorder.capture_frame()
 
                 """ ---- Agent: act in the environment ---- """
-                step_observation = bloc.format_single_step_observation(obs)
+                step_observation = bloc.format_single_step_observation(current_observation)
                 action_array = sess.run(policy_action_sampler, feed_dict={observation_ph: step_observation})
 
                 action = bloc.format_single_step_action(action_array)
-                obs_prime, reward, done, _ = playground.env.step(action)
-                obs = obs_prime  # <-- (!)
+                observe_reaction, reward, done, _ = playground.env.step(action)
+                current_observation = observe_reaction  # <-- (!)
 
                 if done:
+                    recorder.close()
                     break
 
-        print("END")
-
-
-    # recorder.close()
     playground.env.close()
-    print(":: Agent player >>> TERMINATED")
+
+
+if __name__ == '__main__':
+
+    import argparse
+    parser = argparse.ArgumentParser(description="Command line arg for agent recording")
+    parser.add_argument('--env', type=str, default='CartPole-v0')
+    args = parser.parse_args()
+
+    record_REINFORCE_agent_discrete(env=args.env)
+
+

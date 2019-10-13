@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 # region ::Import statement ...
 import tensorflow as tf
+
 tf_cv1 = tf.compat.v1   # shortcut
 import tensorflow.python.util.deprecation as deprecation
 deprecation._PRINT_DEPRECATION_WARNINGS = False
@@ -11,7 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
 
-from DRLTP1PolicyGradient.REINFORCEbrain import REINFORCE_policy
+from BasicPolicyGradient.REINFORCEbrain import REINFORCE_policy
 from blocAndTools import buildingbloc as bloc
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 from blocAndTools.visualisationtools import ConsolPrintLearningStats
@@ -24,11 +25,13 @@ vocab = rl_name()
 # RENDER_ENV = None
 RENDER_ENV = False
 
+# POLICY_ROOT_DIR = 'DRLimplementation/BasicPolicyGradient'
+POLICY_ROOT_DIR = 'BasicPolicyGradient'
 
 """ --- TensorBoard ----------------------------------------------------------------------------------------------------
 
 Start TensorBoard in terminal:
-    tensorboard --logdir=DRLTP1PolicyGradient/graph/runs
+    tensorboard --logdir=BasicPolicyGradient/graph/runs
 
 In browser, go to:
     http://0.0.0.0:6006/ 
@@ -147,7 +150,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
     """ ---- setup summary collection for TensorBoard ---- """
     date_now = datetime.now()
     run_str = "Run--{}h{}--{}-{}-{}".format(date_now.hour, date_now.minute, date_now.day, date_now.month, date_now.year)
-    writer = tf_cv1.summary.FileWriter("./graph/runs/{}".format(run_str), tf_cv1.get_default_graph())
+    writer = tf_cv1.summary.FileWriter("{}/graph/runs/{}".format(POLICY_ROOT_DIR, run_str), tf_cv1.get_default_graph())
 
 
     """ ---- Setup parameters saving ---- """
@@ -257,7 +260,7 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
             """ ---- Save learned model ---- """
             if batch_average_trjs_return == 200:
-                saver.save(sess, 'graph/checkpoint_directory/REINFORCE_agent', global_step=epoch)
+                saver.save(sess, '{}/graph/checkpoint_directory/REINFORCE_agent'.format(POLICY_ROOT_DIR), global_step=epoch)
                 print("\n\n    :: Policy_theta parameters were saved\n")
 
     consol_print_learning_stats.print_experiment_stats(print_plot=not test_run)

@@ -2,7 +2,7 @@ from datetime import datetime
 
 import tensorflow as tf
 
-from DRLTP1PolicyGradient import REINFORCEbrain
+from BasicPolicyGradient import REINFORCEbrain
 
 tf_cv1 = tf.compat.v1   # shortcut
 import numpy as np
@@ -17,7 +17,7 @@ from blocAndTools.samplecontainer import TrajectoryCollector, UniformBatchCollec
 Integration test based on 'REINFORCE with reward to go' simplest implementation from SpinniUp at:
     https://github.com/openai/spinningup/blob/master/spinup/examples/pg_math/2_rtg_pg.py
 
-Use in conjunction with: ../tests/test_integration/test_intergrationreinforce.py
+Use in conjunction with: ../tests/test_Z_integration/test_intergrationreinforce.py
 """
 
 # ////// Original bloc //////
@@ -104,7 +104,8 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
     # \\\\\\    My bloc    \\\\\\
     date_now = datetime.now()
     run_str = "Run--{}h{}--{}-{}-{}".format(date_now.hour, date_now.minute, date_now.day, date_now.month, date_now.year)
-    writer = tf_cv1.summary.FileWriter("./test_integration/graph/{}".format(run_str), tf_cv1.get_default_graph())
+    # writer = tf_cv1.summary.FileWriter("./graph/{}".format(run_str), tf_cv1.get_default_graph())
+    writer = tf_cv1.summary.FileWriter("test_Z_integration/test_integrationREINFORCE/graph/{}".format(run_str), tf_cv1.get_default_graph())
 
     the_TRAJECTORY_COLLECTOR = TrajectoryCollector(exp_spec, playground)                   # \\\\\\    My bloc    \\\\\\
     the_UNI_BATCH_COLLECTOR = UniformBatchCollector(exp_spec.batch_size_in_ts)             # \\\\\\    My bloc    \\\\\\

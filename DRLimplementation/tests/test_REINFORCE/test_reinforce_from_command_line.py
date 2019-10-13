@@ -2,9 +2,9 @@
 import os
 import pytest
 
-ROOT_DIRECTORY = "drlimplementation"
+ROOT_DIRECTORY = "DRLimplementation"
 TARGET_WORKING_DIRECTORY = ROOT_DIRECTORY
-# TARGET_WORKING_DIRECTORY = "DRLTP1PolicyGradient"
+# TARGET_WORKING_DIRECTORY = "BasicPolicyGradient"
 
 def set_up_cwd(initial_CWD):
     print("\n:: START set_up_cwd, Initial was: ", initial_CWD)
@@ -48,7 +48,7 @@ def set_up_PWD_to_project_root():
 def test_REINFORCE_agent_discrete_PLAY_command_line_invocation(set_up_PWD_to_project_root):
     from os import system
 
-    out = system("python -m DRLTP1PolicyGradient"
+    out = system("python -m BasicPolicyGradient"
                  " --play_for=6"
                  " --test_run")
 
@@ -59,7 +59,7 @@ def test_REINFORCE_agent_discrete_PLAY_command_line_invocation(set_up_PWD_to_pro
 def test_REINFORCE_agent_discrete_TRAIN_command_line_invocation(set_up_PWD_to_project_root):
     from os import system
 
-    out = system("python -m DRLTP1PolicyGradient --train"
+    out = system("python -m BasicPolicyGradient --train"
                  " --test_run")
 
     # Note: exit(0) <==> clean exit without any errors/problems

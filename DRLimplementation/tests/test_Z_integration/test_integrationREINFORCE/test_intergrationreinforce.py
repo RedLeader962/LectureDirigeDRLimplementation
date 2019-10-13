@@ -1,11 +1,11 @@
 # coding=utf-8
 
 import pytest
-from DRLTP1PolicyGradient.tests_REINFORCE.test_integration import referenceimplementation as integration_ref
+from tests.test_Z_integration.test_integrationREINFORCE import referenceimplementation as integration_ref
 
 """
 Start TensorBoard in terminal:
-    tensorboard --logdir=DRLTP1PolicyGradient/tests/graph/integration_test
+    tensorboard --logdir=BasicPolicyGradient/tests/graph/integration_test
     
 In browser, go to:
     http://0.0.0.0:6006/ 

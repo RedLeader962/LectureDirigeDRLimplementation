@@ -18,7 +18,7 @@ vocab = rl_name()
 
 """
 Start TensorBoard in terminal:
-    tensorboard --logdir=DRLTP1PolicyGradient/graph/
+    tensorboard --logdir=BasicPolicyGradient/graph/
 
 In browser, go to:
     http://0.0.0.0:6006/ 

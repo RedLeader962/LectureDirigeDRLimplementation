@@ -2,12 +2,12 @@
 """
 Invoke REINFORCE agent using
 
-    python -m DRLTP1PolicyGradient [--help] [--train] [--render_training] [--discounted] [--play_for] [--test_run]
+    python -m BasicPolicyGradient [--help] [--train] [--render_training] [--discounted] [--play_for] [--test_run]
 
 """
 
-from DRLTP1PolicyGradient.REINFORCEplayingloop import play_REINFORCE_agent_discrete
-from DRLTP1PolicyGradient.REINFORCEtrainingloop import train_REINFORCE_agent_discrete
+from BasicPolicyGradient.REINFORCEplayingloop import play_REINFORCE_agent_discrete
+from BasicPolicyGradient.REINFORCEtrainingloop import train_REINFORCE_agent_discrete
 
 import argparse
 

@@ -2,15 +2,15 @@
 """
 Invoke REINFORCE agent using
 
-    python -m DRLTP1PolicyGradient [--help] [--train] [--render_training] [--discounted] [--play_for] [--test_run]
+    python -m BasicPolicyGradient [--help] [--train] [--render_training] [--discounted] [--play_for] [--test_run]
 
 """
 
-name = "DRLTP1PolicyGradient"
+name = "BasicPolicyGradient"
 
-from DRLTP1PolicyGradient.REINFORCEbrain import REINFORCE_policy
-from DRLTP1PolicyGradient.REINFORCEplayingloop import play_REINFORCE_agent_discrete
-from DRLTP1PolicyGradient.REINFORCEtrainingloop import train_REINFORCE_agent_discrete
+from BasicPolicyGradient.REINFORCEbrain import REINFORCE_policy
+from BasicPolicyGradient.REINFORCEplayingloop import play_REINFORCE_agent_discrete
+from BasicPolicyGradient.REINFORCEtrainingloop import train_REINFORCE_agent_discrete
 
 import sys
 import os
@@ -28,13 +28,13 @@ def solve_PYTHONPATH():
     absolute_current_dir = os.getcwd()
     print(":: On INIT - cwd: {}".format(absolute_current_dir))
 
-    if os.path.basename(absolute_current_dir) != "drlimplementation":
+    if os.path.basename(absolute_current_dir) != "DRLimplementation":
         # meaning the module invocating the script is not at project root level
 
         while True:
             absolute_parent_dir, curent_dir = os.path.split(absolute_current_dir)
 
-            if os.path.basename(absolute_parent_dir) == "drlimplementation":
+            if os.path.basename(absolute_parent_dir) == "DRLimplementation":
                 assert os.path.exists(absolute_parent_dir), "Something is wrong with path resolution"
                 sys.path.insert(0, absolute_parent_dir)
                 print(":: insert to sys.path: {}".format(absolute_parent_dir))

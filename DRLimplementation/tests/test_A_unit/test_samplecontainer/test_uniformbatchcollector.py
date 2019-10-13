@@ -6,7 +6,7 @@ from gym.wrappers import TimeLimit
 
 from blocAndTools.samplecontainer import TrajectoryCollector, UniformBatchCollector
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
-from DRLTP1PolicyGradient.tests.test_unit.test_samplecontainer.conftest import take_one_random_step
+from .conftest import take_one_random_step
 
 import numpy as np
 

@@ -10,31 +10,32 @@ Policy gradient is a on-policy method which seek to directly optimize the policy
 ---
 [Download the essay pdf](https://github.com/RedLeader962/LectureDirigeDRLimplementation/raw/master/Policy_gradient_LucCoupal_v1-1.pdf) 
 
+
+
 Watch [recorded agent](../../video) 
 
 ---
 
 ### The REINFORCE implementation:
-**To watch the trained algorithm**
+Note: You can check explanation on how to use the package by using the `--help` flag
+
+#### To watch the trained algorithm 
 
 ```bash
-cd drlimplementation
-python -m DRLTP1PolicyGradient [--play_for]    # optional argument --play_for=max trajectories (default=20) 
+cd DRLimplementation
+python -m BasicPolicyGradient [--play_for]    # optional argument --play_for=max trajectories (default=20) 
 ```
 
-**To execute the training loop**
+#### To execute the training loop
 ```bash
-cd drlimplementation
-python -m DRLTP1PolicyGradient --train
-```
-**To consult help**
-```bash
-python -m DRLTP1PolicyGradient --help
+cd DRLimplementation
+python -m BasicPolicyGradient --train
 ```
 
-**To navigate trough the computation graph in TensorBoard**
+
+#### To navigate trough the computation graph in TensorBoard
 ```bash
-tensorboard --logdir=drlimplementation/DRLTP1PolicyGradient/graph/runs
+tensorboard --logdir=DRLimplementation/BasicPolicyGradient/graph/runs
 ```
 
 ![Trained agent in action](../../video/REINFORCE_agent_cartpole_2.gif)
