@@ -5,7 +5,7 @@ from tests.test_Z_integration.test_integrationREINFORCE import referenceimplemen
 
 """
 Start TensorBoard in terminal:
-    tensorboard --logdir=BasicPolicyGradient/tests/graph/integration_test
+    tensorboard --logdir=DRLimplementation/tests/test_Z_integration/test_integrationREINFORCE
     
 In browser, go to:
     http://0.0.0.0:6006/ 
@@ -45,8 +45,6 @@ def setup_train_algo_generator_with_FAILING_spec():
 def training_loop(epoch_generator, env_max_return, max_epochs):
     """
     Utility fct for REINFORCE type algorithm integration testing
-    :param max_epochs:
-    :type max_epochs:
     """
     agent_learned = False
 

@@ -1,19 +1,16 @@
 # coding=utf-8
 from typing import Any, Union
-
 import gym
 from gym.wrappers import TimeLimit
-
-# import env_spec_pretty_printing
-import numpy as np
 import tensorflow as tf
-tf_cv1 = tf.compat.v1   # shortcut
-
 import tensorflow.python.util.deprecation as deprecation
-deprecation._PRINT_DEPRECATION_WARNINGS = False
+import numpy as np
 
 from blocAndTools.rl_vocabulary import rl_name
+
+deprecation._PRINT_DEPRECATION_WARNINGS = False
 vocab = rl_name()
+tf_cv1 = tf.compat.v1   # shortcut
 
 
 """
@@ -93,7 +90,7 @@ class ExperimentSpec(object):
         """
         return {
             'nn_h_layer_topo': self.nn_h_layer_topo,
-            'random_seed': self.random_seed ,
+            'random_seed': self.random_seed,
             'hidden_layers_activation': self.hidden_layers_activation,
             'output_layers_activation': self.output_layers_activation,
         }
@@ -209,7 +206,8 @@ class GymPlayground(object):
 
 
 def build_MLP_computation_graph(input_placeholder: tf.Tensor, playground: GymPlayground,
-                                hidden_layer_topology: tuple = (32, 32), hidden_layers_activation: tf.Tensor = tf.nn.tanh,
+                                hidden_layer_topology: tuple = (32, 32),
+                                hidden_layers_activation: tf.Tensor = tf.nn.tanh,
                                 output_layers_activation: tf.Tensor = None,
                                 name_scope=vocab.Multi_Layer_Perceptron) -> tf.Tensor:
     """
@@ -247,10 +245,13 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, playground: GymPla
 
         # create & connect all hidden layer
         for id in range(len(hidden_layer_topology)):
-            h_layer = tf_cv1.layers.dense(h_layer, hidden_layer_topology[id], activation=hidden_layers_activation, name='{}{}'.format(vocab.hidden_, id + 1))
+            h_layer = tf_cv1.layers.dense(h_layer, hidden_layer_topology[id],
+                                          activation=hidden_layers_activation,
+                                          name='{}{}'.format(vocab.hidden_, id + 1))
 
         # create & connect the ouput layer: the logits
-        logits = tf_cv1.layers.dense(h_layer, playground.ACTION_CHOICES, activation=output_layers_activation, name=vocab.logits)
+        logits = tf_cv1.layers.dense(h_layer, playground.ACTION_CHOICES,
+                                     activation=output_layers_activation, name=vocab.logits)
 
     return logits
 
@@ -293,19 +294,23 @@ def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground, action
 
     if isinstance(playground.env.observation_space, gym.spaces.Box):
         """observation space is continuous"""
-        input_placeholder = continuous_space_placeholder(playground.OBSERVATION_SPACE, vocab.input_placeholder, obs_shape_constraint)
+        input_placeholder = continuous_space_placeholder(playground.OBSERVATION_SPACE,
+                                                         vocab.input_placeholder, obs_shape_constraint)
     elif isinstance(playground.env.action_space, gym.spaces.Discrete):
         """observation space is discrete"""
-        input_placeholder = discrete_space_placeholder(playground.OBSERVATION_SPACE, vocab.input_placeholder, obs_shape_constraint)
+        input_placeholder = discrete_space_placeholder(playground.OBSERVATION_SPACE,
+                                                       vocab.input_placeholder, obs_shape_constraint)
     else:
         raise NotImplementedError
 
     if isinstance(playground.env.action_space, gym.spaces.Box):
         """action space is continuous"""
-        output_placeholder = continuous_space_placeholder(playground.ACTION_SPACE, vocab.output_placeholder, action_shape_constraint)
+        output_placeholder = continuous_space_placeholder(playground.ACTION_SPACE,
+                                                          vocab.output_placeholder, action_shape_constraint)
     elif isinstance(playground.env.action_space, gym.spaces.Discrete):
         """action space is discrete"""
-        output_placeholder = discrete_space_placeholder(playground.ACTION_SPACE, vocab.output_placeholder, action_shape_constraint)
+        output_placeholder = discrete_space_placeholder(playground.ACTION_SPACE,
+                                                        vocab.output_placeholder, action_shape_constraint)
     else:
         raise NotImplementedError
 
@@ -416,7 +421,8 @@ def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
     assert isinstance(arrays_of_values, list), "Wrong input type, arrays_of_values must be a list of numpy array"
     assert len(placeholders) == len(arrays_of_values), "placeholders and arrays_of_values must be of the same lenght"
     for placeholder in placeholders:
-        assert isinstance(placeholder, tf.Tensor), "Wrong input type, placeholders must be a list of tensorflow placeholder"
+        assert isinstance(placeholder, tf.Tensor), ("Wrong input type, placeholders must "
+                                                    "be a list of tensorflow placeholder")
 
     feed_dict = dict()
     for placeholder, array in zip(placeholders, arrays_of_values):
@@ -441,13 +447,15 @@ def format_single_step_action(action_array: np.ndarray):
     action = None
     try:
         action = action_array[0]
-    except:
+    except Exception as e:
+        # Note: The catched Exception is broad and not re-raised volontarly
 
         if isinstance(action_array, np.ndarray):
             assert action_array.ndim == 1, "action_array is of dimension > 1: {}".format(action_array.ndim)
             action = np.squeeze(action_array)
         else:
             action = action_array
+
         assert isinstance(action, int), ("something is wrong with the 'format_single_step_action'. "
                                          "Should output a int instead of {}".format(action))
     finally:

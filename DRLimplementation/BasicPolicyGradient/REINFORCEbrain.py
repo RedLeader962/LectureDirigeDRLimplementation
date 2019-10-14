@@ -2,14 +2,17 @@
 import gym
 import tensorflow as tf
 
-from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground, vocab, build_MLP_computation_graph, \
+from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground, build_MLP_computation_graph, \
     policy_theta_discrete_space, discrete_pseudo_loss
+
+from blocAndTools.rl_vocabulary import rl_name
+vocab = rl_name()
 
 
 def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.Tensor, Q_values_placeholder: tf.Tensor,
                      experiment_spec: ExperimentSpec, playground: GymPlayground) -> (tf.Tensor, tf.Tensor, tf.Tensor):
     """
-    The learning agent: REINFORCE (aka: Vanila policy gradient)
+    The learning agent: REINFORCE (aka: Basic Policy Gradient)
     Based on the paper by Williams, R. J.
          Simple statistical gradient-following algorithms for connectionist reinforcement learning. (1992)
 
@@ -57,7 +60,7 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
 
         # ::Other gym environment
         else:
-            print("\n>>> The agent implementation does not support environment space "
+            print("\n>>> The agent implementation does not support that environment space "
                   "{} yet.\n\n".format(playground.env.action_space))
             raise NotImplementedError
 

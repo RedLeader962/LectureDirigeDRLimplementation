@@ -7,7 +7,8 @@ def environnement_doc_str(environment, action_space_name=None, action_space_doc=
     if observation_space_name is None:
         str += "\n\tOBSERVATION SPACE:\n\t\tType: {}\n".format(environment.observation_space)
     else:
-        str += "\n\n{} (as observation space)\n\t\tType: {}\n".format(observation_space_name, environment.observation_space)
+        str += "\n\n{} (as observation space)\n\t\tType: {}\n".format(observation_space_name,
+                                                                      environment.observation_space)
 
     try:
         str += "\t\t\tHigher bound: {}\n".format(environment.observation_space.high)
@@ -17,7 +18,6 @@ def environnement_doc_str(environment, action_space_name=None, action_space_doc=
 
     if observation_space_doc is not None:
         str += observation_space_doc
-
 
     if action_space_name is None:
         str += "\n\tACTION SPACE:\n\t\tType: {}\n".format(environment.action_space)

@@ -1,12 +1,45 @@
 # coding=utf-8
+"""
+Training loop module
+
+Feature algorithm: REINFORCE
+
+Note on TensorBoard usage:
+
+    Start TensorBoard in terminal:
+        tensorboard --logdir=BasicPolicyGradient/graph/runs
+
+    In browser, go to:
+        http://0.0.0.0:6006/
+
+
+Note on OpenAi Gym usage:
+
+    For OpenAi Gym registered environment, go to:
+
+        * Bird eye view: https://gym.openai.com/envs
+        * Specification: https://github.com/openai/gym/blob/master/gym/envs/__init__.py
+
+            eg:
+                register(
+                    id='CartPole-v1',
+                    entry_point='gym.envs.classic_control:CartPoleEnv',
+                    max_episode_steps=500,
+                    reward_threshold=475.0,
+                )
+
+            'MountainCar-v0', 'MountainCarContinuous-v0',
+            'CartPole-v1', 'Pendulum-v0',
+            'LunarLander-v2', 'LunarLanderContinuous-v2',
+            ...
+
+"""
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 # region ::Import statement ...
 import tensorflow as tf
-
-tf_cv1 = tf.compat.v1   # shortcut
 import tensorflow.python.util.deprecation as deprecation
-deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -18,6 +51,9 @@ from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 from blocAndTools.visualisationtools import ConsolPrintLearningStats
 from blocAndTools.samplecontainer import TrajectoryCollector, UniformBatchCollector
 from blocAndTools.rl_vocabulary import rl_name
+
+tf_cv1 = tf.compat.v1   # shortcut
+deprecation._PRINT_DEPRECATION_WARNINGS = False
 vocab = rl_name()
 # endregion
 
@@ -25,42 +61,10 @@ vocab = rl_name()
 # RENDER_ENV = None
 RENDER_ENV = False
 
-# POLICY_ROOT_DIR = 'DRLimplementation/BasicPolicyGradient'
 POLICY_ROOT_DIR = 'BasicPolicyGradient'
 
-""" --- TensorBoard ----------------------------------------------------------------------------------------------------
-
-Start TensorBoard in terminal:
-    tensorboard --logdir=BasicPolicyGradient/graph/runs
-
-In browser, go to:
-    http://0.0.0.0:6006/ 
-
-
-------- OpenAi Gym -----------------------------------------------------------------------------------------------------
-
-For OpenAi Gym registered environment, go to:
-
-    * Bird eye view: https://gym.openai.com/envs
-    * Specification: https://github.com/openai/gym/blob/master/gym/envs/__init__.py 
-
-        eg:
-            register(
-                id='CartPole-v1',
-                entry_point='gym.envs.classic_control:CartPoleEnv',
-                max_episode_steps=500,
-                reward_threshold=475.0,
-            )
-
-        'MountainCar-v0', 'MountainCarContinuous-v0', 
-        'CartPole-v1', 'Pendulum-v0', 
-        'LunarLander-v2', 'LunarLanderContinuous-v2', 
-        ...
-
----------------------------------------------------------------------------------------------------------------------"""
 
 def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None, test_run=False):
-
     exp_spec = ExperimentSpec()
 
     # Note: Gamma value is critical.
@@ -142,20 +146,16 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
     the_TRAJECTORY_COLLECTOR = TrajectoryCollector(exp_spec, playground)
     the_UNI_BATCH_COLLECTOR = UniformBatchCollector(exp_spec.batch_size_in_ts)
 
-
     """ ---- Optimizer ---- """
     policy_optimizer_op = bloc.policy_optimizer(pseudo_loss, exp_spec.learning_rate)
-
 
     """ ---- setup summary collection for TensorBoard ---- """
     date_now = datetime.now()
     run_str = "Run--{}h{}--{}-{}-{}".format(date_now.hour, date_now.minute, date_now.day, date_now.month, date_now.year)
     writer = tf_cv1.summary.FileWriter("{}/graph/runs/{}".format(POLICY_ROOT_DIR, run_str), tf_cv1.get_default_graph())
 
-
     """ ---- Setup parameters saving ---- """
     saver = tf_cv1.train.Saver()
-
 
     """ ---- Warm-up the computation graph and start learning! ---- """
     tf_cv1.set_random_seed(exp_spec.random_seed)
@@ -185,9 +185,6 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
                 while True:
                     step += 1
 
-                    # (Priority) todo:refactor --> the_TRAJECTORY_COLLECTOR.collect_S_t_A_t(): remove reward parammeter
-                    # (Priority) todo:implement --> the_TRAJECTORY_COLLECTOR.collect_reward():
-                    #     |                                        add assertion that .collect_S_t_A_t() was executed
                     if (render_env and (epoch % exp_spec.render_env_every_What_epoch == 0)
                             and the_UNI_BATCH_COLLECTOR.trj_collected_so_far() == 0):
                         playground.env.render()  # keep environment rendering turned OFF during unit test
@@ -202,6 +199,10 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
                     """ ---- Agent: Collect current timestep events ---- """
                     # (Critical) | Collecting the right observation S_t that trigered the action A_t is critical.
                     #            | If you collect the observe_reaction S_t+1 coupled to action A_t, the agent is doomed!
+
+                    # (Priority) todo:refactor --> the_TRAJECTORY_COLLECTOR.collect_S_t_A_t(): remove reward parammeter
+                    # (Priority) todo:implement --> the_TRAJECTORY_COLLECTOR.collect_reward():
+                    #     |                                        add assertion that .collect_S_t_A_t() was executed
                     the_TRAJECTORY_COLLECTOR.collect(current_observation, action, reward)
                     current_observation = observe_reaction  # <-- (!)
 
@@ -220,7 +221,6 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
             """ ---- Simulator: epoch as ended, it's time to learn! ---- """
             batch_trj_collected = the_UNI_BATCH_COLLECTOR.trj_collected_so_far()
             batch_timestep_collected = the_UNI_BATCH_COLLECTOR.timestep_collected_so_far()
-
 
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
             # *                                                                                                      *
@@ -260,7 +260,8 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
 
             """ ---- Save learned model ---- """
             if batch_average_trjs_return == 200:
-                saver.save(sess, '{}/graph/checkpoint_directory/REINFORCE_agent'.format(POLICY_ROOT_DIR), global_step=epoch)
+                saver.save(sess, '{}/graph/checkpoint_directory/REINFORCE_agent'.format(POLICY_ROOT_DIR),
+                           global_step=epoch)
                 print("\n\n    :: Policy_theta parameters were saved\n")
 
     consol_print_learning_stats.print_experiment_stats(print_plot=not test_run)

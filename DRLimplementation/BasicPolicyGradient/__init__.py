@@ -6,15 +6,15 @@ Invoke REINFORCE agent using
 
 """
 
-name = "BasicPolicyGradient"
+import sys
+import os
 
 from BasicPolicyGradient.REINFORCEbrain import REINFORCE_policy
 from BasicPolicyGradient.REINFORCEplayingloop import play_REINFORCE_agent_discrete
 from BasicPolicyGradient.REINFORCEtrainingloop import train_REINFORCE_agent_discrete
 
-import sys
-import os
 
+name = "BasicPolicyGradient"
 
 def solve_PYTHONPATH():
     """Solve: broken import path problem occuring when script are invocated from command line
@@ -24,6 +24,8 @@ def solve_PYTHONPATH():
     However, when your script will be execute from the command line (outside your IDE) all hell will break loose.
 
     (CRITICAL) todo --> appended to each package __init__ containing module that will be invocated from command line:
+    (nice to have) todo:refactor --> make one, root level, parameterizable function:
+                                                                        see DRLimplementation/ActorCritic/__init__.py
     """
     absolute_current_dir = os.getcwd()
     print(":: On INIT - cwd: {}".format(absolute_current_dir))

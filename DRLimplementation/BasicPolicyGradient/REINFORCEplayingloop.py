@@ -4,14 +4,14 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 # region ::Import statement ...
 import tensorflow as tf
-tf_cv1 = tf.compat.v1   # shortcut
-
 
 from BasicPolicyGradient.REINFORCEbrain import REINFORCE_policy
 from blocAndTools import buildingbloc as bloc
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 from blocAndTools.rl_vocabulary import rl_name
+
 vocab = rl_name()
+tf_cv1 = tf.compat.v1   # shortcut
 # endregion
 
 
@@ -45,9 +45,7 @@ def play_REINFORCE_agent_discrete(max_trajectories=20, test_run=False):
     }
     exp_spec.set_experiment_spec(cartpole_param_dict_2)
 
-
     playground = GymPlayground(environment_name=exp_spec.prefered_environment)
-
 
     # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
     # *                                                                                                               *
@@ -98,7 +96,6 @@ def play_REINFORCE_agent_discrete(max_trajectories=20, test_run=False):
                     break
 
         print("END")
-
 
     # recorder.close()
     playground.env.close()

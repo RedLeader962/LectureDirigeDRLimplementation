@@ -1,13 +1,9 @@
 # coding=utf-8
-
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 # region ::Import statement ...
 from datetime import datetime
-
 import tensorflow as tf
-tf_cv1 = tf.compat.v1   # shortcut
-
 from gym.wrappers.monitoring.video_recorder import VideoRecorder
 
 from BasicPolicyGradient.REINFORCEbrain import REINFORCE_policy
@@ -15,6 +11,7 @@ from blocAndTools import buildingbloc as bloc
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 from blocAndTools.rl_vocabulary import rl_name
 vocab = rl_name()
+tf_cv1 = tf.compat.v1   # shortcut
 # endregion
 
 
@@ -75,7 +72,8 @@ def record_REINFORCE_agent_discrete(env='CartPole-v0', nb_of_clip_recorded=5):
 
             date_now = datetime.now()
             timestamp = "{}{}".format(date_now.minute, date_now.microsecond)
-            recorder = VideoRecorder(playground.env, '../../video/REINFORCE_agent_cartpole_{}--{}.mp4'.format(run+1, timestamp))
+            recorder = VideoRecorder(playground.env,
+                                     '../../video/REINFORCE_agent_cartpole_{}--{}.mp4'.format(run+1, timestamp))
             print("\n:: Start recording trajectory {}\n".format(run+1))
 
             """ ---- Simulator: time-steps ---- """

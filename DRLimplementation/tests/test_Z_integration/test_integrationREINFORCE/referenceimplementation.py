@@ -1,23 +1,21 @@
 from datetime import datetime
 
 import tensorflow as tf
-
-from BasicPolicyGradient import REINFORCEbrain
-
-tf_cv1 = tf.compat.v1   # shortcut
 import numpy as np
 from gym.spaces import Discrete, Box
 
-from blocAndTools import buildingbloc as BLOC
-from blocAndTools.visualisationtools import ConsolPrintLearningStats                                 # \\\\\\    My bloc    \\\\\\
-from blocAndTools.samplecontainer import TrajectoryCollector, UniformBatchCollector                  # \\\\\\    My bloc    \\\\\\
+from BasicPolicyGradient import REINFORCEbrain                                             # \\\\\\    My bloc    \\\\\\
+from blocAndTools import buildingbloc as BLOC                                              # \\\\\\    My bloc    \\\\\\
+from blocAndTools.visualisationtools import ConsolPrintLearningStats                       # \\\\\\    My bloc    \\\\\\
+from blocAndTools.samplecontainer import TrajectoryCollector, UniformBatchCollector        # \\\\\\    My bloc    \\\\\\
 
+tf_cv1 = tf.compat.v1   # shortcut
 
 """
-Integration test based on 'REINFORCE with reward to go' simplest implementation from SpinniUp at:
+Integration test based on 'REINFORCE with reward to go' simplest implementation from OpenAI SpinningUp at:
     https://github.com/openai/spinningup/blob/master/spinup/examples/pg_math/2_rtg_pg.py
 
-Use in conjunction with: ../tests/test_Z_integration/test_intergrationreinforce.py
+Use in conjunction with: ../tests/test_Z_integration/test_intergrationREFERENCEreinforce.py
 """
 
 # ////// Original bloc //////
@@ -38,9 +36,9 @@ Use in conjunction with: ../tests/test_Z_integration/test_intergrationreinforce.
 def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_size=5000, render=False):
 
     # make environment, check spaces, get obs / act dims
-    # env = gym.make(env_name)                                                          # ////// Original bloc //////
+    # env = gym.make(env_name)                                                             # ////// Original bloc //////
 
-    REINFORCE_integration_test = {                                                      # \\\\\\    My bloc    \\\\\\
+    REINFORCE_integration_test = {                                                         # \\\\\\    My bloc    \\\\\\
         'prefered_environment': env_name,
         'paramameter_set_name': 'REINFORCE integration test on CartPole-v0',
         'batch_size_in_ts': batch_size,
@@ -55,12 +53,12 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
         'render_env_every_What_epoch': 100,
         'print_metric_every_what_epoch': 5,
     }
-    playground = BLOC.GymPlayground(env_name)                                           # \\\\\\    My bloc    \\\\\\
-    env = playground.env                                                                # \\\\\\    My bloc    \\\\\\
-    exp_spec = BLOC.ExperimentSpec()                                                    # \\\\\\    My bloc    \\\\\\
-    exp_spec.set_experiment_spec(REINFORCE_integration_test)                            # \\\\\\    My bloc    \\\\\\
-    consol_print_learning_stats = ConsolPrintLearningStats(                             # \\\\\\    My bloc    \\\\\\
-        exp_spec, exp_spec.print_metric_every_what_epoch)                               # \\\\\\    My bloc    \\\\\\
+    playground = BLOC.GymPlayground(env_name)                                              # \\\\\\    My bloc    \\\\\\
+    env = playground.env                                                                   # \\\\\\    My bloc    \\\\\\
+    exp_spec = BLOC.ExperimentSpec()                                                       # \\\\\\    My bloc    \\\\\\
+    exp_spec.set_experiment_spec(REINFORCE_integration_test)                               # \\\\\\    My bloc    \\\\\\
+    consol_print_learning_stats = ConsolPrintLearningStats(                                # \\\\\\    My bloc    \\\\\\
+        exp_spec, exp_spec.print_metric_every_what_epoch)                                  # \\\\\\    My bloc    \\\\\\
 
     assert isinstance(env.observation_space, Box), \
         "This example only works for envs with continuous state spaces."
@@ -121,7 +119,6 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
         sess.run(tf_cv1.global_variables_initializer())     # initialize random variable in the computation graph
         consol_print_learning_stats.start_the_crazy_experiment()
 
-
         # for training policy
         def train_one_epoch():
             consol_print_learning_stats.next_glorious_epoch()                              # \\\\\\    My bloc    \\\\\\
@@ -164,7 +161,7 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
                 act = BLOC.format_single_step_action(action_array)                       # \\\\\\    My bloc    \\\\\\
                 # obs, rew, done, _ = playground.env.step(act)   <-- (!) mistake         # \\\\\\    My bloc    \\\\\\
                 # (!) Solution to silent error 2: dont ovewrite S_t                        \\\\\\    My bloc    \\\\\\
-                obs_prime, rew, done, _ = playground.env.step(act) # <-- (!) Solution      \\\\\\    My bloc    \\\\\\
+                obs_prime, rew, done, _ = playground.env.step(act)  # <-- (!) Solution     \\\\\\    My bloc    \\\\\\
 
                 # ////// Original bloc //////
                 # # save action, reward
@@ -175,7 +172,6 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
                 #            | If the observation is the one at time S_{t+1}, the agent wont learn   \\\\\\    My bloc    \\\\\\
                 the_TRAJECTORY_COLLECTOR.collect(obs, act, rew)  # <-- (!) Silent error 2            \\\\\\    My bloc    \\\\\\
                 obs = obs_prime                                  # <-- (!) Solution to silent error 2 \\\\\\    My bloc    \\\\\\
-
 
                 if done:
                     # ////// Original bloc //////
@@ -254,7 +250,6 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
             )
 
             yield (i, batch_loss, mean_return, average_len)
-
 
     print("\n>>> Close session\n")
     writer.close()

@@ -120,7 +120,7 @@ def test_TrajectoryCollector_ONE_STEP_RESET(gym_discrete_setup):
     assert len(trajectory_collector._observations) == 0
     assert len(trajectory_collector._actions) == 0
     assert len(trajectory_collector._rewards) == 0
-    assert trajectory_collector._lenght == None
+    assert trajectory_collector._lenght is None
 
 
 def test_TrajectoryCollector_10_STEP(gym_discrete_setup):
@@ -229,7 +229,7 @@ def test_TrajectoryCollector_10_STEP_RESET(gym_discrete_setup):
     assert len(trajectory_collector._observations) == 0
     assert len(trajectory_collector._actions) == 0
     assert len(trajectory_collector._rewards) == 0
-    assert trajectory_collector._lenght == None
+    assert trajectory_collector._lenght is None
 
 
 def test_TrajectoryCollector_20_STEP_2_TRJ(gym_discrete_setup):
@@ -340,4 +340,4 @@ def test_TrajectoryCollector_20_STEP_RESET(gym_discrete_setup):
     assert len(trajectory_collector._observations) == 0
     assert len(trajectory_collector._actions) == 0
     assert len(trajectory_collector._rewards) == 0
-    assert trajectory_collector._lenght == None
+    assert trajectory_collector._lenght is None

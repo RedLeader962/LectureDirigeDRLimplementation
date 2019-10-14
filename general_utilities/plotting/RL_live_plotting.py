@@ -6,13 +6,12 @@ from os import environ
 import copy
 
 import matplotlib
+from matplotlib import pyplot as plt
+from matplotlib import gridspec as gs
+
+plt.rcParams['toolbar'] = 'None'  # mute matplotlib toolbar
 matplotlib.rcParams['backend'] = 'macosx'
 # matplotlib.rcParams['backend'] = 'Qt5Agg'
-
-from matplotlib import pyplot as plt
-plt.rcParams['toolbar'] = 'None'  # mute matplotlib toolbar
-
-from matplotlib import gridspec as gs
 
 BACKGROUND_COLOR = '#3C3F41'
 FONT_SIZE = 9
@@ -63,7 +62,6 @@ class ActorTrainingPlotter(object):
         - Inspired by OpenAi Lab class Grapher by kengz and lgraesser
         - source: https://github.com/kengz/openai_lab/blob/master/rl/analytics.py
     """
-
 
     def __init__(self, dataObject, config, run_directory=None, VCS_tag=None):
         assert isinstance(dataObject, TrainingHistoryDataclass)
@@ -219,7 +217,6 @@ class ActorTrainingPlotter(object):
         plt.tight_layout()  # auto-fix spacing
         plt.ion()  # for live plot
 
-
     def plot(self, render_observations=False):
         '''do live plotting
         :param render_observations:
@@ -348,7 +345,6 @@ class ActorTrainingPlotter(object):
 
         plt.draw()
         plt.pause(1e-30)
-
 
     def save(self):
         '''save graph to filename'''
