@@ -64,52 +64,20 @@ RENDER_ENV = False
 POLICY_ROOT_DIR = 'BasicPolicyGradient'
 
 
-def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None, test_run=False):
-    exp_spec = ExperimentSpec()
+def train_REINFORCE_agent_discrete(exp_spec: ExperimentSpec, discounted_reward_to_go=None, render_env=None,
+                                   morphToIntegrationTest=False):
+    """
+    Train a REINFORCE agent
 
-    # Note: Gamma value is critical.
-    #       Big difference between 0.9 and 0.999.
-    #       Also you need to take into account the experiment average number of step per episode
-    #
-    #           Example with experiment average step of 100:
-    #              0.9^100 = 0.000026 vs 0.99^100 = 0.366003 vs 0.999^100 = 0.904792
-
-    cartpole_param_dict_2 = {
-        'prefered_environment': 'CartPole-v0',
-        'paramameter_set_name': 'RedLeader CartPole-v0',
-        'batch_size_in_ts': 5000,
-        'max_epoch': 40,
-        'discounted_reward_to_go': True,
-        'discout_factor': 0.999,
-        'learning_rate': 1e-2,
-        'nn_h_layer_topo': (62, ),
-        'random_seed': 82,
-        'hidden_layers_activation': tf.nn.tanh,        # tf.nn.relu,
-        'output_layers_activation': None,
-        'render_env_every_What_epoch': 100,
-        'print_metric_every_what_epoch': 2,
-    }
-
-    test_param_dict = {
-        'prefered_environment': 'CartPole-v0',
-        'paramameter_set_name': 'Test spec',
-        'batch_size_in_ts': 1000,
-        'max_epoch': 5,
-        'discounted_reward_to_go': True,
-        'discout_factor': 0.999,
-        'learning_rate': 1e-2,
-        'nn_h_layer_topo': (8, 8),
-        'random_seed': 82,
-        'hidden_layers_activation': tf.nn.tanh,
-        'output_layers_activation': None,
-        'render_env_every_What_epoch': 5,
-        'print_metric_every_what_epoch': 2,
-    }
-
-    if test_run:
-        exp_spec.set_experiment_spec(test_param_dict)
-    else:
-        exp_spec.set_experiment_spec(cartpole_param_dict_2)
+    :param exp_spec: Experiment specification
+    :type exp_spec: ExperimentSpec
+    :param discounted_reward_to_go: (Override ExperimentSpec) Wether to use plain or discounted reward-to-go
+    :type discounted_reward_to_go: bool
+    :param render_env: Manual control over rendering
+    :type render_env: bool
+    :param morphToIntegrationTest: Convert the function to a Generator to use in integration test while in dev phase
+    :type morphToIntegrationTest: bool
+    """
 
     playground = GymPlayground(environment_name=exp_spec.prefered_environment)
 
@@ -259,14 +227,20 @@ def train_REINFORCE_agent_discrete(render_env=None, discounted_reward_to_go=None
             )
 
             """ ---- Save learned model ---- """
-            if batch_average_trjs_return == 200:
+            if batch_average_trjs_return == 200 and not morphToIntegrationTest:
                 saver.save(sess, '{}/graph/checkpoint_directory/REINFORCE_agent'.format(POLICY_ROOT_DIR),
                            global_step=epoch)
                 print("\n\n    :: Policy_theta parameters were saved\n")
 
-    consol_print_learning_stats.print_experiment_stats(print_plot=not test_run)
+            """ ---- Convert the function to a Generator for integration test ---- """
+            # print(">>> {} - {}".format(epoch, morphToIntegrationTest))
+            if morphToIntegrationTest:
+                yield (epoch, epoch_loss, batch_average_trjs_return, batch_average_trjs_lenght)
+
+    consol_print_learning_stats.print_experiment_stats(print_plot=not exp_spec.isTestRun)
     writer.close()
     tf_cv1.reset_default_graph()
     playground.env.close()
-
     plt.close()
+
+    return None

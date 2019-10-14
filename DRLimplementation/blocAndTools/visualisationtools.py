@@ -87,6 +87,8 @@ class ConsolPrintLearningStats(object):
         self.anim_line(caracter=">", nb_of_cycle=1, start_anim_at_a_new_line=False)
         self.anim_line(caracter="<", nb_of_cycle=1, keep_cursor_at_same_line_on_exit=False)
 
+        print("")  # to force the consol go to a new line on exit
+
         if print_plot:
             ultra_basic_ploter(self.collected_experiment_stats['smoothed_average_return'],
                                self.collected_experiment_stats['smoothed_average_peusdo_loss'],

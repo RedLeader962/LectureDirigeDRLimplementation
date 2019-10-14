@@ -55,7 +55,7 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
     }
     playground = BLOC.GymPlayground(env_name)                                              # \\\\\\    My bloc    \\\\\\
     env = playground.env                                                                   # \\\\\\    My bloc    \\\\\\
-    exp_spec = BLOC.ExperimentSpec()                                                       # \\\\\\    My bloc    \\\\\\
+    exp_spec = BLOC.ExperimentSpec()  # \\\\\\    My bloc    \\\\\\
     exp_spec.set_experiment_spec(REINFORCE_integration_test)                               # \\\\\\    My bloc    \\\\\\
     consol_print_learning_stats = ConsolPrintLearningStats(                                # \\\\\\    My bloc    \\\\\\
         exp_spec, exp_spec.print_metric_every_what_epoch)                                  # \\\\\\    My bloc    \\\\\\

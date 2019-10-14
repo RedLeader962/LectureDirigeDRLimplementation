@@ -14,36 +14,15 @@ vocab = rl_name()
 tf_cv1 = tf.compat.v1   # shortcut
 # endregion
 
-
-def play_REINFORCE_agent_discrete(max_trajectories=20, test_run=False):
+def play_REINFORCE_agent_discrete(exp_spec: ExperimentSpec, max_trajectories=20):
     """
     Execute playing loop of a previously trained REINFORCE agent in the 'CartPole-v0' environment
 
-    :param max_trajectories:
+    :param exp_spec: Experiment specification
+    :type exp_spec: ExperimentSpec
+    :param max_trajectories: The number of trajectories the agent will execute (default=20)
     :type max_trajectories: int
-    :param test_run:
-    :type test_run: bool
-
     """
-
-    exp_spec = ExperimentSpec()
-
-    cartpole_param_dict_2 = {
-        'prefered_environment': 'CartPole-v0',
-        'paramameter_set_name': 'RedLeader CartPole-v0',
-        'batch_size_in_ts': 5000,
-        'max_epoch': 50,
-        'discounted_reward_to_go': True,
-        'discout_factor': 0.999,
-        'learning_rate': 1e-2,
-        'nn_h_layer_topo': (62,),
-        'random_seed': 82,
-        'hidden_layers_activation': tf.nn.tanh,  # tf.nn.relu,
-        'output_layers_activation': None,
-        'render_env_every_What_epoch': 100,
-        'print_metric_every_what_epoch': 2,
-    }
-    exp_spec.set_experiment_spec(cartpole_param_dict_2)
 
     playground = GymPlayground(environment_name=exp_spec.prefered_environment)
 
@@ -67,7 +46,7 @@ def play_REINFORCE_agent_discrete(max_trajectories=20, test_run=False):
     with tf_cv1.Session() as sess:
         saver.restore(sess, 'BasicPolicyGradient/saved_training/REINFORCE_agent-39')
         print(":: Agent player >>> LOCK & LOAD\n"
-              "           ↳ Execute {} run\n           ↳ Test run={}".format(max_trajectories, test_run)
+              "           ↳ Execute {} run\n           ↳ Test run={}".format(max_trajectories, exp_spec.isTestRun)
               )
 
         print(":: Running trajectory >>> ", end=" ", flush=True)
@@ -80,7 +59,7 @@ def play_REINFORCE_agent_discrete(max_trajectories=20, test_run=False):
             """ ---- Simulator: time-steps ---- """
             while True:
 
-                if not test_run:     # keep environment rendering turned OFF during unit test
+                if not exp_spec.isTestRun:     # keep environment rendering turned OFF during unit test
                     playground.env.render()
                     # recorder.capture_frame()
 

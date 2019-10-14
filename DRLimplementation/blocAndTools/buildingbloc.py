@@ -24,7 +24,7 @@ In browser, go to:
 class ExperimentSpec(object):
     def __init__(self, batch_size_in_ts=5000, max_epoch=2, discout_factor=0.99, learning_rate=1e-2,
                  neural_net_hidden_layer_topology: tuple = (32, 32), random_seed=42, discounted_reward_to_go=True,
-                 environment_name='CartPole-v1', print_metric_every_what_epoch=5):
+                 environment_name='CartPole-v1', print_metric_every_what_epoch=5, isTestRun=False):
         """
         Gather the specification for a experiement
         
@@ -33,17 +33,14 @@ class ExperimentSpec(object):
           |         In our casse, collecting and updating the gradient of a set of trajectories of
           |         size=batch_size_in_ts is equal to one EPOCH
 
-
-        # todo: add a param for the neural net configuration via a dict fed as a argument
-        :param print_metric_every_what_epoch:
-        :type print_metric_every_what_epoch:
-        :param environment_name:
-        :type environment_name:
-        :param discounted_reward_to_go:
-        :type discounted_reward_to_go:
         """
+        # todo: add a param for the neural net configuration via a dict fed as a argument
+        # (nice to have) todo --> add any NN usefull param:
 
+        # (Ice-Boxed) todo:refactor --> as a mandatory param if any argaument is passed at initialization:
         self.paramameter_set_name = 'default'
+
+        self.isTestRun = isTestRun
         self.prefered_environment = environment_name
 
         self.batch_size_in_ts = batch_size_in_ts
@@ -61,8 +58,6 @@ class ExperimentSpec(object):
         self.log_every_step = 1000
         self.print_metric_every_what_epoch = print_metric_every_what_epoch
 
-        # (nice to have) todo --> add any NN usefull param:
-
         self._assert_param()
 
     def _assert_param(self):
@@ -72,6 +67,7 @@ class ExperimentSpec(object):
     def get_agent_training_spec(self):
         """
         Return specification related to the agent training
+        (!) is non exhaustive
         :return: ( batch_size_in_ts, max_epoch, timestep_max_per_trajectorie )
         :rtype: (int, int, int)
         """
@@ -80,11 +76,13 @@ class ExperimentSpec(object):
             'max_epoch': self.max_epoch,
             'discout_factor': self.discout_factor,
             'learning_rate': self.learning_rate,
+            'isTestRun': self.isTestRun
         }
 
     def get_neural_net_spec(self):
         """
         Return the specification related to the neural net construction
+        (!) is non exhaustive
         :return:
         :rtype:
         """
@@ -103,6 +101,7 @@ class ExperimentSpec(object):
 
         self._assert_param()
 
+        # (Ice-Boxed) todo:fixme!! --> print a complete listing of current spec: could be a source a confusion right now
         print("\n\n:: Switching to parameter: {}".format(self.paramameter_set_name),
               self.get_agent_training_spec(),
               self.get_neural_net_spec())
