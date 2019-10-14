@@ -36,6 +36,7 @@ class ExperimentSpec(object):
         """
         # todo: add a param for the neural net configuration via a dict fed as a argument
         # (nice to have) todo --> add any NN usefull param:
+        # (nice to have) todo:implement --> string representation for consol and command line reference:
 
         # (Ice-Boxed) todo:refactor --> as a mandatory param if any argaument is passed at initialization:
         self.paramameter_set_name = 'default'

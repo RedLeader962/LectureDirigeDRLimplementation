@@ -61,32 +61,22 @@ vocab = rl_name()
 # RENDER_ENV = None
 RENDER_ENV = False
 
-POLICY_ROOT_DIR = 'BasicPolicyGradient'
+AGENT_ROOT_DIR = 'BasicPolicyGradient'
 
+# (Priority) todo:refactor --> remove the module when refactoring to class is DONE:
+raise DeprecationWarning
 
-def train_REINFORCE_agent_discrete(exp_spec: ExperimentSpec, discounted_reward_to_go=None, render_env=None,
-                                   morphToIntegrationTest=False):
+def train_REINFORCE_agent_discrete(exp_spec: ExperimentSpec, render_env=None):
     """
     Train a REINFORCE agent
 
     :param exp_spec: Experiment specification
     :type exp_spec: ExperimentSpec
-    :param discounted_reward_to_go: (Override ExperimentSpec) Wether to use plain or discounted reward-to-go
-    :type discounted_reward_to_go: bool
     :param render_env: Manual control over rendering
     :type render_env: bool
-    :param morphToIntegrationTest: Convert the function to a Generator to use in integration test while in dev phase
-    :type morphToIntegrationTest: bool
     """
 
     playground = GymPlayground(environment_name=exp_spec.prefered_environment)
-
-    if discounted_reward_to_go is not None:
-        exp_spec.set_experiment_spec(
-            {
-                'discounted_reward_to_go': discounted_reward_to_go
-            }
-        )
 
     if render_env is None:
         render_env = RENDER_ENV
@@ -120,7 +110,7 @@ def train_REINFORCE_agent_discrete(exp_spec: ExperimentSpec, discounted_reward_t
     """ ---- setup summary collection for TensorBoard ---- """
     date_now = datetime.now()
     run_str = "Run--{}h{}--{}-{}-{}".format(date_now.hour, date_now.minute, date_now.day, date_now.month, date_now.year)
-    writer = tf_cv1.summary.FileWriter("{}/graph/runs/{}".format(POLICY_ROOT_DIR, run_str), tf_cv1.get_default_graph())
+    writer = tf_cv1.summary.FileWriter("{}/graph/runs/{}".format(AGENT_ROOT_DIR, run_str), tf_cv1.get_default_graph())
 
     """ ---- Setup parameters saving ---- """
     saver = tf_cv1.train.Saver()
@@ -141,6 +131,8 @@ def train_REINFORCE_agent_discrete(exp_spec: ExperimentSpec, discounted_reward_t
 
         """ ---- Simulator: Epochs ---- """
         for epoch in range(exp_spec.max_epoch):
+
+            # todo:refactor --> Convert the function to a Generator to use in integration test while in dev phase:
             consol_print_learning_stats.next_glorious_epoch()
 
             """ ---- Simulator: trajectories ---- """
@@ -227,20 +219,18 @@ def train_REINFORCE_agent_discrete(exp_spec: ExperimentSpec, discounted_reward_t
             )
 
             """ ---- Save learned model ---- """
-            if batch_average_trjs_return == 200 and not morphToIntegrationTest:
-                saver.save(sess, '{}/graph/checkpoint_directory/REINFORCE_agent'.format(POLICY_ROOT_DIR),
+            if batch_average_trjs_return == 200:
+                saver.save(sess, '{}/graph/checkpoint_directory/REINFORCE_agent'.format(AGENT_ROOT_DIR),
                            global_step=epoch)
                 print("\n\n    :: Policy_theta parameters were saved\n")
 
             """ ---- Convert the function to a Generator for integration test ---- """
-            # print(">>> {} - {}".format(epoch, morphToIntegrationTest))
-            if morphToIntegrationTest:
-                yield (epoch, epoch_loss, batch_average_trjs_return, batch_average_trjs_lenght)
+            yield (epoch, epoch_loss, batch_average_trjs_return, batch_average_trjs_lenght)
 
     consol_print_learning_stats.print_experiment_stats(print_plot=not exp_spec.isTestRun)
     writer.close()
     tf_cv1.reset_default_graph()
     playground.env.close()
-    plt.close()
+    # plt.close()
 
     return None

@@ -14,6 +14,9 @@ vocab = rl_name()
 tf_cv1 = tf.compat.v1   # shortcut
 # endregion
 
+# (Priority) todo:refactor --> remove the module when refactoring to class is DONE:
+raise DeprecationWarning
+
 def play_REINFORCE_agent_discrete(exp_spec: ExperimentSpec, max_trajectories=20):
     """
     Execute playing loop of a previously trained REINFORCE agent in the 'CartPole-v0' environment
@@ -23,6 +26,7 @@ def play_REINFORCE_agent_discrete(exp_spec: ExperimentSpec, max_trajectories=20)
     :param max_trajectories: The number of trajectories the agent will execute (default=20)
     :type max_trajectories: int
     """
+
 
     playground = GymPlayground(environment_name=exp_spec.prefered_environment)
 
@@ -39,7 +43,7 @@ def play_REINFORCE_agent_discrete(exp_spec: ExperimentSpec, max_trajectories=20)
 
     # The policy & is neural net theta
     reinforce_policy = REINFORCE_policy(observation_ph, action_ph, Q_values_ph, exp_spec, playground)
-    (policy_action_sampler, theta_mlp, pseudo_loss) = reinforce_policy
+    (policy_action_sampler, _, _) = reinforce_policy
 
     saver = tf_cv1.train.Saver()
 

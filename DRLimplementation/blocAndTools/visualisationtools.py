@@ -250,3 +250,4 @@ def ultra_basic_ploter(epoch_average_return: list, epoch_average_loss: list, epo
     ax.legend(loc='best')
 
     plt.show()
+    plt.close()

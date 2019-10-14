@@ -86,7 +86,10 @@ if args.train:
     else:
         exp_spec.set_experiment_spec(cartpole_hparam)
 
-    train_REINFORCE_agent_discrete(exp_spec, discounted_reward_to_go=args.discounted, render_env=args.render_training)
+    if args.discounted is not None:
+        exp_spec.set_experiment_spec({'discounted_reward_to_go': args.discounted})
+
+    train_REINFORCE_agent_discrete(exp_spec, render_env=args.render_training)
 else:
     exp_spec.set_experiment_spec(cartpole_hparam)
     if args.test_run:
