@@ -1,5 +1,4 @@
 # coding=utf-8
-# coding=utf-8
 """
 REINFORCE agent
 
@@ -41,7 +40,6 @@ import tensorflow as tf
 import tensorflow.python.util.deprecation as deprecation
 
 import numpy as np
-import matplotlib.pyplot as plt
 from datetime import datetime
 
 from BasicPolicyGradient.REINFORCEbrain import REINFORCE_policy
@@ -63,13 +61,16 @@ RENDER_ENV = False
 AGENT_ROOT_DIR = 'BasicPolicyGradient'
 
 class REINFORCEagent(object):
-    def __init__(self, exp_spec: ExperimentSpec) -> None:
+    def __init__(self, exp_spec: ExperimentSpec, agent_root_dir=AGENT_ROOT_DIR) -> None:
         """
         Build agent computation graph
 
+        :param agent_root_dir:
+        :type agent_root_dir:
         :param exp_spec: Experiment specification
         :type exp_spec: ExperimentSpec
         """
+        self.agent_root_dir = agent_root_dir
         self.exp_spec = exp_spec
         self.playground = GymPlayground(environment_name=exp_spec.prefered_environment)
 
@@ -92,7 +93,6 @@ class REINFORCEagent(object):
 
         """ ---- Setup parameters saving ---- """
         self.saver = tf_cv1.train.Saver()
-        return None
 
     def train(self, render_env=None) -> None:
         """
@@ -108,7 +108,7 @@ class REINFORCEagent(object):
         date_now = datetime.now()
         run_str = "Run--{}h{}--{}-{}-{}".format(date_now.hour, date_now.minute, date_now.day,
                                                 date_now.month, date_now.year)
-        writer = tf_cv1.summary.FileWriter("{}/graph/runs/{}".format(AGENT_ROOT_DIR, run_str),
+        writer = tf_cv1.summary.FileWriter("{}/graph/runs/{}".format(self.agent_root_dir, run_str),
                                            tf_cv1.get_default_graph())
 
         for epoch in self._training_epoch_generator(consol_print_learning_stats, render_env):
@@ -256,14 +256,14 @@ class REINFORCEagent(object):
         return None
 
     def _save_checkpoint(self, epoch: int, sess: tf_cv1.Session, graph_name: str):
-        self.saver.save(sess, '{}/graph/checkpoint_directory/{}_agent'.format(AGENT_ROOT_DIR, graph_name),
+        self.saver.save(sess, '{}/graph/checkpoint_directory/{}_agent'.format(self.agent_root_dir, graph_name),
                         global_step=epoch)
         print("\n\n    :: {} network parameters were saved\n".format(graph_name))
 
-    def play(self, max_trajectories=20, agent_dir: str ='BasicPolicyGradient', run_name: str ='REINFORCE_agent-39') -> None:
+    def play(self, run_name: str, max_trajectories=20) -> None:
         with tf_cv1.Session() as sess:
 
-            self.load_trained_agent(sess, agent_dir, run_name)
+            self.load_selected_trained_agent(sess, run_name)
 
             print(":: Agent player >>> LOCK & LOAD\n"
                   "           ↳ Execute {} run\n           ↳ Test run={}".format(max_trajectories, self.exp_spec.isTestRun)
@@ -297,8 +297,10 @@ class REINFORCEagent(object):
             print("END")
         # recorder.close()
 
-    def load_trained_agent(self, sess: tf_cv1.Session, agent_dir: str, run_name: str):
-        self.saver.restore(sess, "{}/saved_training/{}".format(agent_dir, run_name))
+    def load_selected_trained_agent(self, sess: tf_cv1.Session, run_name: str):
+        # (nice to have) todo:implement --> capability to load the last trained agent:
+        path = "{}/saved_training".format(self.agent_root_dir)
+        self.saver.restore(sess, "{}/{}".format(path, run_name))
 
     def __del__(self):
         tf_cv1.reset_default_graph()

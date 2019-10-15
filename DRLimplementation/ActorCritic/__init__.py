@@ -8,6 +8,9 @@ Invoke Actor-Critic agent using
 import sys
 import os
 
+# (Priority) todo --> add from ActorCritic.ActorCriticAgent:
+from ActorCritic.ActorCriticBrain import actor_policy
+
 name = "ActorCritic"
 
 def solve_PYTHONPATH():

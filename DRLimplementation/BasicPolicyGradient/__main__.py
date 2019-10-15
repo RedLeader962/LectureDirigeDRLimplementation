@@ -8,8 +8,7 @@ Invoke REINFORCE agent using
 import argparse
 import tensorflow as tf
 
-from BasicPolicyGradient.REINFORCEplayingloop import play_REINFORCE_agent_discrete
-from BasicPolicyGradient.REINFORCEtrainingloop import train_REINFORCE_agent_discrete
+from BasicPolicyGradient.REINFORCEagent import REINFORCEagent
 from blocAndTools.buildingbloc import ExperimentSpec
 
 # Note: About Gamma value (aka the discout factor)
@@ -89,14 +88,15 @@ if args.train:
     if args.discounted is not None:
         exp_spec.set_experiment_spec({'discounted_reward_to_go': args.discounted})
 
-    train_REINFORCE_agent_discrete(exp_spec, render_env=args.render_training)
+    reinforce_agent = REINFORCEagent(exp_spec)
+    reinforce_agent.train(render_env=args.render_training)
 else:
     exp_spec.set_experiment_spec(cartpole_hparam)
     if args.test_run:
         exp_spec.set_experiment_spec({'isTestRun': True})
 
-    play_REINFORCE_agent_discrete(exp_spec, max_trajectories=args.play_for)
+    reinforce_agent = REINFORCEagent(exp_spec)
+    reinforce_agent.play(run_name='REINFORCE_agent-39', max_trajectories=args.play_for)
 
 exit(0)
-
 

@@ -5,14 +5,11 @@ Invoke REINFORCE agent using
     python -m BasicPolicyGradient [--help] [--train] [--render_training] [--discounted] [--play_for] [--test_run]
 
 """
-
 import sys
 import os
 
+from BasicPolicyGradient.REINFORCEagent import REINFORCEagent
 from BasicPolicyGradient.REINFORCEbrain import REINFORCE_policy
-from BasicPolicyGradient.REINFORCEplayingloop import play_REINFORCE_agent_discrete
-from BasicPolicyGradient.REINFORCEtrainingloop import train_REINFORCE_agent_discrete
-
 
 name = "BasicPolicyGradient"
 

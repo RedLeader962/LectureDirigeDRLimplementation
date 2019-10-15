@@ -15,7 +15,7 @@ tf_cv1 = tf.compat.v1   # shortcut
 Integration test based on 'REINFORCE with reward to go' simplest implementation from OpenAI SpinningUp at:
     https://github.com/openai/spinningup/blob/master/spinup/examples/pg_math/2_rtg_pg.py
 
-Use in conjunction with: ../tests/test_Z_integration/test_intergrationREFERENCEreinforce.py
+Use in conjunction with: ../tests/test_Z_integration/test_intergration_reinforce_REFERENCE_SpinningUp.py
 """
 
 # ////// Original bloc //////
