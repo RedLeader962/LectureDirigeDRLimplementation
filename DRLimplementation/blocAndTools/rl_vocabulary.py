@@ -1,6 +1,7 @@
 # coding=utf-8
 
 from collections import namedtuple
+from typing import Type
 
 _rl_vocab_list = [
     'REINFORCE', 'ActorCritic', 'DQN',
@@ -41,7 +42,7 @@ A standardize vocabulary to use when refering node in a computation graph
             Placeholder tensor only has one output, thus the :0 part.
             
 """
-rl_name = namedtuple('RLvocabulary', _rl_vocab_list, defaults=_rl_vocab_list)
+rl_name: namedtuple = namedtuple('RLvocabulary', _rl_vocab_list, defaults=_rl_vocab_list)
 
 
 

@@ -26,7 +26,7 @@ class ExperimentSpec(object):
                  neural_net_hidden_layer_topology: tuple = (32, 32), random_seed=42, discounted_reward_to_go=True,
                  environment_name='CartPole-v1', print_metric_every_what_epoch=5, isTestRun=False):
         """
-        Gather the specification for a experiement
+        Gather the specification for a experiement regarding NN and algo training hparam plus some environment detail
         
         note:
           |     EPOCH definition:
