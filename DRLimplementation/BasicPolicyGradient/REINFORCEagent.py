@@ -40,12 +40,11 @@ import tensorflow as tf
 import tensorflow.python.util.deprecation as deprecation
 
 import numpy as np
-from datetime import datetime
-from typing import Type
 
 from BasicPolicyGradient.REINFORCEbrain import REINFORCE_policy
 from blocAndTools import buildingbloc as bloc
-from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
+from blocAndTools.agent import Agent
+from blocAndTools.buildingbloc import ExperimentSpec
 from blocAndTools.visualisationtools import ConsolPrintLearningStats
 from blocAndTools.samplecontainer import TrajectoryCollector, UniformBatchCollector, UniformeBatchContainer
 from blocAndTools.rl_vocabulary import rl_name
@@ -55,34 +54,17 @@ deprecation._PRINT_DEPRECATION_WARNINGS = False
 vocab = rl_name()
 # endregion
 
-AGENT_ROOT_DIR = 'BasicPolicyGradient'
 
-class REINFORCEagent(object):
-    def __init__(self, exp_spec: ExperimentSpec, agent_root_dir: str = AGENT_ROOT_DIR) -> None:
-        """
-        Build agent computation graph
+class REINFORCEagent(Agent):
 
-        :param exp_spec: Experiment specification regarding NN and algo training hparam plus some environment detail
-        :type exp_spec: ExperimentSpec
-        :param agent_root_dir: The agent root directory
-        :type agent_root_dir: str
-        """
+    def _use_hardcoded_agent_root_directory(self) -> None:
+        self.agent_root_dir = 'BasicPolicyGradient'
+        return None
 
-        self.agent_root_dir = agent_root_dir
-        self.exp_spec = exp_spec
-        self.playground = GymPlayground(environment_name=exp_spec.prefered_environment)
-
-        self._build_computation_graph(exp_spec)
-
-        """ ---- Setup parameters saving ---- """
-        self.saver = tf_cv1.train.Saver()
-
-    def _build_computation_graph(self, exp_spec: ExperimentSpec) -> None:
+    def _build_computation_graph(self) -> None:
         """
         Build the Policy_theta computation graph with theta as multi-layer perceptron
 
-        :param exp_spec: Experiment specification regarding NN and algo training hparam plus some environment detail
-        :type exp_spec: ExperimentSpec
         """
 
         """ ---- Placeholder ---- """
@@ -93,7 +75,7 @@ class REINFORCEagent(object):
         self.Q_values_ph = Q_values_ph
 
         """ ---- The policy and is neural net theta ---- """
-        reinforce_policy = REINFORCE_policy(observation_ph, action_ph, Q_values_ph, exp_spec, self.playground)
+        reinforce_policy = REINFORCE_policy(observation_ph, action_ph, Q_values_ph, self.exp_spec, self.playground)
         (policy_action_sampler, theta_mlp, pseudo_loss) = reinforce_policy
         self.policy_action_sampler = policy_action_sampler
         self.theta_mlp = theta_mlp
@@ -101,41 +83,22 @@ class REINFORCEagent(object):
 
         """ ---- Optimizer ---- """
         self.policy_optimizer_op = bloc.policy_optimizer(self.pseudo_loss, self.exp_spec.learning_rate)
-
         return None
 
-    def train(self, render_env: bool = False) -> None:
+    def _instantiate_data_collector(self):
         """
-        Train a REINFORCE agent
+        Data collector utility
 
-        :param render_env: Control over trajectory rendering
-        :type render_env: bool
+        :return: Collertor utility
+        :rtype: (TrajectoryCollector, UniformBatchCollector)
         """
-
-        print("\n:: Environment rendering autorised: {}\n".format(render_env))
-
-        consol_print_learning_stats = ConsolPrintLearningStats(self.exp_spec,
-                                                               self.exp_spec.print_metric_every_what_epoch)
-
-        """ ---- setup summary collection for TensorBoard ---- """
-        date_now = datetime.now()
-        run_str = "Run--{}h{}--{}-{}-{}".format(date_now.hour, date_now.minute, date_now.day,
-                                                date_now.month, date_now.year)
-        writer = tf_cv1.summary.FileWriter("{}/graph/runs/{}".format(self.agent_root_dir, run_str),
-                                           tf_cv1.get_default_graph())
-
-        for epoch in self._training_epoch_generator(consol_print_learning_stats, render_env):
-            (epoch, epoch_loss, batch_average_trjs_return, batch_average_trjs_lenght) = epoch
-
-        consol_print_learning_stats.print_experiment_stats(print_plot=not self.exp_spec.isTestRun)
-        writer.close()
-        return None
+        the_TRAJECTORY_COLLECTOR = TrajectoryCollector(self.exp_spec, self.playground)
+        the_UNI_BATCH_COLLECTOR = UniformBatchCollector(self.exp_spec.batch_size_in_ts)
+        return the_TRAJECTORY_COLLECTOR, the_UNI_BATCH_COLLECTOR
 
     def _training_epoch_generator(self, consol_print_learning_stats: ConsolPrintLearningStats, render_env: bool):
         """
         Training epoch generator
-
-        Mainly use for integration test
 
         :param consol_print_learning_stats:
         :type consol_print_learning_stats:
@@ -256,69 +219,4 @@ class REINFORCEagent(object):
             "Act: {} != {}".format(self.action_ph.shape, np.array(batch_actions).shape)
         assert self.Q_values_ph.shape.is_compatible_with(np.array(batch_Q_values).shape), \
             "Qval: {} != {}".format(self.Q_values_ph.shape, np.array(batch_Q_values).shape)
-
-    def _instantiate_data_collector(self):
-        the_TRAJECTORY_COLLECTOR = TrajectoryCollector(self.exp_spec, self.playground)
-        the_UNI_BATCH_COLLECTOR = UniformBatchCollector(self.exp_spec.batch_size_in_ts)
-        return the_TRAJECTORY_COLLECTOR, the_UNI_BATCH_COLLECTOR
-
-    def _render_trajectory_on_condition(self, epoch, render_env, trj_collected_so_far):
-        if (render_env and (epoch % self.exp_spec.render_env_every_What_epoch == 0)
-                and trj_collected_so_far == 0):
-            self.playground.env.render()  # keep environment rendering turned OFF during unit test
-
-    def _save_checkpoint(self, epoch: int, sess: tf_cv1.Session, graph_name: str):
-        self.saver.save(sess, '{}/graph/checkpoint_directory/{}_agent'.format(self.agent_root_dir, graph_name),
-                        global_step=epoch)
-        print("\n\n    :: {} network parameters were saved\n".format(graph_name))
-
-    def play(self, run_name: str, max_trajectories=20) -> None:
-        with tf_cv1.Session() as sess:
-
-            self.load_selected_trained_agent(sess, run_name)
-
-            print(":: Agent player >>> LOCK & LOAD\n"
-                  "           ↳ Execute {} run\n           ↳ Test run={}".format(max_trajectories,
-                                                                                 self.exp_spec.isTestRun)
-                  )
-
-            print(":: Running trajectory >>> ", end=" ", flush=True)
-            for run in range(max_trajectories):
-                print(run + 1, end=" ", flush=True)
-
-                obs = self.playground.env.reset()  # <-- fetch initial observation
-                # recorder = VideoRecorder(playground.env, '../video/cartpole_{}.mp4'.format(run))
-
-                """ ---- Simulator: time-steps ---- """
-                while True:
-
-                    if not self.exp_spec.isTestRun:  # keep environment rendering turned OFF during unit test
-                        self.playground.env.render()
-                        # recorder.capture_frame()
-
-                    """ ---- Agent: act in the environment ---- """
-                    step_observation = bloc.format_single_step_observation(obs)
-                    action_array = sess.run(self.policy_action_sampler,
-                                            feed_dict={self.observation_ph: step_observation})
-
-                    action = bloc.format_single_step_action(action_array)
-                    obs_prime, reward, done, _ = self.playground.env.step(action)
-                    obs = obs_prime  # <-- (!)
-
-                    if done:
-                        break
-
-            print("END")
-        # recorder.close()
-
-    def load_selected_trained_agent(self, sess: tf_cv1.Session, run_name: str):
-        # (nice to have) todo:implement --> capability to load the last trained agent:
-        path = "{}/saved_training".format(self.agent_root_dir)
-        self.saver.restore(sess, "{}/{}".format(path, run_name))
-
-    def __del__(self):
-        tf_cv1.reset_default_graph()
-        self.playground.env.close()
-        print(":: Agent >>> CLOSED")
-
-
+        return None

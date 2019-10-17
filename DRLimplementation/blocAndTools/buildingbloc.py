@@ -377,11 +377,11 @@ def policy_theta_continuous_space(logits_layer: tf.Tensor, playground: GymPlaygr
 
 
 def discrete_pseudo_loss(log_p_all, action_placeholder: tf.Tensor, Q_values_placeholder: tf.Tensor,
-                         playground: GymPlayground) -> tf.Tensor:
+                         playground: GymPlayground, name=None) -> tf.Tensor:
     """
     Pseudo loss for discrete action space
     """
-    with tf.name_scope(vocab.pseudo_loss) as scope:
+    with tf.name_scope(name) as scope:
 
         # Step 1: Compute the log probabilitie of the current policy over the action space
         action_mask = tf.one_hot(action_placeholder, playground.ACTION_CHOICES)
@@ -391,8 +391,9 @@ def discrete_pseudo_loss(log_p_all, action_placeholder: tf.Tensor, Q_values_plac
         # Step 2: Compute the pseudo loss
         # note: tf.stop_gradient(Q_values_placeholder) prevent the backpropagation into the Q_values_placeholder
         #   |   witch contain rewards_to_go. It treat the values of the tensor as constant during backpropagation.
-        weighted_likelihoods = tf.multiply(
-            tf.stop_gradient(Q_values_placeholder), log_probabilities)
+        # weighted_likelihoods = tf.multiply(
+        #     tf.stop_gradient(Q_values_placeholder), log_probabilities)
+        weighted_likelihoods = log_probabilities * tf.stop_gradient(Q_values_placeholder)
         pseudo_loss = -tf.reduce_mean(weighted_likelihoods)
         return pseudo_loss
 

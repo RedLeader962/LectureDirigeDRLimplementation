@@ -52,7 +52,8 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
             sampled_action, log_p_all = policy_theta_discrete_space(theta_mlp, playground)
 
             """ ---- Build the pseudo loss function ---- """
-            pseudo_loss = discrete_pseudo_loss(log_p_all, action_placeholder, Q_values_placeholder, playground)
+            pseudo_loss = discrete_pseudo_loss(log_p_all, action_placeholder, Q_values_placeholder, playground,
+                                               vocab.pseudo_loss)
 
         # ::Continuous case
         elif isinstance(playground.env.action_space, gym.spaces.Box):

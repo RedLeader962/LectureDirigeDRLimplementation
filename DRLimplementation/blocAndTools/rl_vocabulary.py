@@ -9,9 +9,10 @@ _rl_vocab_list = [
     'trajectorie', 'timestep', 'epoch', 'horizon',
     'observation', 'action', 'policy', 'transition_dynamic', 'reward', 'reward_to_go', 'Qvalues', 'G',
     'policy_theta', 'policy_theta_D', 'policy_theta_C',
-    'theta_NeuralNet', 'phi_NeuralNet', 'Actor_network', 'Critic_network',
+    'theta_NeuralNet', 'phi_NeuralNet', 'actor_network', 'critic_network',
     'sampled_action', 'sampled_action_log_pr', 'action_space_log_pr',
-    'pseudo_loss', 'likelihood', 'negative_likelihood'
+    'pseudo_loss', 'actor_loss', 'critic_loss',
+    'likelihood', 'negative_likelihood'
     'V_pi', 'Q_pi', 'A_pi',
     'discout_factor',
     'baseline',

@@ -8,8 +8,9 @@ from blocAndTools.rl_vocabulary import rl_name
 vocab = rl_name()
 
 
-def actor_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.Tensor, Q_values_placeholder: tf.Tensor,
+def actor_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.Tensor, advantage_placeholder: tf.Tensor,
                  experiment_spec: ExperimentSpec, playground: GymPlayground) -> (tf.Tensor, tf.Tensor, tf.Tensor):
+
     with tf.name_scope(vocab.actor_network) as scope:
 
         """ ---- Build parameter theta as a multilayer perceptron ---- """
@@ -32,7 +33,8 @@ def actor_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.Tens
             sampled_action, log_p_all = policy_theta_discrete_space(theta_mlp, playground)
 
             """ ---- Build the pseudo loss function ---- """
-            pseudo_loss = discrete_pseudo_loss(log_p_all, action_placeholder, Q_values_placeholder, playground)
+            actor_loss = discrete_pseudo_loss(log_p_all, action_placeholder, advantage_placeholder,
+                                               playground, name='actor_loss')
 
         # ::Continuous case
         elif isinstance(playground.env.action_space, gym.spaces.Box):
@@ -44,7 +46,7 @@ def actor_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.Tens
                   "{} yet.\n\n".format(playground.env.action_space))
             raise NotImplementedError
 
-    return sampled_action, theta_mlp, pseudo_loss
+    return sampled_action, theta_mlp, actor_loss
 
 
 def critic(observation_placeholder: tf.Tensor, action_placeholder: tf.Tensor, Q_values_placeholder: tf.Tensor,

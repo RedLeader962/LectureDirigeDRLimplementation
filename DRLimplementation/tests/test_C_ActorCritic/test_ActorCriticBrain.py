@@ -4,11 +4,11 @@ import tensorflow as tf
 
 tf_cv1 = tf.compat.v1   # shortcut
 
-from BasicPolicyGradient import REINFORCEbrain
+from ActorCritic import ActorCriticBrain
 from blocAndTools import buildingbloc as bloc
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def gym_and_tf_continuous_setup():
     """
     :return: (obs_p, act_p, exp_spec, playground)
@@ -20,7 +20,7 @@ def gym_and_tf_continuous_setup():
     yield obs_p, act_p, exp_spec, playground
     tf_cv1.reset_default_graph()
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def gym_and_tf_discrete_setup():
     """
     :return: (obs_p, act_p, exp_spec, playground)
@@ -33,14 +33,23 @@ def gym_and_tf_discrete_setup():
     tf_cv1.reset_default_graph()
 
 
-# --- REINFORCED_agent -------------------------------------------------------------------------------------------
-def test_REINFORCE_agent_DISCRETE_PASS(gym_and_tf_discrete_setup):
+# --- ActorCritic_agent -------------------------------------------------------------------------------------------
+def test_ActorCritic_agent_ACTOR_DISCRETE_PASS(gym_and_tf_discrete_setup):
 
     obs_p, act_p, exp_spec, playground = gym_and_tf_discrete_setup
-    q_values_p = tf_cv1.placeholder(tf.float32, shape=(None,), name='q_values_placeholder')
+    A_ph = tf_cv1.placeholder(tf.float32, shape=(None,), name='advantage_placeholder')
 
-    reinforce_policy = REINFORCEbrain.REINFORCE_policy(obs_p, act_p, q_values_p, exp_spec, playground)
-    sampled_action, theta_mlp, pseudo_loss = reinforce_policy
+    actor_policy = ActorCriticBrain.actor_policy(obs_p, act_p, A_ph, exp_spec, playground)
+    sampled_action, theta_mlp, actor_loss = actor_policy
+
+
+def test_ActorCritic_agent_CRITIC_DISCRETE_PASS(gym_and_tf_discrete_setup):
+
+    obs_p, act_p, exp_spec, playground = gym_and_tf_discrete_setup
+    A_ph = tf_cv1.placeholder(tf.float32, shape=(None,), name='advantage_placeholder')
+
+    critic_policy = ActorCriticBrain.critic(obs_p, act_p, A_ph, exp_spec, playground)
+    sampled_action, theta_mlp, critic_loss = critic_policy
 
 
 

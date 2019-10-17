@@ -8,8 +8,7 @@ Invoke Actor-Critic agent using
 import argparse
 import tensorflow as tf
 
-# (Priority) todo --> add from ActorCritic.ActorCriticAgent:
-from BasicPolicyGradient.REINFORCEagent import REINFORCEagent
+from ActorCritic.ActorCriticAgent import ActorCriticAgent
 from blocAndTools.buildingbloc import ExperimentSpec
 
 # Note: About Gamma value (aka the discout factor)
@@ -89,15 +88,16 @@ if args.train:
     if args.discounted is not None:
         exp_spec.set_experiment_spec({'discounted_reward_to_go': args.discounted})
 
-    reinforce_agent = REINFORCEagent(exp_spec)
+    reinforce_agent = ActorCriticAgent(exp_spec)
     reinforce_agent.train(render_env=args.render_training)
 else:
     exp_spec.set_experiment_spec(cartpole_hparam)
     if args.test_run:
         exp_spec.set_experiment_spec({'isTestRun': True})
 
-    reinforce_agent = REINFORCEagent(exp_spec)
-    reinforce_agent.play(run_name='REINFORCE_agent-39', max_trajectories=args.play_for)
+    reinforce_agent = ActorCriticAgent(exp_spec)
+    raise NotImplementedError   # todo: implement train and select a agent
+    reinforce_agent.play(run_name='My_TrainAgent', max_trajectories=args.play_for)
 
 exit(0)
 

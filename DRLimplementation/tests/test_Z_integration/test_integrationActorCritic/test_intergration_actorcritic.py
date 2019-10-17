@@ -4,7 +4,7 @@ import tensorflow as tf
 import tensorflow.python.util.deprecation as deprecation
 from datetime import datetime
 
-from DRLimplementation.BasicPolicyGradient.REINFORCEagent import REINFORCEagent
+from DRLimplementation.ActorCritic import ActorCriticAgent
 from blocAndTools.buildingbloc import ExperimentSpec
 from blocAndTools.visualisationtools import ConsolPrintLearningStats
 
@@ -13,13 +13,13 @@ deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 """
 Start TensorBoard in terminal:
-    tensorboard --logdir=DRLimplementation/tests/test_Z_integration/test_integrationREINFORCE
+    tensorboard --logdir=DRLimplementation/tests/test_Z_integration/test_integrationActorCritic
     
 In browser, go to:
     http://0.0.0.0:6006/ 
 """
 
-AGENT_ROOT_DIR = "test_Z_integration/test_integrationREINFORCE"
+AGENT_ROOT_DIR = "test_Z_integration/test_integrationActorCritic"
 
 CARTPOLE_HPARAM = {
     'prefered_environment': 'CartPole-v0',
@@ -42,23 +42,23 @@ CARTPOLE_HPARAM_FAIL = CARTPOLE_HPARAM.copy()
 CARTPOLE_HPARAM_FAIL['nn_h_layer_topo'] = (3,)
 
 
-def init_spec_and_REINFORCEagent(hparam):
+def init_spec_and_ActorCriticAgent(hparam):
     tf_cv1.reset_default_graph()
 
     exp_spec = ExperimentSpec()
     exp_spec.set_experiment_spec(hparam)
-    reinforce_agent = REINFORCEagent(exp_spec, agent_root_dir=AGENT_ROOT_DIR)
+    actorcritic_agent = ActorCriticAgent(exp_spec, agent_root_dir=AGENT_ROOT_DIR)
 
     consol_print_learning_stats = ConsolPrintLearningStats(exp_spec, exp_spec.print_metric_every_what_epoch)
 
     def epoch_generator():
-        return reinforce_agent._training_epoch_generator(consol_print_learning_stats, render_env=False)
+        return actorcritic_agent._training_epoch_generator(consol_print_learning_stats, render_env=False)
 
     return epoch_generator, exp_spec, consol_print_learning_stats
 
 
 @pytest.fixture(scope="function")
-def setup_REINFORCE_train_algo_generator_with_PASSING_spec():
+def setup_ActorCritic_train_algo_generator_with_PASSING_spec():
     nb_of_try = 2
     env_max_return = 200.000
 
@@ -69,25 +69,25 @@ def setup_REINFORCE_train_algo_generator_with_PASSING_spec():
     writer = tf_cv1.summary.FileWriter("{}/graph/runs/{}".format(AGENT_ROOT_DIR, run_str),
                                        tf_cv1.get_default_graph())
 
-    epoch_generator, exp_spec, consol_print_learning_stats = init_spec_and_REINFORCEagent(hparam=CARTPOLE_HPARAM)
+    epoch_generator, exp_spec, consol_print_learning_stats = init_spec_and_ActorCriticAgent(hparam=CARTPOLE_HPARAM)
     yield epoch_generator, nb_of_try, env_max_return, exp_spec
     consol_print_learning_stats.print_experiment_stats(print_plot=not exp_spec.isTestRun)
     writer.close()
 
 
 @pytest.fixture(scope="function")
-def setup_REINFORCE_train_algo_generator_with_FAILING_spec():
+def setup_ActorCritic_train_algo_generator_with_FAILING_spec():
     nb_of_try = 2
     env_max_return = 200.000
 
-    epoch_generator, exp_spec, consol_print_learning_stats = init_spec_and_REINFORCEagent(hparam=CARTPOLE_HPARAM_FAIL)
+    epoch_generator, exp_spec, consol_print_learning_stats = init_spec_and_ActorCriticAgent(hparam=CARTPOLE_HPARAM_FAIL)
     yield epoch_generator, nb_of_try, env_max_return, exp_spec
     consol_print_learning_stats.print_experiment_stats(print_plot=not exp_spec.isTestRun)
 
 
 def training_loop(epoch_generator, env_max_return):
     """
-    Utility fct for REINFORCE type algorithm integration testing
+    Utility fct for Actor-Critic type algorithm integration testing
     """
     agent_learned = False
 
@@ -101,8 +101,8 @@ def training_loop(epoch_generator, env_max_return):
     return epoch_stats, agent_learned
 
 
-def test_integration_REINFORCEagent_train_PASS(setup_REINFORCE_train_algo_generator_with_PASSING_spec):
-    epoch_generator, nb_of_try, env_max_return, exp_spec = setup_REINFORCE_train_algo_generator_with_PASSING_spec
+def test_integration_ActorCriticAgent_train_PASS(setup_ActorCritic_train_algo_generator_with_PASSING_spec):
+    epoch_generator, nb_of_try, env_max_return, exp_spec = setup_ActorCritic_train_algo_generator_with_PASSING_spec
 
     error_str = ""
     agent_learned = False
@@ -137,8 +137,8 @@ def test_integration_REINFORCEagent_train_PASS(setup_REINFORCE_train_algo_genera
 
 
 @pytest.mark.skip(reason="Was required to check that each run was unique & done in isolation")
-def test_integration_REINFORCEagent_train_ALL_RUN_DIFFERENT(setup_REINFORCE_train_algo_generator_with_PASSING_spec):
-    epoch_generator, nb_of_try, env_max_return, exp_spec = setup_REINFORCE_train_algo_generator_with_PASSING_spec
+def test_integration_ActorCriticAgent_train_ALL_RUN_DIFFERENT(setup_ActorCritic_train_algo_generator_with_PASSING_spec):
+    epoch_generator, nb_of_try, env_max_return, exp_spec = setup_ActorCritic_train_algo_generator_with_PASSING_spec
 
     loss_at_run_end = []
 
