@@ -1,25 +1,18 @@
 # coding=utf-8
 import numpy as np
 from collections import namedtuple
-from typing import List
+from typing import List, Tuple
 
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 from blocAndTools.rewardtogo import reward_to_go, discounted_reward_to_go
 
 
 class TrajectoryContainer(object):
+    """
+    Container for storage & retrieval of events collected at every timestep of a single batch of trajectories
+    """
     def __init__(self, observations: list, actions: list, rewards: list, Q_values: list, trajectory_return: list,
                  trajectory_id) -> None:
-        """
-        Container for storage & retrieval of events collected at every timestep of a single batch of trajectories
-
-        todo:assessment --> validate dtype for discrete case:
-
-        Note: about dtype (source: Numpy doc)
-         |      "This argument can only be used to 'upcast' the array.
-         |          For downcasting, use the .astype(t) method."
-
-        """
         assert isinstance(observations, list) and isinstance(actions, list) and isinstance(rewards, list), "wrong argument type"
         assert len(observations) == len(actions) == len(rewards), "{} vs {} vs {} !!!".format(observations, actions, rewards)
         self.observations = observations
@@ -46,11 +39,9 @@ class TrajectoryContainer(object):
         # update trajectory lenght
         self._trajectory_lenght = len(self.actions)
 
-    def unpack(self) -> (list, list, list, list, float, int):
+    def unpack(self) -> Tuple[list, list, list, list, float, int, list]:
         """
         Unpack the full trajectorie as a tuple of numpy array
-
-            Note: Q_values is a numpy ndarray view
 
         :return: (observations, actions, rewards, Q_values, trajectory_return, _trajectory_lenght)
         :rtype: (list, list, list, list, float, int)
@@ -72,6 +63,8 @@ class TrajectoryContainer(object):
 
 class TrajectoryCollector(object):
     """
+    Collect timestep event of single trajectory
+
         1. Collect sampled timestep events of a single trajectory,
         2. On trajectory end:
             a. Compute relevant information
@@ -208,7 +201,7 @@ class UniformeBatchContainer(object):
         for aTrjContainer in batch_container_list:
             assert isinstance(aTrjContainer, TrajectoryContainer), "The list must contain object of type TrajectoryContainer"
 
-            aTrj_Qs, aTrj_acts, aTrj_lenght, aTrj_obss, aTrj_return, aTrj_rews = self._container_unpacking_hook(
+            aTrj_obss, aTrj_acts, aTrj_rews, aTrj_Qs, aTrj_return, aTrj_lenght = self._container_feed_on_init_hook(
                 aTrjContainer)
 
             # merge list
@@ -225,13 +218,13 @@ class UniformeBatchContainer(object):
         assert self._timestep_count == batch_constraint, ("The sum of each TrajectoryContainer lenght does not respect the size contraint: "
                                                           "Exepcted {}, got {} !!! ").format(batch_constraint, self._timestep_count)
 
-    def _container_unpacking_hook(self, aTrjContainer):
+    def _container_feed_on_init_hook(self, aTrjContainer: TrajectoryContainer):
         """Utility fct: Expose the init process for subclassing"""
         aTrj_obss, aTrj_acts, aTrj_rews, aTrj_Qs, aTrj_return, aTrj_lenght = aTrjContainer.unpack()
 
-        # add
+        # add computation here
 
-        return aTrj_Qs, aTrj_acts, aTrj_lenght, aTrj_obss, aTrj_return, aTrj_rews
+        return aTrj_obss, aTrj_acts, aTrj_rews, aTrj_Qs, aTrj_return, aTrj_lenght
 
     def __len__(self) -> int:
         return self._timestep_count
@@ -239,7 +232,7 @@ class UniformeBatchContainer(object):
     def trajectories_count(self):
         return self._trjs_count
 
-    def unpack_all(self) -> (list, list, list, list, list, int, int):
+    def unpack_all(self) -> Tuple[list, list, list, list, list, int, int]:
         """
         Unpack the full epoch batch of collected trajectories in lists of numpy ndarray
 
@@ -261,9 +254,14 @@ class UniformeBatchContainer(object):
         :return: (batch_average_trjs_return, batch_average_trjs_lenght)
         :rtype: (float, float)
         """
-        assert len(self.batch_returns) == self.trajectories_count(), "Nb of trajectories_returns collected differ from the container trj_count"
-        batch_average_trjs_return = float(np.mean(self.batch_returns))
-        batch_average_trjs_lenght = float(np.mean(self.batch_trjs_lenghts))
+        # (nice to have) todo:refactor --> PULL implementation of the method out of class: separation of concern
+        returns = np.array(self.batch_returns)
+        lenghts = np.array(self.batch_trjs_lenghts)
+        assert len(
+            returns) == self.trajectories_count(), "Nb of trajectories_returns collected differ from the container trj_count"
+        batch_average_trjs_return = float(np.mean(returns))
+        batch_average_trjs_lenght = float(np.mean(lenghts))
+
         return batch_average_trjs_return, batch_average_trjs_lenght
 
 
