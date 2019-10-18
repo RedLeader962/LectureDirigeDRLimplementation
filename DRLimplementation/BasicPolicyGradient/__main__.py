@@ -4,6 +4,13 @@ Invoke REINFORCE agent using
 
     python -m BasicPolicyGradient [--help] [--train] [--render_training] [--discounted] [--play_for] [--test_run]
 
+Note on TensorBoard usage:
+    Start TensorBoard in terminal:
+        tensorboard --logdir=BasicPolicyGradient/graph/
+
+    In browser, go to:
+        http://0.0.0.0:6006/
+
 """
 import argparse
 import tensorflow as tf
@@ -27,10 +34,10 @@ cartpole_hparam = {
         'discounted_reward_to_go': True,
         'discout_factor': 0.999,
         'learning_rate': 1e-2,
-        'nn_h_layer_topo': (62, ),
+        'theta_nn_h_layer_topo': (62, ),
         'random_seed': 82,
-        'hidden_layers_activation': tf.nn.tanh,        # tf.nn.relu,
-        'output_layers_activation': None,
+        'theta_hidden_layers_activation': tf.nn.tanh,        # tf.nn.relu,
+        'theta_output_layers_activation': None,
         'render_env_every_What_epoch': 100,
         'print_metric_every_what_epoch': 2,
     }
@@ -44,10 +51,10 @@ test_hparam = {
     'discounted_reward_to_go': True,
     'discout_factor': 0.999,
     'learning_rate': 1e-2,
-    'nn_h_layer_topo': (8, 8),
+    'theta_nn_h_layer_topo': (8, 8),
     'random_seed': 82,
-    'hidden_layers_activation': tf.nn.tanh,
-    'output_layers_activation': None,
+    'theta_hidden_layers_activation': tf.nn.tanh,
+    'theta_output_layers_activation': None,
     'render_env_every_What_epoch': 5,
     'print_metric_every_what_epoch': 2,
 }

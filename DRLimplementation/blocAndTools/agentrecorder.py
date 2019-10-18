@@ -34,10 +34,10 @@ def record_REINFORCE_agent_discrete(env='CartPole-v0', nb_of_clip_recorded=5):
         'discounted_reward_to_go': True,
         'discout_factor': 0.999,
         'learning_rate': 1e-2,
-        'nn_h_layer_topo': (62,),
+        'theta_nn_h_layer_topo': (62,),
         'random_seed': 82,
-        'hidden_layers_activation': tf.nn.tanh,  # tf.nn.relu,
-        'output_layers_activation': None,
+        'theta_hidden_layers_activation': tf.nn.tanh,  # tf.nn.relu,
+        'theta_output_layers_activation': None,
         'render_env_every_What_epoch': 100,
         'print_metric_every_what_epoch': 2,
     }
@@ -52,8 +52,9 @@ def record_REINFORCE_agent_discrete(env='CartPole-v0', nb_of_clip_recorded=5):
 
     """ ---- Build the Policy_theta computation graph with theta as multi-layer perceptron ---- """
     # Placeholder
-    observation_ph, action_ph, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
-        playground, None, obs_shape_constraint=None)
+    observation_ph, action_ph, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground,
+                                                                                             obs_shape_constraint=None,
+                                                                                             action_shape_constraint=None)
 
     # The policy & is neural net theta
     reinforce_policy = REINFORCE_policy(observation_ph, action_ph, Q_values_ph, exp_spec, playground)

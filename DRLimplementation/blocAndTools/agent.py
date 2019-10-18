@@ -35,20 +35,15 @@ class Agent(object, metaclass=ABCMeta):
         self.playground = GymPlayground(environment_name=exp_spec.prefered_environment)
 
         """ ---- Init computation graph ---- """
+        # required placeholder for Agent.play() methode
         self.observation_ph = None
-        self.action_ph = None
         self.policy_action_sampler = None
-        self.pseudo_loss = None
-        self.policy_optimizer_op = None
 
         self._build_computation_graph()
 
         not_implemented_msg = "must be set by _build_computation_graph()"
         assert self.observation_ph is not None, "self.observation_ph {}".format(not_implemented_msg)
-        assert self.action_ph is not None, "self.action_ph {}".format(not_implemented_msg)
         assert self.policy_action_sampler is not None, "self.policy_action_sampler {}".format(not_implemented_msg)
-        assert self.pseudo_loss is not None, "self.pseudo_loss {}".format(not_implemented_msg)
-        assert self.policy_optimizer_op is not None, "self.policy_optimizer_op {}".format(not_implemented_msg)
 
         """ ---- Setup parameters saving ---- """
         self.saver = tf_cv1.train.Saver()
@@ -65,10 +60,8 @@ class Agent(object, metaclass=ABCMeta):
 
         Must implement property:
                 self.observation_ph
-                self.action_ph
                 self.policy_action_sampler
-                self.pseudo_loss
-                self.policy_optimizer_op
+        they are required for Agent.play() methode
 
         """
         raise NotImplementedError  # todo: implement

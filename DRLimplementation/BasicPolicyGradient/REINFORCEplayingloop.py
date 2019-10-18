@@ -38,8 +38,9 @@ def play_REINFORCE_agent_discrete(exp_spec: ExperimentSpec, max_trajectories=20)
 
     """ ---- Build the Policy_theta computation graph with theta as multi-layer perceptron ---- """
     # Placeholder
-    observation_ph, action_ph, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
-        playground, None, obs_shape_constraint=None)
+    observation_ph, action_ph, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground,
+                                                                                             obs_shape_constraint=None,
+                                                                                             action_shape_constraint=None)
 
     # The policy & is neural net theta
     reinforce_policy = REINFORCE_policy(observation_ph, action_ph, Q_values_ph, exp_spec, playground)

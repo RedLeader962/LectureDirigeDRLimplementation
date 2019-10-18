@@ -9,7 +9,7 @@ from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 
 @pytest.fixture(scope="function")
 def gym_discrete_setup():
-    exp_spec = ExperimentSpec(batch_size_in_ts=1000, max_epoch=2, neural_net_hidden_layer_topology=(2, 2))
+    exp_spec = ExperimentSpec(batch_size_in_ts=1000, max_epoch=2, theta_nn_hidden_layer_topology=(2, 2))
     playground = GymPlayground('LunarLander-v2')
 
     trajectory_collector = TrajectoryCollector(exp_spec, playground)

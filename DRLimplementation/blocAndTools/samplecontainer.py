@@ -91,7 +91,7 @@ class TrajectoryCollector(object):
         self._lenght = None
 
         # Internal state
-        # (nice to have) todo:refactor --> using the namedtuple InetrnalState:
+        # (nice to have) todo:refactor --> using the namedtuple InertnalState:
         self._step_count_since_begining_of_training = 0
         self._trj_collected = 0
         self._q_values_computed = False

@@ -9,7 +9,7 @@ import sys
 import os
 
 from ActorCritic.ActorCriticAgent import ActorCriticAgent
-from ActorCritic.ActorCriticBrain import actor_policy
+from ActorCritic.ActorCriticBrain import build_actor_policy_graph, build_critic_graph
 
 name = "ActorCritic"
 

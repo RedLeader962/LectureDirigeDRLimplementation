@@ -13,17 +13,9 @@ vocab = rl_name()
 tf_cv1 = tf.compat.v1   # shortcut
 
 
-"""
-Start TensorBoard in terminal:
-    tensorboard --logdir=BasicPolicyGradient/graph/
-
-In browser, go to:
-    http://0.0.0.0:6006/ 
-"""
-
 class ExperimentSpec(object):
     def __init__(self, batch_size_in_ts=5000, max_epoch=2, discout_factor=0.99, learning_rate=1e-2,
-                 neural_net_hidden_layer_topology: tuple = (32, 32), random_seed=42, discounted_reward_to_go=True,
+                 theta_nn_hidden_layer_topology: tuple = (32, 32), random_seed=42, discounted_reward_to_go=True,
                  environment_name='CartPole-v1', print_metric_every_what_epoch=5, isTestRun=False):
         """
         Gather the specification for a experiement regarding NN and algo training hparam plus some environment detail
@@ -35,10 +27,11 @@ class ExperimentSpec(object):
 
         """
         # todo: add a param for the neural net configuration via a dict fed as a argument
-        # (nice to have) todo --> add any NN usefull param:
+        # (nice to have) todo:implement --> set_experiment_spec_JSON (taking json as argument):
         # (nice to have) todo:implement --> string representation for consol and command line reference:
+        # (nice to have) todo --> add any NN usefull param:
+        # (Ice-Boxed) todo:refactor --> self.paramameter_set_name as a mandatory param if class receive any arg on init:
 
-        # (Ice-Boxed) todo:refactor --> as a mandatory param if any argaument is passed at initialization:
         self.paramameter_set_name = 'default'
 
         self.isTestRun = isTestRun
@@ -50,10 +43,10 @@ class ExperimentSpec(object):
         self.learning_rate = learning_rate
         self.discounted_reward_to_go = discounted_reward_to_go
 
-        self.nn_h_layer_topo = neural_net_hidden_layer_topology
+        self.theta_nn_h_layer_topo = theta_nn_hidden_layer_topology
         self.random_seed = random_seed
-        self.hidden_layers_activation: tf.Tensor = tf.nn.tanh
-        self.output_layers_activation: tf.Tensor = tf.nn.sigmoid
+        self.theta_hidden_layers_activation: tf.Tensor = tf.nn.tanh
+        self.theta_output_layers_activation: tf.Tensor = tf.nn.sigmoid
 
         self.render_env_every_What_epoch = 100
         self.log_every_step = 1000
@@ -63,7 +56,7 @@ class ExperimentSpec(object):
 
     def _assert_param(self):
         assert (0 <= self.discout_factor) and (self.discout_factor <= 1)
-        assert isinstance(self.nn_h_layer_topo, tuple)
+        assert isinstance(self.theta_nn_h_layer_topo, tuple)
 
     def get_agent_training_spec(self):
         """
@@ -88,21 +81,26 @@ class ExperimentSpec(object):
         :rtype:
         """
         return {
-            'nn_h_layer_topo': self.nn_h_layer_topo,
+            'theta_nn_h_layer_topo': self.theta_nn_h_layer_topo,
             'random_seed': self.random_seed,
-            'hidden_layers_activation': self.hidden_layers_activation,
-            'output_layers_activation': self.output_layers_activation,
+            'theta_hidden_layers_activation': self.theta_hidden_layers_activation,
+            'theta_output_layers_activation': self.theta_output_layers_activation,
         }
 
-    def set_experiment_spec(self, dict_param: dict):
+    def set_experiment_spec(self, dict_param: dict) -> None:
+        """
+        Change any spec value and/or append aditional spec with value
 
+        :param dict_param: A dictionary of spec: value
+        :type dict_param: dict
+        """
         for str_k, v in dict_param.items():
             str_k: str
             self.__setattr__(str_k, v)
 
         self._assert_param()
 
-        # (Ice-Boxed) todo:fixme!! --> print a complete listing of current spec: could be a source a confusion right now
+        # (Ice-Boxed) todo:fixme!! --> print a listing of ALL current spec: can be a source of confusion otherwise
         print("\n\n:: Switching to parameter: {}".format(self.paramameter_set_name),
               self.get_agent_training_spec(),
               self.get_neural_net_spec())
@@ -205,11 +203,9 @@ class GymPlayground(object):
         return self.OBSERVATION_SPACE, self.ACTION_SPACE, self.ACTION_CHOICES, self.ENVIRONMENT_NAME
 
 
-def build_MLP_computation_graph(input_placeholder: tf.Tensor, playground: GymPlayground,
-                                hidden_layer_topology: tuple = (32, 32),
+def build_MLP_computation_graph(input_placeholder: tf.Tensor, output_dim, hidden_layer_topology: tuple = (32, 32),
                                 hidden_layers_activation: tf.Tensor = tf.nn.tanh,
-                                output_layers_activation: tf.Tensor = None,
-                                name_scope=vocab.Multi_Layer_Perceptron) -> tf.Tensor:
+                                output_layers_activation: tf.Tensor = None, name=vocab.Multi_Layer_Perceptron) -> tf.Tensor:
     """
     Builder function for Low Level TensorFlow API.
     Return a Multi Layer Perceptron computatin graph with topology:
@@ -221,8 +217,8 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, playground: GymPla
     In the context of deep learning, 'logits' is the equivalent of 'raw output' of our prediction.
     It will later be transform into probabilies using the 'softmax function'
 
-    :param playground:
-    :type playground:
+    :param output_dim:
+    :type output_dim:
     :param input_placeholder:
     :type input_placeholder: tf.Tensor
     :param hidden_layer_topology:
@@ -231,16 +227,15 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, playground: GymPla
     :type hidden_layers_activation:
     :param output_layers_activation:
     :type output_layers_activation:
-    :param name_scope:
-    :type name_scope:
+    :param name:
+    :type name:
     :return: a well construct computation graph
     :rtype: tf.Tensor
     """
     assert isinstance(input_placeholder, tf.Tensor)
-    assert isinstance(playground, GymPlayground)
     assert isinstance(hidden_layer_topology, tuple)
 
-    with tf_cv1.variable_scope(name_or_scope=name_scope):
+    with tf_cv1.variable_scope(name_or_scope=name):
         h_layer = input_placeholder
 
         # create & connect all hidden layer
@@ -249,14 +244,13 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, playground: GymPla
                                           activation=hidden_layers_activation,
                                           name='{}{}'.format(vocab.hidden_, id + 1))
 
-        # create & connect the ouput layer: the logits
-        logits = tf_cv1.layers.dense(h_layer, playground.ACTION_CHOICES,
+        logits = tf_cv1.layers.dense(h_layer, output_dim,
                                      activation=output_layers_activation, name=vocab.logits)
 
     return logits
 
 
-def continuous_space_placeholder(space: gym.spaces.Box, name=None, shape_constraint: tuple = None) -> tf.Tensor:
+def continuous_space_placeholder(space: gym.spaces.Box, shape_constraint: tuple = None, name=None) -> tf.Tensor:
     assert isinstance(space, gym.spaces.Box)
     space_shape = space.shape
     if shape_constraint is not None:
@@ -266,7 +260,7 @@ def continuous_space_placeholder(space: gym.spaces.Box, name=None, shape_constra
     return tf_cv1.placeholder(dtype=tf.float32, shape=shape, name=name)
 
 
-def discrete_space_placeholder(space: gym.spaces.Discrete, name=None, shape_constraint: tuple = None) -> tf.Tensor:
+def discrete_space_placeholder(space: gym.spaces.Discrete, shape_constraint: tuple = None, name=None) -> tf.Tensor:
     assert isinstance(space, gym.spaces.Discrete)
     if shape_constraint is not None:
         shape = (*shape_constraint,)
@@ -275,8 +269,8 @@ def discrete_space_placeholder(space: gym.spaces.Discrete, name=None, shape_cons
     return tf_cv1.placeholder(dtype=tf.int32, shape=shape, name=name)
 
 
-def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground, action_shape_constraint: tuple = None,
-                                               obs_shape_constraint: tuple = None) -> (tf.Tensor, tf.Tensor, tf.Tensor):
+def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground, obs_shape_constraint: tuple = None,
+                                               action_shape_constraint: tuple = None) -> (tf.Tensor, tf.Tensor, tf.Tensor):
     """
     Configure handle for feeding value to the computation graph
             Continuous space    -->     dtype=tf.float32
@@ -294,23 +288,23 @@ def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground, action
 
     if isinstance(playground.env.observation_space, gym.spaces.Box):
         """observation space is continuous"""
-        input_placeholder = continuous_space_placeholder(playground.OBSERVATION_SPACE,
-                                                         vocab.input_placeholder, obs_shape_constraint)
+        input_placeholder = continuous_space_placeholder(playground.OBSERVATION_SPACE, obs_shape_constraint,
+                                                         vocab.input_placeholder)
     elif isinstance(playground.env.action_space, gym.spaces.Discrete):
         """observation space is discrete"""
-        input_placeholder = discrete_space_placeholder(playground.OBSERVATION_SPACE,
-                                                       vocab.input_placeholder, obs_shape_constraint)
+        input_placeholder = discrete_space_placeholder(playground.OBSERVATION_SPACE, obs_shape_constraint,
+                                                       vocab.input_placeholder)
     else:
         raise NotImplementedError
 
     if isinstance(playground.env.action_space, gym.spaces.Box):
         """action space is continuous"""
-        output_placeholder = continuous_space_placeholder(playground.ACTION_SPACE,
-                                                          vocab.output_placeholder, action_shape_constraint)
+        output_placeholder = continuous_space_placeholder(playground.ACTION_SPACE, action_shape_constraint,
+                                                          vocab.output_placeholder)
     elif isinstance(playground.env.action_space, gym.spaces.Discrete):
         """action space is discrete"""
-        output_placeholder = discrete_space_placeholder(playground.ACTION_SPACE,
-                                                        vocab.output_placeholder, action_shape_constraint)
+        output_placeholder = discrete_space_placeholder(playground.ACTION_SPACE, action_shape_constraint,
+                                                        vocab.output_placeholder)
     else:
         raise NotImplementedError
 
@@ -323,13 +317,15 @@ def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground, action
     return input_placeholder, output_placeholder, Q_values_ph
 
 
-def policy_theta_discrete_space(logits_layer: tf.Tensor, playground: GymPlayground) -> (tf.Tensor, tf.Tensor):
+def policy_theta_discrete_space(logits_layer: tf.Tensor, playground: GymPlayground, name=vocab.policy_theta_D) -> (tf.Tensor, tf.Tensor):
     """Policy theta for discrete space --> actions are sampled from a categorical distribution
 
     :param logits_layer:
     :type logits_layer: tf.Tensor
     :param playground:
     :type playground: GymPlayground
+    :param name:
+    :type name:
     :return: (sampled_action, log_p_all)
     :rtype: (tf.Tensor, tf.Tensor)
     """
@@ -337,7 +333,7 @@ def policy_theta_discrete_space(logits_layer: tf.Tensor, playground: GymPlaygrou
     assert isinstance(logits_layer, tf.Tensor)
     assert logits_layer.shape.as_list()[-1] == playground.ACTION_CHOICES
 
-    with tf.name_scope(vocab.policy_theta_D) as scope:
+    with tf.name_scope(name=name) as scope:
         # convert the logits layer (aka: raw output) to probabilities
         log_p_all = tf.nn.log_softmax(logits_layer)
         oversize_policy_theta = tf.random.categorical(logits_layer, num_samples=1)
@@ -355,7 +351,7 @@ def policy_theta_discrete_space(logits_layer: tf.Tensor, playground: GymPlaygrou
 
 
 # (Ice-Boxed) todo:implement --> implement policy_theta for continuous space: ice-boxed until next sprint
-def policy_theta_continuous_space(logits_layer: tf.Tensor, playground: GymPlayground):
+def policy_theta_continuous_space(logits_layer: tf.Tensor, playground: GymPlayground, name=vocab.policy_theta_C):
     """
     Policy theta for continuous space --> actions are sampled from a gausian distribution
     status: ice-box until next sprint
@@ -364,7 +360,7 @@ def policy_theta_continuous_space(logits_layer: tf.Tensor, playground: GymPlaygr
     assert isinstance(logits_layer, tf.Tensor)
     assert logits_layer.shape.as_list()[-1] == playground.ACTION_CHOICES
 
-    with tf.name_scope(vocab.policy_theta_C) as scope:
+    with tf.name_scope(name=name) as scope:
         # convert the logits layer (aka: raw output) to probabilities
         logits_layer = tf.identity(logits_layer, name='mu')
 
@@ -398,11 +394,11 @@ def discrete_pseudo_loss(log_p_all, action_placeholder: tf.Tensor, Q_values_plac
         return pseudo_loss
 
 
-def policy_optimizer(pseudo_loss: tf.Tensor, learning_rate: ExperimentSpec) -> tf.Operation:
+def policy_optimizer(pseudo_loss: tf.Tensor, learning_rate: ExperimentSpec, name=vocab.optimizer) -> tf.Operation:
     """
     Define the optimizing methode for training the REINFORE agent
     """
-    return tf_cv1.train.AdamOptimizer(learning_rate=learning_rate).minimize(pseudo_loss, name=vocab.optimizer)
+    return tf_cv1.train.AdamOptimizer(learning_rate=learning_rate).minimize(pseudo_loss, name=name)
 
 
 def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:

@@ -46,10 +46,10 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
         'discounted_reward_to_go': False,
         'discout_factor': 0.999,
         'learning_rate': lr,
-        'nn_h_layer_topo': tuple(hidden_sizes),
+        'theta_nn_h_layer_topo': tuple(hidden_sizes),
         'random_seed': 42,
-        'hidden_layers_activation': tf.nn.tanh,  # tf.nn.relu,
-        'output_layers_activation': None,
+        'theta_hidden_layers_activation': tf.nn.tanh,  # tf.nn.relu,
+        'theta_output_layers_activation': None,
         'render_env_every_What_epoch': 100,
         'print_metric_every_what_epoch': 5,
     }
@@ -70,7 +70,8 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
 
     # make core of policy network
     # obs_ph = tf.placeholder(shape=(None, obs_dim), dtype=tf.float32)                          # ////// Original bloc //////
-    obs_ph, act_ph, weights_ph = BLOC.gym_playground_to_tensorflow_graph_adapter(playground)    # \\\\\\    My bloc    \\\\\\
+    obs_ph, act_ph, weights_ph = BLOC.gym_playground_to_tensorflow_graph_adapter(
+        playground)  # \\\\\\    My bloc    \\\\\\
 
     # logits = mlp(obs_ph, sizes=hidden_sizes+[n_acts])                                    # ////// Original bloc //////
     # logits = BLOC.build_MLP_computation_graph(obs_ph, playground,                        # \\\\\\    My bloc    \\\\\\
@@ -97,7 +98,7 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
 
     # make train op
     # train_op = tf.train.AdamOptimizer(learning_rate=lr).minimize(loss)                   # ////// Original bloc //////
-    train_op = BLOC.policy_optimizer(loss, learning_rate=exp_spec.learning_rate)           # \\\\\\    My bloc    \\\\\\
+    train_op = BLOC.policy_optimizer(loss, learning_rate=exp_spec.learning_rate)  # \\\\\\    My bloc    \\\\\\
 
     # \\\\\\    My bloc    \\\\\\
     date_now = datetime.now()

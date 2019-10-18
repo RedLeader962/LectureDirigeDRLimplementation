@@ -30,16 +30,16 @@ CARTPOLE_HPARAM = {
     'discounted_reward_to_go': True,
     'discout_factor': 0.999,
     'learning_rate': 1e-2,
-    'nn_h_layer_topo': (62, ),
+    'theta_nn_h_layer_topo': (62, ),
     'random_seed': 82,
-    'hidden_layers_activation': tf.nn.tanh,        # tf.nn.relu,
-    'output_layers_activation': None,
+    'theta_hidden_layers_activation': tf.nn.tanh,        # tf.nn.relu,
+    'theta_output_layers_activation': None,
     'render_env_every_What_epoch': 100,
     'print_metric_every_what_epoch': 2,
 }
 
 CARTPOLE_HPARAM_FAIL = CARTPOLE_HPARAM.copy()
-CARTPOLE_HPARAM_FAIL['nn_h_layer_topo'] = (3,)
+CARTPOLE_HPARAM_FAIL['theta_nn_h_layer_topo'] = (3,)
 
 
 def init_spec_and_ActorCriticAgent(hparam):
@@ -57,7 +57,7 @@ def init_spec_and_ActorCriticAgent(hparam):
     return epoch_generator, exp_spec, consol_print_learning_stats
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def setup_ActorCritic_train_algo_generator_with_PASSING_spec():
     nb_of_try = 2
     env_max_return = 200.000
@@ -75,7 +75,7 @@ def setup_ActorCritic_train_algo_generator_with_PASSING_spec():
     writer.close()
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def setup_ActorCritic_train_algo_generator_with_FAILING_spec():
     nb_of_try = 2
     env_max_return = 200.000
@@ -133,7 +133,7 @@ def test_integration_ActorCriticAgent_train_PASS(setup_ActorCritic_train_algo_ge
                            "    - Required mean return {}\n"
                            "\n{}\n\n").format(
         exp_spec.max_epoch, nb_of_try, exp_spec.prefered_environment,
-        exp_spec.hidden_layers_activation, env_max_return, error_str)
+        exp_spec.theta_hidden_layers_activation, env_max_return, error_str)
 
 
 @pytest.mark.skip(reason="Was required to check that each run was unique & done in isolation")

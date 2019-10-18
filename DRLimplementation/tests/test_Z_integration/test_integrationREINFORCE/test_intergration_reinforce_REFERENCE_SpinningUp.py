@@ -12,7 +12,7 @@ In browser, go to:
 """
 
 
-@pytest.fixture()
+@pytest.fixture
 def setup_train_algo_generator_with_PASSING_spec():
     env_name = 'CartPole-v0'
     env_max_return = 200.000
@@ -27,7 +27,7 @@ def setup_train_algo_generator_with_PASSING_spec():
 
     return epoch_generator, nb_of_try, env_name, env_max_return, max_epochs, hidden_sizes
 
-@pytest.fixture()
+@pytest.fixture
 def setup_train_algo_generator_with_FAILING_spec():
     env_name = 'CartPole-v0'
     env_max_return = 200.000

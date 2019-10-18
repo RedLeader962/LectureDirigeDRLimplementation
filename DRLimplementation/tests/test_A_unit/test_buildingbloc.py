@@ -41,7 +41,7 @@ def gym_continuous_setup():
     :return: (exp_spec, playground)
     :rtype: (ExperimentSpec, GymPlayground)
     """
-    exp_spec = bloc.ExperimentSpec(batch_size_in_ts=1000, max_epoch=2, neural_net_hidden_layer_topology=(2, 2))
+    exp_spec = bloc.ExperimentSpec(batch_size_in_ts=1000, max_epoch=2, theta_nn_hidden_layer_topology=(2, 2))
     playground = bloc.GymPlayground('LunarLanderContinuous-v2')
     yield exp_spec, playground
     tf_cv1.reset_default_graph()
@@ -52,7 +52,7 @@ def gym_discrete_setup():
     :return: (exp_spec, playground)
     :rtype: (ExperimentSpec, GymPlayground)
     """
-    exp_spec = bloc.ExperimentSpec(batch_size_in_ts=1000, max_epoch=2, neural_net_hidden_layer_topology=(2, 2))
+    exp_spec = bloc.ExperimentSpec(batch_size_in_ts=1000, max_epoch=2, theta_nn_hidden_layer_topology=(2, 2))
     playground = bloc.GymPlayground('LunarLander-v2')
     yield exp_spec, playground
     tf_cv1.reset_default_graph()
@@ -63,9 +63,10 @@ def gym_and_tf_continuous_setup():
     :return: (obs_p, act_p, exp_spec, playground)
     :rtype: (tf.Tensor, tf.Tensor, ExperimentSpec, GymPlayground)
     """
-    exp_spec = bloc.ExperimentSpec(batch_size_in_ts=1000, max_epoch=2, neural_net_hidden_layer_topology=(2, 2))
+    exp_spec = bloc.ExperimentSpec(batch_size_in_ts=1000, max_epoch=2, theta_nn_hidden_layer_topology=(2, 2))
     playground = bloc.GymPlayground('LunarLanderContinuous-v2')
-    obs_p, act_p, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground, (1,))
+    obs_p, act_p, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
+        playground, action_shape_constraint=(1,))
     yield obs_p, act_p, exp_spec, playground
     tf_cv1.reset_default_graph()
 
@@ -75,9 +76,10 @@ def gym_and_tf_discrete_setup():
     :return: (obs_p, act_p, exp_spec, playground)
     :rtype: (tf.Tensor, tf.Tensor, ExperimentSpec, GymPlayground)
     """
-    exp_spec = bloc.ExperimentSpec(batch_size_in_ts=1000, max_epoch=2, neural_net_hidden_layer_topology=(2, 2))
+    exp_spec = bloc.ExperimentSpec(batch_size_in_ts=1000, max_epoch=2, theta_nn_hidden_layer_topology=(2, 2))
     playground = bloc.GymPlayground('LunarLander-v2')
-    obs_p, act_p, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground, (1,))
+    obs_p, act_p, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
+        playground, action_shape_constraint=(1,))
     yield obs_p, act_p, exp_spec, playground
     tf_cv1.reset_default_graph()
 
@@ -87,7 +89,7 @@ def gym_and_tf_discrete_setup():
 
 def test_ExperimentSpec_init_ENV_TOPOLOGY_FAIL():
     with pytest.raises(Exception):
-        bloc.ExperimentSpec(neural_net_hidden_layer_topology=[1, ])
+        bloc.ExperimentSpec(theta_nn_hidden_layer_topology=[1, ])
 
 
 def test_set_experiment_spec_PASS(gym_discrete_setup):
@@ -98,10 +100,10 @@ def test_set_experiment_spec_PASS(gym_discrete_setup):
         'max_epoch': 10,
         'discout_factor': 0.5,
         'learning_rate': 10,
-        'nn_h_layer_topo': (10, 10),
+        'theta_nn_h_layer_topo': (10, 10),
         'random_seed': 10,
-        'hidden_layers_activation': tf.tanh,
-        'output_layers_activation': tf.tanh
+        'theta_hidden_layers_activation': tf.tanh,
+        'theta_output_layers_activation': tf.tanh
     }
 
     exp_spec.set_experiment_spec(parma_dict)
@@ -134,16 +136,16 @@ def test_gym_env_to_tf_graph_adapter_WRONG_IMPORT_TYPE():
 
 def test_gym_env_to_tf_graph_adapter_DISCRETE_PASS(gym_discrete_setup):
     _, playground = gym_discrete_setup
-    input_placeholder, output_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground,
-                                                                                                         (1,))
+    input_placeholder, output_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
+        playground, action_shape_constraint=(1,))
     assert input_placeholder.shape[-1] == playground.OBSERVATION_SPACE.shape[0]
     print(output_placeholder.shape)
     assert output_placeholder.shape.rank == 1
 
 def test_gym_env_to_tf_graph_adapter_CONTINUOUS_PASS(gym_continuous_setup):
     _, playground = gym_continuous_setup
-    input_placeholder, output_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground,
-                                                                                                         (1,))
+    input_placeholder, output_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
+        playground, action_shape_constraint=(1,))
     assert input_placeholder.shape[-1] == playground.OBSERVATION_SPACE.shape[0]
     assert output_placeholder.shape.rank == 2
 
@@ -155,7 +157,7 @@ def test_build_MLP_computation_graph_io(tf_setup, gym_discrete_setup):
     exp_spec, playground = gym_discrete_setup
     keras_input = keras.Input(shape=(12,))
 
-    mlp_hidden_ops = bloc.build_MLP_computation_graph(keras_input, playground, nn_shape)
+    mlp_hidden_ops = bloc.build_MLP_computation_graph(keras_input, playground.ACTION_CHOICES, nn_shape)
     print("\n\n>>> {}\n\n".format(mlp_hidden_ops))
     # model = keras.Model(inputs=keras_input, outputs=mlp_hidden_ops)
     # print(model.to_yaml())
@@ -163,13 +165,15 @@ def test_build_MLP_computation_graph_io(tf_setup, gym_discrete_setup):
 
 def test_build_MLP_computation_graph_with_DISCRETE_adapter(gym_discrete_setup):
     _, playground = gym_discrete_setup
-    input_placeholder, out_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground, (1,))
-    bloc.build_MLP_computation_graph(input_placeholder, playground, hidden_layer_topology=(2, 2))
+    input_placeholder, out_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
+        playground, action_shape_constraint=(1,))
+    bloc.build_MLP_computation_graph(input_placeholder, playground.ACTION_CHOICES, hidden_layer_topology=(2, 2))
 
 def test_build_MLP_computation_graph_with_CONTINUOUS_adapter(gym_continuous_setup):
     _, playground = gym_continuous_setup
-    input_placeholder, out_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground, (1,))
-    bloc.build_MLP_computation_graph(input_placeholder, playground, hidden_layer_topology=(2, 2))
+    input_placeholder, out_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
+        playground, action_shape_constraint=(1,))
+    bloc.build_MLP_computation_graph(input_placeholder, playground.ACTION_CHOICES, hidden_layer_topology=(2, 2))
 
 
 def test_integration_Playground_to_adapter_to_build_graph(gym_continuous_setup):
@@ -178,10 +182,12 @@ def test_integration_Playground_to_adapter_to_build_graph(gym_continuous_setup):
     # (!) fake input data
     input_data = np.ones((20, *playground.OBSERVATION_SPACE.shape))
 
-    input_placeholder, out_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground, (1,))
+    input_placeholder, out_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
+        playground, action_shape_constraint=(1,))
 
     """Build a Multi Layer Perceptron (MLP) as the policy parameter theta using a computation graph"""
-    theta = bloc.build_MLP_computation_graph(input_placeholder, playground, exp_spec.nn_h_layer_topo)
+    theta = bloc.build_MLP_computation_graph(input_placeholder, playground.ACTION_CHOICES,
+                                             exp_spec.theta_nn_h_layer_topo)
 
     writer = tf_cv1.summary.FileWriter('./graph', tf_cv1.get_default_graph())
     with tf_cv1.Session() as sess:
@@ -307,7 +313,8 @@ def test_policy_theta_discrete_space_PARAM_FAIL(gym_and_tf_discrete_setup):
 
     _ , act_p, exp_spec, playground = gym_and_tf_discrete_setup
     obs_p_wrong_shape = tf_cv1.placeholder(tf.float32, shape=(None, 3))
-    theta_mlp = bloc.build_MLP_computation_graph(obs_p_wrong_shape, playground, exp_spec.nn_h_layer_topo)
+    theta_mlp = bloc.build_MLP_computation_graph(obs_p_wrong_shape, playground.ACTION_CHOICES,
+                                                 exp_spec.theta_nn_h_layer_topo)
 
     with pytest.raises(AssertionError):
         bloc.policy_theta_discrete_space(obs_p_wrong_shape, playground)
@@ -316,7 +323,7 @@ def test_policy_theta_discrete_space_ENV_NOT_DISCRETE(gym_and_tf_continuous_setu
     obs_p, act_p, exp_spec, continuous_playground = gym_and_tf_continuous_setup
 
     out_p_wrong_shape = tf_cv1.placeholder(tf.float32, shape=(None, 43))
-    theta_mlp = bloc.build_MLP_computation_graph(obs_p, continuous_playground, exp_spec.nn_h_layer_topo)
+    theta_mlp = bloc.build_MLP_computation_graph(obs_p, continuous_playground.ACTION_CHOICES, exp_spec.theta_nn_h_layer_topo)
 
     with pytest.raises(AssertionError):
         bloc.policy_theta_discrete_space(theta_mlp, continuous_playground)
@@ -325,7 +332,7 @@ def test_policy_theta_discrete_space_ENV_NOT_DISCRETE(gym_and_tf_continuous_setu
 def test_policy_theta_discrete_space_PASS(gym_and_tf_discrete_setup):
 
     obs_p, act_p, exp_spec, playground = gym_and_tf_discrete_setup
-    theta_mlp = bloc.build_MLP_computation_graph(obs_p, playground, exp_spec.nn_h_layer_topo)
+    theta_mlp = bloc.build_MLP_computation_graph(obs_p, playground.ACTION_CHOICES, exp_spec.theta_nn_h_layer_topo)
     bloc.policy_theta_discrete_space(theta_mlp, playground)
     # todo: implement test case
 
@@ -340,7 +347,7 @@ def test_policy_theta_continuous_space_PARAM_FAIL(gym_and_tf_continuous_setup):
 # def test_policy_theta_continuous_space_BUILDGRAPH_PASS(gym_and_tf_continuous_setup):
 #     obs_p, act_p, exp_spec, playground = gym_and_tf_continuous_setup
 #
-#     theta_mlp = bloc.build_MLP_computation_graph(obs_p, playground, exp_spec.nn_h_layer_topo)
+#     theta_mlp = bloc.build_MLP_computation_graph(obs_p, playground, exp_spec.theta_nn_h_layer_topo)
 #
 #     bloc.policy_theta_continuous_space(theta_mlp, playground)
 #     # todo: finish test case
@@ -349,7 +356,7 @@ def test_policy_theta_continuous_space_ENV_NOT_DISCRETE(gym_and_tf_discrete_setu
 
     obs_p, act_p, exp_spec, discrete_playground = gym_and_tf_discrete_setup
     obs_p_wrong_shape = tf_cv1.placeholder(tf.float32, shape=(None, 43))
-    theta_mlp = bloc.build_MLP_computation_graph(obs_p, discrete_playground, exp_spec.nn_h_layer_topo)
+    theta_mlp = bloc.build_MLP_computation_graph(obs_p, discrete_playground.ACTION_CHOICES, exp_spec.theta_nn_h_layer_topo)
 
     with pytest.raises(AssertionError):
         bloc.policy_theta_continuous_space(theta_mlp, discrete_playground)

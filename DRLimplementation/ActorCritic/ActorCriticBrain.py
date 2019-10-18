@@ -8,17 +8,33 @@ from blocAndTools.rl_vocabulary import rl_name
 vocab = rl_name()
 
 
-def actor_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.Tensor, advantage_placeholder: tf.Tensor,
-                 experiment_spec: ExperimentSpec, playground: GymPlayground) -> (tf.Tensor, tf.Tensor, tf.Tensor):
+def build_actor_policy_graph(observation_placeholder: tf.Tensor, action_placeholder: tf.Tensor,
+                             advantage_placeholder: tf.Tensor, experiment_spec: ExperimentSpec,
+                             playground: GymPlayground) -> (tf.Tensor, tf.Tensor, tf.Tensor):
+    """
+    The ACTOR graph(aka the policy network)
 
+        1. Actor network theta
+            input: the observations collected
+            output: the logits of each action in the action space
+
+        2. Policy
+            input: the actor network
+            output: a selected action & the probabilities of each action in the action space
+
+        3. Actor loss
+            input: the probabilities of each action in the action space, the collected actions, the computed advantages
+            output: Grad_theta log pi_theta * A^pi
+
+    """
     with tf.name_scope(vocab.actor_network) as scope:
 
-        """ ---- Build parameter theta as a multilayer perceptron ---- """
-        theta_mlp = build_MLP_computation_graph(observation_placeholder, playground,
-                                                experiment_spec.nn_h_layer_topo,
-                                                hidden_layers_activation=experiment_spec.hidden_layers_activation,
-                                                output_layers_activation=experiment_spec.output_layers_activation,
-                                                name_scope=vocab.theta_NeuralNet)
+        """ ---- Build parameter THETA as a multilayer perceptron ---- """
+        theta_mlp = build_MLP_computation_graph(observation_placeholder, playground.ACTION_CHOICES,
+                                                experiment_spec.theta_nn_h_layer_topo,
+                                                hidden_layers_activation=experiment_spec.theta_hidden_layers_activation,
+                                                output_layers_activation=experiment_spec.theta_output_layers_activation,
+                                                name=vocab.theta_NeuralNet)
 
         # ::Discrete case
         if isinstance(playground.env.action_space, gym.spaces.Discrete):
@@ -49,7 +65,36 @@ def actor_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.Tens
     return sampled_action, theta_mlp, actor_loss
 
 
-def critic(observation_placeholder: tf.Tensor, action_placeholder: tf.Tensor, Q_values_placeholder: tf.Tensor,
-                     experiment_spec: ExperimentSpec, playground: GymPlayground) -> (tf.Tensor, tf.Tensor, tf.Tensor):
-    raise NotImplementedError   # todo: implement
-    return None
+def build_critic_graph(observation_placeholder: tf.Tensor, target_placeholder: tf.Tensor,
+                       experiment_spec: ExperimentSpec) -> (tf.Tensor, tf.Tensor):
+    """
+    The CRITIC graph
+
+        1. Critic network phi
+            input: the observations collected
+            output: the logits of each action in the action space
+
+        2. Critic loss
+            input: the target y (either Monte Carlo target or Bootstraped estimate target)
+            output: the Mean Squared Error (MSE)
+
+    """
+
+    """ Tensor first dimension shape compatibility assessment """
+    assert observation_placeholder.shape.as_list()[0] == target_placeholder.shape.as_list()[0], \
+        "target_ph shape {} first dimension is NOT compatible with Obs_ph shape first dimension {} ".format(
+            target_placeholder.shape.as_list()[0], observation_placeholder.shape.as_list()[0])
+
+    with tf.name_scope(vocab.critic_network) as scope:
+
+        """ ---- Build parameter PHI as a multilayer perceptron ---- """
+        critic = build_MLP_computation_graph(observation_placeholder, 1,
+                                              experiment_spec.theta_nn_h_layer_topo,
+                                              hidden_layers_activation=experiment_spec.theta_hidden_layers_activation,
+                                              output_layers_activation=experiment_spec.theta_output_layers_activation,
+                                              name=vocab.phi_NeuralNet)
+
+        """ ---- Build the Mean Square Error loss function ---- """
+        critic_loss = (target_placeholder - critic) ** 2
+
+    return critic, critic_loss
