@@ -1,6 +1,7 @@
 # coding=utf-8
 import numpy as np
 from collections import namedtuple
+from typing import List
 
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 from blocAndTools.rewardtogo import reward_to_go, discounted_reward_to_go
@@ -107,7 +108,7 @@ class TrajectoryCollector(object):
                                                 self._trj_collected,
                                                 self._q_values_computed, )
 
-    def __call__(self, observation: np.ndarray, action, reward: float, *args, **kwargs) -> None:
+    def collect(self, observation: np.ndarray, action, reward: float) -> None:
         """ Collect observation, action, reward for one timestep
 
         :type observation: np.ndarray
@@ -118,26 +119,17 @@ class TrajectoryCollector(object):
         self._actions.append(action)
         self._rewards.append(reward)
         self._step_count_since_begining_of_training += 1
-
-    def collect(self, observation: np.ndarray, action, reward: float) -> None:
-        """ Collect observation, action, reward for one timestep
-
-        :type observation: np.ndarray
-        :type action: int or float
-        :type reward: float
-        """
-        self.__call__(observation, action, reward)
         return None
 
     def trajectory_ended(self) -> float:
-        """ Must be call at each trajectory end
+        """ Must be called at each trajectory end
 
         Compute:
             1. the trajectory lenght base on collected samples
             2. the Q-values
             3. the trajectory return
 
-        :param: the trajectory return
+        :return: the trajectory return
         :rtype: float
         """
         self._lenght = len(self._actions)
@@ -192,17 +184,17 @@ class TrajectoryCollector(object):
 
 
 class UniformeBatchContainer(object):
-    def __init__(self, batch_container_list: list, batch_constraint: int):
+    def __init__(self, batch_container_list: List[TrajectoryContainer], batch_constraint: int):
         """
         Container for storage & retrieval of sampled trajectories
         Is a component of the UniformBatchCollector
 
         (nice to have) todo:implement --> make the container immutable: convert each list to tupple once initialized
 
-        :param batch_constraint:
-        :type batch_constraint:
+        :param batch_constraint: max capacity measured in timestep
+        :type batch_constraint: int
         :param batch_container_list: Take a list of TrajectoryContainer instance fulled with collected timestep events.
-        :type batch_container_list: [TrajectoryContainer, ...]
+        :type batch_container_list: List[TrajectoryContainer]
         """
         self.batch_observations = []
         self.batch_actions = []
@@ -216,7 +208,8 @@ class UniformeBatchContainer(object):
         for aTrjContainer in batch_container_list:
             assert isinstance(aTrjContainer, TrajectoryContainer), "The list must contain object of type TrajectoryContainer"
 
-            aTrj_obss, aTrj_acts, aTrj_rews, aTrj_Qs, aTrj_return, aTrj_lenght = aTrjContainer.unpack()
+            aTrj_Qs, aTrj_acts, aTrj_lenght, aTrj_obss, aTrj_return, aTrj_rews = self._container_unpacking_hook(
+                aTrjContainer)
 
             # merge list
             self.batch_observations += aTrj_obss
@@ -231,6 +224,14 @@ class UniformeBatchContainer(object):
 
         assert self._timestep_count == batch_constraint, ("The sum of each TrajectoryContainer lenght does not respect the size contraint: "
                                                           "Exepcted {}, got {} !!! ").format(batch_constraint, self._timestep_count)
+
+    def _container_unpacking_hook(self, aTrjContainer):
+        """Utility fct: Expose the init process for subclassing"""
+        aTrj_obss, aTrj_acts, aTrj_rews, aTrj_Qs, aTrj_return, aTrj_lenght = aTrjContainer.unpack()
+
+        # add
+
+        return aTrj_Qs, aTrj_acts, aTrj_lenght, aTrj_obss, aTrj_return, aTrj_rews
 
     def __len__(self) -> int:
         return self._timestep_count

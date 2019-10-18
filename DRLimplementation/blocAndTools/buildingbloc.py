@@ -405,17 +405,17 @@ def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
     """
     Build a feed dictionary ready to use in a TensorFlow run session.
 
-    It map TF placeholder to corresponding numpy array of values so be advise, order is important.
+    It map TF placeholder to corresponding array of values so be advise, order is important.
 
     :param placeholders: a list of tensorflow placeholder
     :type placeholders: [tf.Tensor, ...]
-    :param arrays_of_values: a list of numpy array
-    :type arrays_of_values: [np.ndarray, ...]
+    :param arrays_of_values: a list of array
+    :type arrays_of_values: [array, ...]
     :return: a feed dictionary
     :rtype: dict
     """
     assert isinstance(placeholders, list), "Wrong input type, placeholders must be a list of tensorflow placeholder"
-    assert isinstance(arrays_of_values, list), "Wrong input type, arrays_of_values must be a list of numpy array"
+    assert isinstance(arrays_of_values, list), "Wrong input type, arrays_of_values must be a list of array"
     assert len(placeholders) == len(arrays_of_values), "placeholders and arrays_of_values must be of the same lenght"
     for placeholder in placeholders:
         assert isinstance(placeholder, tf.Tensor), ("Wrong input type, placeholders must "

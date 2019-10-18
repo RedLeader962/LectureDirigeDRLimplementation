@@ -42,14 +42,13 @@ import tensorflow as tf
 import tensorflow.python.util.deprecation as deprecation
 
 import numpy as np
-import matplotlib.pyplot as plt
 from datetime import datetime
 
 from BasicPolicyGradient.REINFORCEbrain import REINFORCE_policy
 from blocAndTools import buildingbloc as bloc
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 from blocAndTools.visualisationtools import ConsolPrintLearningStats
-from blocAndTools.samplecontainer import TrajectoryCollector, UniformBatchCollector
+from blocAndTools.container.samplecontainer import TrajectoryCollector, UniformBatchCollector
 from blocAndTools.rl_vocabulary import rl_name
 
 tf_cv1 = tf.compat.v1   # shortcut

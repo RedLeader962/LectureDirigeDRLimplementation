@@ -4,7 +4,7 @@ from typing import Union, Any
 import pytest
 from gym.wrappers import TimeLimit
 
-from blocAndTools.samplecontainer import TrajectoryCollector, UniformBatchCollector
+from blocAndTools.container.samplecontainer import TrajectoryCollector, UniformBatchCollector
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 from .conftest import take_one_random_step
 

@@ -44,9 +44,8 @@ import numpy as np
 from BasicPolicyGradient.REINFORCEbrain import REINFORCE_policy
 from blocAndTools import buildingbloc as bloc
 from blocAndTools.agent import Agent
-from blocAndTools.buildingbloc import ExperimentSpec
 from blocAndTools.visualisationtools import ConsolPrintLearningStats
-from blocAndTools.samplecontainer import TrajectoryCollector, UniformBatchCollector, UniformeBatchContainer
+from blocAndTools.container.samplecontainer import TrajectoryCollector, UniformBatchCollector, UniformeBatchContainer
 from blocAndTools.rl_vocabulary import rl_name
 
 tf_cv1 = tf.compat.v1   # shortcut
@@ -178,14 +177,14 @@ class REINFORCEagent(Agent):
                 # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
 
                 """ ---- Prepare data for backpropagation in the neural net ---- """
-                batch_container: UniformeBatchContainer = the_UNI_BATCH_COLLECTOR.pop_batch_and_reset()
+                batch_container = the_UNI_BATCH_COLLECTOR.pop_batch_and_reset()
                 batch_average_trjs_return, batch_average_trjs_lenght = batch_container.compute_metric()
 
                 batch_observations = batch_container.batch_observations
                 batch_actions = batch_container.batch_actions
                 batch_Q_values = batch_container.batch_Qvalues
 
-                self._data_shape_is_compatibility_with_graph(batch_Q_values, batch_actions, batch_observations)
+                # self._data_shape_is_compatibility_with_graph(batch_Q_values, batch_actions, batch_observations)
 
                 """ ---- Agent: Compute gradient & update policy ---- """
                 feed_dictionary = bloc.build_feed_dictionary([self.observation_ph, self.action_ph, self.Q_values_ph],
@@ -210,13 +209,13 @@ class REINFORCEagent(Agent):
 
         return None
 
-    def _data_shape_is_compatibility_with_graph(self, batch_Q_values: list, batch_actions: list,
-                                                batch_observations: list):
-        """ Tensor/ndarray shape compatibility assessment """
-        assert self.observation_ph.shape.is_compatible_with(np.array(batch_observations).shape), \
-            "Obs: {} != {}".format(self.observation_ph.shape, np.array(batch_observations).shape)
-        assert self.action_ph.shape.is_compatible_with(np.array(batch_actions).shape), \
-            "Act: {} != {}".format(self.action_ph.shape, np.array(batch_actions).shape)
-        assert self.Q_values_ph.shape.is_compatible_with(np.array(batch_Q_values).shape), \
-            "Qval: {} != {}".format(self.Q_values_ph.shape, np.array(batch_Q_values).shape)
-        return None
+    # def _data_shape_is_compatibility_with_graph(self, batch_Q_values: list, batch_actions: list,
+    #                                             batch_observations: list):
+    #     """ Tensor/ndarray shape compatibility assessment """
+    #     assert self.observation_ph.shape.is_compatible_with(np.array(batch_observations).shape), \
+    #         "Obs: {} != {}".format(self.observation_ph.shape, np.array(batch_observations).shape)
+    #     assert self.action_ph.shape.is_compatible_with(np.array(batch_actions).shape), \
+    #         "Act: {} != {}".format(self.action_ph.shape, np.array(batch_actions).shape)
+    #     assert self.Q_values_ph.shape.is_compatible_with(np.array(batch_Q_values).shape), \
+    #         "Qval: {} != {}".format(self.Q_values_ph.shape, np.array(batch_Q_values).shape)
+    #     return None

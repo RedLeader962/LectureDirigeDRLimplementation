@@ -5,14 +5,10 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import tensorflow as tf
 import tensorflow.python.util.deprecation as deprecation
 
-import numpy as np
-
 from ActorCritic.ActorCriticBrain import build_actor_policy_graph, build_critic_graph
 from blocAndTools import buildingbloc as bloc
 from blocAndTools.agent import Agent
-from blocAndTools.buildingbloc import ExperimentSpec
-from blocAndTools.visualisationtools import ConsolPrintLearningStats
-from blocAndTools.samplecontainer import TrajectoryCollector, UniformBatchCollector, UniformeBatchContainer
+from blocAndTools.container.samplecontainer import TrajectoryCollector, UniformBatchCollector
 from blocAndTools.rl_vocabulary import rl_name
 
 tf_cv1 = tf.compat.v1   # shortcut
@@ -76,30 +72,6 @@ class ActorCriticAgent(Agent):
         the_TRAJECTORY_COLLECTOR = TrajectoryCollector(self.exp_spec, self.playground)
         the_UNI_BATCH_COLLECTOR = UniformBatchCollector(self.exp_spec.batch_size_in_ts)
         return the_TRAJECTORY_COLLECTOR, the_UNI_BATCH_COLLECTOR
-
-    def _compute_the_advantage(self, epoch_batch) -> list:
-        """
-        AT EPOCH END, Compute the advantage for every timestep of every trajectory collected
-
-                            A_t = r_t + V_tPrime - V_t
-         numpy version:
-                - compute A for the full trajectory in one shot using element wise operation
-                - graph computation on V is done only for timestep t
-                - V_tPrime is compute at epoch end
-                - require V collected for every timestep + a extra space to appended value:
-                    - 0 for Done trajectory
-                    - or the actual t+1 for those cut because of force terminaison of max container capacity reached
-
-                Computed element wise:
-                    A = rewards[:-1] + V[1:] - V[:-1]
-
-                Note: trick to acces timestep t+1 of the full array
-                  |     [:-1] is the collected value at timestep t
-                  |     [1:] is the collected value at timestep t+1
-
-        """
-        raise NotImplementedError   # todo: implement
-        return None
 
     def _training_epoch_generator(self, consol_print_learning_stats, render_env):
         # todo:implement --> critic training variation: target y = Monte Carlo target

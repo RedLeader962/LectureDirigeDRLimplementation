@@ -7,7 +7,7 @@ from gym.spaces import Discrete, Box
 from BasicPolicyGradient import REINFORCEbrain                                             # \\\\\\    My bloc    \\\\\\
 from blocAndTools import buildingbloc as BLOC                                              # \\\\\\    My bloc    \\\\\\
 from blocAndTools.visualisationtools import ConsolPrintLearningStats                       # \\\\\\    My bloc    \\\\\\
-from blocAndTools.samplecontainer import TrajectoryCollector, UniformBatchCollector        # \\\\\\    My bloc    \\\\\\
+from blocAndTools.container.samplecontainer import TrajectoryCollector, UniformBatchCollector        # \\\\\\    My bloc    \\\\\\
 
 tf_cv1 = tf.compat.v1   # shortcut
 
