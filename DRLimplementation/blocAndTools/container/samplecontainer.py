@@ -93,9 +93,9 @@ class TrajectoryCollector(object):
     def internal_state(self) -> namedtuple:
         """Testing utility"""
         TrajectoryCollectorInternalState = namedtuple('TrajectoryCollectorInternalState',
-                                   ['step_count_since_begining_of_training',
-                                    'trj_collected',
-                                    'q_values_computed_on_current_trj'], )
+                                                      ['step_count_since_begining_of_training',
+                                                       'trj_collected',
+                                                       'q_values_computed_on_current_trj'], )
 
         return TrajectoryCollectorInternalState(self._step_count_since_begining_of_training,
                                                 self._trj_collected,
