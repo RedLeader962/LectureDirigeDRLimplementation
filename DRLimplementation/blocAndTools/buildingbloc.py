@@ -1,4 +1,5 @@
 # coding=utf-8
+from dataclasses import dataclass
 from typing import Any, Union
 import gym
 from gym.wrappers import TimeLimit
@@ -13,7 +14,7 @@ vocab = rl_name()
 tf_cv1 = tf.compat.v1   # shortcut
 
 
-class ExperimentSpec(object):
+class ExperimentSpec:
     def __init__(self, batch_size_in_ts=5000, max_epoch=2, discout_factor=0.99, learning_rate=1e-2,
                  theta_nn_hidden_layer_topology: tuple = (32, 32), random_seed=42, discounted_reward_to_go=True,
                  environment_name='CartPole-v1', print_metric_every_what_epoch=5, isTestRun=False):
@@ -87,6 +88,11 @@ class ExperimentSpec(object):
             'theta_output_layers_activation': self.theta_output_layers_activation,
         }
 
+    def __repr__(self):
+        class_name = "ExperimentSpec"
+        repr_str = data_container_class_representation(self, class_name, space_from_margin=3)
+        return repr_str
+
     def set_experiment_spec(self, dict_param: dict) -> None:
         """
         Change any spec value and/or append aditional spec with value
@@ -100,12 +106,18 @@ class ExperimentSpec(object):
 
         self._assert_param()
 
-        # (Ice-Boxed) todo:fixme!! --> print a listing of ALL current spec: can be a source of confusion otherwise
-        print("\n\n:: Switching to parameter: {}".format(self.paramameter_set_name),
-              self.get_agent_training_spec(),
-              self.get_neural_net_spec())
+        print("\n\n:: Switching to parameter: {}\n".format(self.paramameter_set_name))
+        print(self.__repr__())
         return None
 
+def data_container_class_representation(class_instance, class_name: str, space_from_margin=0) -> str:
+    m_sp = " " * space_from_margin
+    item_space = " "*3
+    repr_str = m_sp + class_name + "{\n"
+    for k, v in class_instance.__dict__.items():
+        repr_str += m_sp + item_space + "\'{}\': {}\n".format(k, v)
+    repr_str += m_sp + "}"
+    return repr_str
 
 class GymPlayground(object):
     def __init__(self, environment_name='LunarLanderContinuous-v2', print_env_info=False):
@@ -439,23 +451,25 @@ def format_single_step_observation(observation: np.ndarray):
     batch_size_one_observation = np.expand_dims(observation, axis=0)
     return batch_size_one_observation
 
-def format_single_step_action(action_array: np.ndarray):
-    # todo --> unitest
-    action = None
-    try:
-        action = action_array[0]
-    except Exception as e:
-        # Note: The catched Exception is broad and not re-raised volontarly
+def to_scalar(action_array: np.ndarray):
+    # # todo --> unitest
+    # action = None
+    # try:
+    #     action = action_array[0]
+    # except Exception as e:
+    #     # Note: The catched Exception is broad and not re-raised volontarly
+    #
+    #     if isinstance(action_array, np.ndarray):
+    #         assert action_array.ndim == 1, "action_array is of dimension > 1: {}".format(action_array.ndim)
+    #         action = np.squeeze(action_array)
+    #     else:
+    #         action = action_array
+    #
+    #     assert isinstance(action, int), ("something is wrong with the 'to_scalar'. "
+    #                                      "Should output a int instead of {}".format(action))
+    # finally:
+    #     return action
 
-        if isinstance(action_array, np.ndarray):
-            assert action_array.ndim == 1, "action_array is of dimension > 1: {}".format(action_array.ndim)
-            action = np.squeeze(action_array)
-        else:
-            action = action_array
-
-        assert isinstance(action, int), ("something is wrong with the 'format_single_step_action'. "
-                                         "Should output a int instead of {}".format(action))
-    finally:
-        return action
+    return action_array.item()
 
 

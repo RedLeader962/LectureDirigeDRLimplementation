@@ -54,3 +54,5 @@ def get_t_and_tPrime_array_view_for_element_wise_op(trajectory_values: List) -> 
     view_t = view[:-1]
     view_tPrime = view[1:]
     return view_t, view_tPrime
+
+

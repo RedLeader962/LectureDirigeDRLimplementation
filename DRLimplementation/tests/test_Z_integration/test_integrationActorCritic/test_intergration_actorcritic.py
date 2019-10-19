@@ -13,7 +13,8 @@ deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 """
 Start TensorBoard in terminal:
-    tensorboard --logdir=DRLimplementation/tests/test_Z_integration/test_integrationActorCritic
+    cd DRLimplementation
+    tensorboard --logdir=DRLimplementation/tests/test_Z_integration/test_integrationActorCritic/graph/runs
     
 In browser, go to:
     http://0.0.0.0:6006/ 
@@ -23,15 +24,16 @@ AGENT_ROOT_DIR = "test_Z_integration/test_integrationActorCritic"
 
 CARTPOLE_HPARAM = {
     'prefered_environment': 'CartPole-v0',
-    'paramameter_set_name': 'Integration test CartPole-v0',
+    'paramameter_set_name': 'Batch AC Int-test CartPole-v0',
     'MonteCarloTarget': True,
     'isTestRun': False,
-    'batch_size_in_ts': 5000,
+    'batch_size_in_ts': 4000,
     'max_epoch': 50,
-    'discounted_reward_to_go': True,
-    'discout_factor': 0.999,
+    'discounted_reward_to_go': False,
+    'discout_factor': 0.99,
     'learning_rate': 1e-2,
-    'theta_nn_h_layer_topo': (62, ),
+    'critic_learning_rate': 1e-3,
+    'theta_nn_h_layer_topo': (62, 62),
     'random_seed': 82,
     'theta_hidden_layers_activation': tf.nn.tanh,        # tf.nn.relu,
     'theta_output_layers_activation': None,

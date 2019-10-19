@@ -5,7 +5,8 @@ from tests.test_Z_integration.test_integrationREINFORCE import reference_impleme
 
 """
 Start TensorBoard in terminal:
-    tensorboard --logdir=DRLimplementation/tests/test_Z_integration/test_integrationREINFORCE
+    cd DRLimplementation
+    tensorboard --logdir=DRLimplementation/tests/test_Z_integration/test_integrationREINFORCE/graph/runs
     
 In browser, go to:
     http://0.0.0.0:6006/ 

@@ -95,6 +95,7 @@ def build_critic_graph(observation_placeholder: tf.Tensor, target_placeholder: t
                                               name=vocab.phi_NeuralNet)
 
         """ ---- Build the Mean Square Error loss function ---- """
-        critic_loss = (target_placeholder - critic) ** 2
+        with tf.name_scope(vocab.critic_loss):
+            critic_loss = tf.reduce_mean((target_placeholder - critic) ** 2)
 
     return critic, critic_loss

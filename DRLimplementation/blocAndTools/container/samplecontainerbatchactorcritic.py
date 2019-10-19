@@ -76,7 +76,7 @@ class TrajectoryCollectorBatchActorCritic(TrajectoryCollector):
         if self.MonteCarloTarget:
             super()._compute_Q_values()
         else:
-            self._q_values = list(compute_TD_target(self._rewards, self._V_estimates))
+            self._q_values = compute_TD_target(self._rewards, self._V_estimates).tolist()  # (Priority) todo:unit-test --> the stored result and cascading behavior:
         return None
 
     def pop_trajectory_and_reset(self) -> TrajectoryContainerBatchActorCritic:
@@ -129,8 +129,11 @@ class UniformeBatchContainerBatchActorCritic(UniformeBatchContainer):
 
         self.batch_Values_estimate += aTrj_Values
 
+        # (Priority) todo:refactor --> pull the Advantage computation outside of the container:
+        #                                       - sepration of concern
+        #                                       - computation done on the last trajectory collected is bogus because it is most likely cut
         # compute the advantage
-        aTrj_Advantages = list(computhe_the_Advantage(aTrj_rews, aTrj_Values))
+        aTrj_Advantages = computhe_the_Advantage(aTrj_rews, aTrj_Values).tolist()
         assert len(aTrj_Advantages) == len(aTrj_acts), "Problem with Advantage computation"
         self.batch_Advantages += aTrj_Advantages
 

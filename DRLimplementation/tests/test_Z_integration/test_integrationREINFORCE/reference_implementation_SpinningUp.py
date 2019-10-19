@@ -159,7 +159,7 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
 
                 step_observation = BLOC.format_single_step_observation(obs)              # \\\\\\    My bloc    \\\\\\
                 action_array = sess.run(actions, feed_dict={obs_ph: step_observation})   # \\\\\\    My bloc    \\\\\\
-                act = BLOC.format_single_step_action(action_array)                       # \\\\\\    My bloc    \\\\\\
+                act = BLOC.to_scalar(action_array)                       # \\\\\\    My bloc    \\\\\\
                 # obs, rew, done, _ = playground.env.step(act)   <-- (!) mistake         # \\\\\\    My bloc    \\\\\\
                 # (!) Solution to silent error 2: dont ovewrite S_t                        \\\\\\    My bloc    \\\\\\
                 obs_prime, rew, done, _ = playground.env.step(act)  # <-- (!) Solution     \\\\\\    My bloc    \\\\\\

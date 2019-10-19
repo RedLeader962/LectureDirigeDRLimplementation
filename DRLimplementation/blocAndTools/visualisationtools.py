@@ -207,26 +207,26 @@ class ConsolPrintLearningStats(object):
         self.timestep = timestep
         return None
 
-
-class UltraBasicLivePloter(object):
-    # (Ice-Boxed) todo:implement --> live ploting for trainig: (!) alternative --> use TensorBoard
-    def __init__(self):
-        fig, ax = plt.subplots(figsize=(8, 6))
-        self.fig = fig
-        self.ax = ax
-        plt.xlabel('Epoch')
-        ax.grid(True)
-        ax.legend(loc='best')
-
-        plt.ion()  # for live plot
-
-    def draw(self, epoch_average_return: list, epoch_average_loss: list) -> None:
-        x_axes = range(0, len(epoch_average_return))
-        self.ax.plot(x_axes, epoch_average_return, label='Average Return')
-        self.ax.plot(x_axes, epoch_average_loss, label='Average loss')
-
-        plt.draw()
-        return None
+#
+# class UltraBasicLivePloter(object):
+#     # (Ice-Boxed) todo:implement --> live ploting for trainig: (!) alternative --> use TensorBoard
+#     def __init__(self):
+#         fig, ax = plt.subplots(figsize=(8, 6))
+#         self.fig = fig
+#         self.ax = ax
+#         plt.xlabel('Epoch')
+#         ax.grid(True)
+#         ax.legend(loc='best')
+#
+#         plt.ion()  # for live plot
+#
+#     def draw(self, epoch_average_return: list, epoch_average_loss: list) -> None:
+#         x_axes = range(0, len(epoch_average_return))
+#         self.ax.plot(x_axes, epoch_average_return, label='Average Return')
+#         self.ax.plot(x_axes, epoch_average_loss, label='Average loss')
+#
+#         plt.draw()
+#         return None
 
 
 def ultra_basic_ploter(epoch_average_return: list, epoch_average_loss: list, epoch_average_lenght: list,
@@ -242,8 +242,8 @@ def ultra_basic_ploter(epoch_average_return: list, epoch_average_loss: list, epo
     plt.xlabel('Epoch')
 
     now = datetime.now()
-    ax.set_title("Experiment {} finished at {}:{} {}".format(experiment_spec.paramameter_set_name,
-                                                       now.hour, now.minute, now.date()), fontsize='xx-large')
+    ax.set_title("{} finished at {}:{} {}".format(experiment_spec.paramameter_set_name,
+                                                       now.hour, now.minute, now.date()), fontsize='x-large')
 
 
     ax.grid(True)

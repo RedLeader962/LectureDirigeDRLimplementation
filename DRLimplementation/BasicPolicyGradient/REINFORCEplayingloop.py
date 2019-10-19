@@ -72,7 +72,7 @@ def play_REINFORCE_agent_discrete(exp_spec: ExperimentSpec, max_trajectories=20)
                 step_observation = bloc.format_single_step_observation(obs)
                 action_array = sess.run(policy_action_sampler, feed_dict={observation_ph: step_observation})
 
-                action = bloc.format_single_step_action(action_array)
+                action = bloc.to_scalar(action_array)
                 obs_prime, reward, done, _ = playground.env.step(action)
                 obs = obs_prime  # <-- (!)
 

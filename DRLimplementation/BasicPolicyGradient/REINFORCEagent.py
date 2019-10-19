@@ -140,7 +140,7 @@ class REINFORCEagent(Agent):
                         action_array = sess.run(self.policy_action_sampler,
                                                 feed_dict={self.observation_ph: step_observation})
 
-                        action = bloc.format_single_step_action(action_array)
+                        action = bloc.to_scalar(action_array)
                         observe_reaction, reward, done, _ = self.playground.env.step(action)
 
                         """ ---- Agent: Collect current timestep events ---- """

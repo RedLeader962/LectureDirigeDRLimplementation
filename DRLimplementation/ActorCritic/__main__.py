@@ -7,7 +7,8 @@ Invoke Actor-Critic agent using
 
 Note on TensorBoard usage:
     Start TensorBoard in terminal:
-        tensorboard --logdir=ActorCritic/graph/
+        cd DRLimplementation
+        tensorboard --logdir=ActorCritic/graph/runs
 
     In browser, go to:
         http://0.0.0.0:6006/
@@ -20,6 +21,12 @@ import tensorflow as tf
 from ActorCritic.BatchActorCriticAgent import ActorCriticAgent
 from blocAndTools.buildingbloc import ExperimentSpec
 
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+# *                                                                                                                   *
+# *                                   Advantage Actor-Critic (batch architecture)                                     *
+# *                                                                                                                   *
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
 # Note: About Gamma value (aka the discout factor)
 #       Big difference between 0.9 and 0.999.
 #       Also you need to take into account the experiment average number of step per episode
@@ -29,15 +36,16 @@ from blocAndTools.buildingbloc import ExperimentSpec
 
 cartpole_hparam = {
         'prefered_environment': 'CartPole-v0',
-        'paramameter_set_name': 'Actor-Critic CartPole-v0',
+        'paramameter_set_name': 'Batch AC CartPole-v0',
         'MonteCarloTarget': True,
         'isTestRun': False,
-        'batch_size_in_ts': 5000,
-        'max_epoch': 40,
+        'batch_size_in_ts': 4000,
+        'max_epoch': 50,
         'discounted_reward_to_go': True,
-        'discout_factor': 0.999,
-        'learning_rate': 1e-2,
-        'theta_nn_h_layer_topo': (62, ),
+        'discout_factor': 0.99,
+        'learning_rate': 3e-4,
+        'critic_learning_rate': 1e-3,
+        'theta_nn_h_layer_topo': (62, 62),
         'random_seed': 82,
         'theta_hidden_layers_activation': tf.nn.tanh,        # tf.nn.relu,
         'theta_output_layers_activation': None,
@@ -55,6 +63,7 @@ test_hparam = {
     'discounted_reward_to_go': True,
     'discout_factor': 0.999,
     'learning_rate': 1e-2,
+    'critic_learning_rate': 1e-3,
     'theta_nn_h_layer_topo': (8, 8),
     'random_seed': 82,
     'theta_hidden_layers_activation': tf.nn.tanh,

@@ -155,7 +155,7 @@ class Agent(object, metaclass=ABCMeta):
                     action_array = sess.run(self.policy_action_sampler,
                                             feed_dict={self.observation_ph: step_observation})
 
-                    action = bloc.format_single_step_action(action_array)
+                    action = bloc.to_scalar(action_array)
                     obs_prime, reward, done, _ = self.playground.env.step(action)
                     obs = obs_prime  # <-- (!)
 

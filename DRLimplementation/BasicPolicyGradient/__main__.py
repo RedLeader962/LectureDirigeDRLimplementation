@@ -6,7 +6,8 @@ Invoke REINFORCE agent using
 
 Note on TensorBoard usage:
     Start TensorBoard in terminal:
-        tensorboard --logdir=BasicPolicyGradient/graph/
+        cd DRLimplementation
+        tensorboard --logdir=BasicPolicyGradient/graph/runs
 
     In browser, go to:
         http://0.0.0.0:6006/

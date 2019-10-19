@@ -153,7 +153,7 @@ def train_REINFORCE_agent_discrete(exp_spec: ExperimentSpec, render_env=None):
                     step_observation = bloc.format_single_step_observation(current_observation)
                     action_array = sess.run(policy_action_sampler, feed_dict={observation_ph: step_observation})
 
-                    action = bloc.format_single_step_action(action_array)
+                    action = bloc.to_scalar(action_array)
                     observe_reaction, reward, done, _ = playground.env.step(action)
 
                     """ ---- Agent: Collect current timestep events ---- """

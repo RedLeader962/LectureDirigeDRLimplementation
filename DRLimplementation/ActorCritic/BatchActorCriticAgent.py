@@ -33,10 +33,10 @@ class ActorCriticAgent(Agent):
         """
 
         """ ---- Placeholder ---- """
-        self.observation_ph, self.action_ph, self.Advantage_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
+        self.observation_ph, self.action_ph, self.target_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
             self.playground, obs_shape_constraint=None, action_shape_constraint=None)
 
-        self.target_placeholder = tf_cv1.placeholder(tf.float32, shape=self.Advantage_ph.shape, name='target_placeholder')
+        self.Advantage_ph = tf_cv1.placeholder(tf.float32, shape=self.target_ph.shape, name='target_placeholder')
 
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
         # *                                                                                                           *
@@ -58,14 +58,14 @@ class ActorCriticAgent(Agent):
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
         """ ---- The value function estimator ---- """
         self.V_phi_estimator, self.V_phi_loss = build_critic_graph(self.observation_ph,
-                                                                   self.target_placeholder, self.exp_spec)
+                                                                   self.target_ph, self.exp_spec)
         """ ---- Critic optimizer ---- """
         self.V_phi_optimizer = tf_cv1.train.AdamOptimizer(
             learning_rate=self.exp_spec.learning_rate).minimize(self.V_phi_loss, name=vocab.critic_optimizer)
 
         return None
 
-    def _instantiate_data_collector(self) -> Tuple[TrajectoryCollectorBatchActorCritic, UniformeBatchContainerBatchActorCritic]:
+    def _instantiate_data_collector(self) -> Tuple[TrajectoryCollectorBatchActorCritic, UniformBatchCollectorBatchActorCritic]:
         """
         Data collector utility
 
@@ -125,11 +125,12 @@ class ActorCriticAgent(Agent):
                         action_array, V_estimate = sess.run([self.policy_action_sampler, self.V_phi_estimator],
                                                             feed_dict={self.observation_ph: step_observation})
 
-                        action = bloc.format_single_step_action(action_array)
+                        action = bloc.to_scalar(action_array)
+
                         observe_reaction, reward, done, _ = self.playground.env.step(action)
 
                         """ ---- Agent: Collect current timestep events ---- """
-                        the_TRAJECTORY_COLLECTOR.collect(current_observation, action, reward, V_estimate)
+                        the_TRAJECTORY_COLLECTOR.collect(current_observation, action, reward, bloc.to_scalar(V_estimate))
                         current_observation = observe_reaction  # <-- (!)
 
                         if done:
@@ -166,8 +167,8 @@ class ActorCriticAgent(Agent):
                 # self._data_shape_is_compatibility_with_graph(batch_Q_values, batch_actions, batch_observations)
 
                 """ ---- Agent: Compute gradient & update policy ---- """
-                feed_dictionary = bloc.build_feed_dictionary([self.observation_ph, self.action_ph, self.Advantage_ph],
-                                                             [batch_observations, batch_actions, batch_Advantages])
+                feed_dictionary = bloc.build_feed_dictionary([self.observation_ph, self.action_ph, self.target_ph, self.Advantage_ph],
+                                                             [batch_observations, batch_actions, batch_Q_values, batch_Advantages])
                 e_actor_loss, e_V_phi_loss = sess.run([self.actor_loss, self.V_phi_loss],
                                                       feed_dict=feed_dictionary)
 
@@ -175,7 +176,7 @@ class ActorCriticAgent(Agent):
                 sess.run(self.actor_policy_optimizer_op, feed_dict=feed_dictionary)
 
                 """ ---- Train critic ---- """
-                critique_loop_len = 50  # (Priority) todo:implement --> push definition in exp_spec:
+                critique_loop_len = 80  # (CRITICAL) todo:implement --> push definition in exp_spec:
                 for c_loop in range(critique_loop_len):
                     sess.run(self.V_phi_optimizer, feed_dict=feed_dictionary)
 

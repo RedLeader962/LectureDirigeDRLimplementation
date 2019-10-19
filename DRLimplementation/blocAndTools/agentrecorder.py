@@ -87,7 +87,7 @@ def record_REINFORCE_agent_discrete(env='CartPole-v0', nb_of_clip_recorded=5):
                 step_observation = bloc.format_single_step_observation(current_observation)
                 action_array = sess.run(policy_action_sampler, feed_dict={observation_ph: step_observation})
 
-                action = bloc.format_single_step_action(action_array)
+                action = bloc.to_scalar(action_array)
                 observe_reaction, reward, done, _ = playground.env.step(action)
                 current_observation = observe_reaction  # <-- (!)
 
