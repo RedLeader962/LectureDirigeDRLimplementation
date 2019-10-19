@@ -17,7 +17,7 @@ Note on TensorBoard usage:
 import argparse
 import tensorflow as tf
 
-from ActorCritic.ActorCriticAgent import ActorCriticAgent
+from ActorCritic.BatchActorCriticAgent import ActorCriticAgent
 from blocAndTools.buildingbloc import ExperimentSpec
 
 # Note: About Gamma value (aka the discout factor)
@@ -30,6 +30,7 @@ from blocAndTools.buildingbloc import ExperimentSpec
 cartpole_hparam = {
         'prefered_environment': 'CartPole-v0',
         'paramameter_set_name': 'Actor-Critic CartPole-v0',
+        'MonteCarloTarget': True,
         'isTestRun': False,
         'batch_size_in_ts': 5000,
         'max_epoch': 40,
@@ -47,6 +48,7 @@ cartpole_hparam = {
 test_hparam = {
     'prefered_environment': 'CartPole-v0',
     'paramameter_set_name': 'Actor-Critic Test spec',
+    'MonteCarloTarget': True,
     'isTestRun': True,
     'batch_size_in_ts': 1000,
     'max_epoch': 5,
@@ -97,16 +99,16 @@ if args.train:
     if args.discounted is not None:
         exp_spec.set_experiment_spec({'discounted_reward_to_go': args.discounted})
 
-    reinforce_agent = ActorCriticAgent(exp_spec)
-    reinforce_agent.train(render_env=args.render_training)
+    ac_agent = ActorCriticAgent(exp_spec)
+    ac_agent.train(render_env=args.render_training)
 else:
     exp_spec.set_experiment_spec(cartpole_hparam)
     if args.test_run:
         exp_spec.set_experiment_spec({'isTestRun': True})
 
-    reinforce_agent = ActorCriticAgent(exp_spec)
+    ac_agent = ActorCriticAgent(exp_spec)
     raise NotImplementedError   # todo: implement train and select a agent
-    reinforce_agent.play(run_name='todo --> CHANGE_TO_My_TrainedAgent', max_trajectories=args.play_for)
+    ac_agent.play(run_name='todo --> CHANGE_TO_My_TrainedAgent', max_trajectories=args.play_for)
 
 exit(0)
 

@@ -76,7 +76,7 @@ class TrajectoryCollectorBatchActorCritic(TrajectoryCollector):
         if self.MonteCarloTarget:
             super()._compute_Q_values()
         else:
-            super()._q_values = list(compute_TD_target(super()._rewards, self._V_estimates))
+            self._q_values = list(compute_TD_target(self._rewards, self._V_estimates))
         return None
 
     def pop_trajectory_and_reset(self) -> TrajectoryContainerBatchActorCritic:
@@ -87,14 +87,14 @@ class TrajectoryCollectorBatchActorCritic(TrajectoryCollector):
         :return: A TrajectoryContainerBatchActorCritic with a full trajectory
         :rtype: TrajectoryContainerBatchActorCritic
         """
-        assert super()._q_values_computed, ("The return and the Q-values are not computed yet!!! "
+        assert self._q_values_computed, ("The return and the Q-values are not computed yet!!! "
                                             "Call the method trajectory_ended() before pop_trajectory_and_reset()")
-        trajectory_containerBatchAC = TrajectoryContainerBatchActorCritic(super()._observations.copy(),
-                                                                   super()._actions.copy(),
-                                                                   super()._rewards.copy(),
-                                                                   super()._q_values.copy(),
-                                                                   super()._theReturn,
-                                                                   super()._trj_collected,
+        trajectory_containerBatchAC = TrajectoryContainerBatchActorCritic(self._observations.copy(),
+                                                                   self._actions.copy(),
+                                                                   self._rewards.copy(),
+                                                                   self._q_values.copy(),
+                                                                   self._theReturn,
+                                                                   self._trj_collected,
                                                                    self._V_estimates.copy())
 
         self._reset()
@@ -130,7 +130,7 @@ class UniformeBatchContainerBatchActorCritic(UniformeBatchContainer):
         self.batch_Values_estimate += aTrj_Values
 
         # compute the advantage
-        aTrj_Advantages = computhe_the_Advantage(aTrj_rews, aTrj_Values)
+        aTrj_Advantages = list(computhe_the_Advantage(aTrj_rews, aTrj_Values))
         assert len(aTrj_Advantages) == len(aTrj_acts), "Problem with Advantage computation"
         self.batch_Advantages += aTrj_Advantages
 

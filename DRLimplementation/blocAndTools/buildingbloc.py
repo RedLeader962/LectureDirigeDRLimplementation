@@ -394,7 +394,7 @@ def discrete_pseudo_loss(log_p_all, action_placeholder: tf.Tensor, Q_values_plac
         return pseudo_loss
 
 
-def policy_optimizer(pseudo_loss: tf.Tensor, learning_rate: ExperimentSpec, name=vocab.optimizer) -> tf.Operation:
+def policy_optimizer(pseudo_loss: tf.Tensor, learning_rate: ExperimentSpec, name=vocab.policy_optimizer) -> tf.Operation:
     """
     Define the optimizing methode for training the REINFORE agent
     """

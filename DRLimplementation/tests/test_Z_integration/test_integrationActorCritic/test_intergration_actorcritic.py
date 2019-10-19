@@ -24,6 +24,7 @@ AGENT_ROOT_DIR = "test_Z_integration/test_integrationActorCritic"
 CARTPOLE_HPARAM = {
     'prefered_environment': 'CartPole-v0',
     'paramameter_set_name': 'Integration test CartPole-v0',
+    'MonteCarloTarget': True,
     'isTestRun': False,
     'batch_size_in_ts': 5000,
     'max_epoch': 50,

@@ -3,6 +3,7 @@ from typing import List, Tuple
 
 import numpy as np
 
+# (nice to have) todo:implement --> Advantage computation with discount factor:
 
 def computhe_the_Advantage(rewards: List, v_estimates: List) -> np.ndarray:
     """Compute the Advantage for the full trajectory in one shot using element wise operation
