@@ -48,9 +48,9 @@ def get_t_and_tPrime_array_view_for_element_wise_op(trajectory_values: List) -> 
     #   |   - Than performing comparaison element wise:
     #   |       [:-1] is the collected value at timestep t
     #   |       [1:] is the collected value at timestep t+1
-
-    trajectory_values.append(0)
-    view = np.array(trajectory_values)
+    local_trj_v = trajectory_values.copy()
+    local_trj_v.append(0)
+    view = np.array(local_trj_v)
     view_t = view[:-1]
     view_tPrime = view[1:]
     return view_t, view_tPrime

@@ -78,7 +78,6 @@ class ActorCriticAgent(Agent):
         :return: Collertor utility
         :rtype: (TrajectoryCollector, UniformBatchCollector)
         """
-        # (Priority) todo:implement --> implement MonteCarloTarget param acces from argument & exp_spec:
         the_TRAJECTORY_COLLECTOR = TrajectoryCollectorBatchActorCritic(self.exp_spec, self.playground,
                                                                        MonteCarloTarget=self.exp_spec[
                                                                            'MonteCarloTarget'])

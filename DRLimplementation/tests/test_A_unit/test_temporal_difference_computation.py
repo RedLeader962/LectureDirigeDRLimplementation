@@ -9,7 +9,7 @@ key = ['arrayOne', 'mock_V_estimate', 'array_tPrime', 'array_t', 'expected_targe
 SetUpFixture = namedtuple('SetUpFixture', key)
 
 @pytest.fixture
-def setUpDecr() -> Tuple[np.ndarray]:
+def setUpDecr() -> SetUpFixture:
     mock_array = SetUpFixture(
         arrayOne=[1 for _ in range(5)],
         mock_V_estimate=[5, 4, 3, 2, 1],
@@ -31,14 +31,26 @@ def test_get_t_and_tPrime_array_view_for_element_wise_op(setUpDecr):
     assert np.equal(view_tPrime, setUpDecr.array_tPrime).all(), "{} != {}".format(view_tPrime, setUpDecr.array_tPrime)
 
 
-def test_compute_TD_target(setUpDecr):
+def test_compute_TD_target_COMPUTE_PASS(setUpDecr):
 
     target = compute_TD_target(setUpDecr.arrayOne, setUpDecr.mock_V_estimate)
 
     assert np.equal(target, setUpDecr.expected_target).all(), "{} != {}".format(target, setUpDecr.expected_target)
 
 
-def test_computhe_the_Advantage(setUpDecr):
+def test_compute_TD_target_LEN_PASS(setUpDecr):
+
+    target = compute_TD_target(setUpDecr.arrayOne, setUpDecr.mock_V_estimate)
+
+    assert len(setUpDecr.arrayOne) == len(target)
+
+
+def test_computhe_the_Advantage_COMPUTE_PASS(setUpDecr):
 
     Advantage = computhe_the_Advantage(setUpDecr.arrayOne, setUpDecr.mock_V_estimate)
     assert np.equal(setUpDecr.expected_advantage, Advantage).all(), "{} != {}".format(setUpDecr.expected_advantage, Advantage)
+
+def test_computhe_the_Advantage_LEN_PASS(setUpDecr):
+
+    Advantage = computhe_the_Advantage(setUpDecr.arrayOne, setUpDecr.mock_V_estimate)
+    assert len(setUpDecr.arrayOne) == len(Advantage)

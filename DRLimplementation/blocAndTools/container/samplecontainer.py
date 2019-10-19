@@ -11,6 +11,15 @@ class TrajectoryContainer(object):
     """
     Container for storage & retrieval of events collected at every timestep of a single batch of trajectories
     """
+    __slots__ = ['observations',
+                 'actions',
+                 'rewards',
+                 'Q_values',
+                 'trajectory_return',
+                 '_trajectory_lenght',
+                 'trajectory_id',
+                 ]
+
     def __init__(self, observations: list, actions: list, rewards: list, Q_values: list, trajectory_return: list,
                  trajectory_id) -> None:
         assert isinstance(observations, list) and isinstance(actions, list) and isinstance(rewards, list), "wrong argument type"

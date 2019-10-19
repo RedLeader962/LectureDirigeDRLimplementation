@@ -37,11 +37,11 @@ from blocAndTools.buildingbloc import ExperimentSpec
 cartpole_hparam = {
     'prefered_environment':           'CartPole-v0',
     'paramameter_set_name':           'Batch AC CartPole-v0',
-    'MonteCarloTarget':               True,
+    'MonteCarloTarget':               False,
     'isTestRun':                      False,
     'batch_size_in_ts':               4000,
     'max_epoch':                      50,
-    'discounted_reward_to_go':        True,
+    'discounted_reward_to_go':        False,
     'discout_factor':                 0.99,
     'learning_rate':                  3e-4,
     'critic_learning_rate':           1e-3,

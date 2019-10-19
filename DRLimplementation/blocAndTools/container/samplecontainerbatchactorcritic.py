@@ -15,6 +15,15 @@ class TrajectoryContainerBatchActorCritic(TrajectoryContainer):
     Container for storage & retrieval of events collected at every timestep of a trajectories
     for Batch Actor-Critic algorithm
     """
+    __slots__ = ['observations',
+                 'actions',
+                 'rewards',
+                 'Q_values',
+                 'trajectory_return',
+                 '_trajectory_lenght',
+                 'trajectory_id',
+                 'V_estimates']
+
     def __init__(self, observations: list, actions: list, rewards: list, Q_values: list, trajectory_return: list,
                  trajectory_id, V_estimates: list) -> None:
 
