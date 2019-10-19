@@ -137,7 +137,6 @@ class TrajectoryCollector(object):
         self._lenght = len(self._actions)
         self._compute_Q_values()
         self._trj_collected += 1
-        self._q_values_computed = True
         return self._compute_trajectory_return()
 
     def _compute_trajectory_return(self) -> float:
@@ -150,6 +149,8 @@ class TrajectoryCollector(object):
             self._q_values = discounted_reward_to_go(self._rewards, experiment_spec=self._exp_spec)
         else:
             self._q_values = reward_to_go(self._rewards)
+
+        self._q_values_computed = True
         return None
 
     def pop_trajectory_and_reset(self) -> TrajectoryContainer:
@@ -231,7 +232,7 @@ class UniformeBatchContainer(object):
         """Utility fct: Expose the init process for subclassing"""
         aTrj_obss, aTrj_acts, aTrj_rews, aTrj_Qs, aTrj_return, aTrj_lenght = aTrjContainer.unpack()
 
-        # add computation here
+        # Note: add computation here
 
         return aTrj_obss, aTrj_acts, aTrj_rews, aTrj_Qs, aTrj_return, aTrj_lenght
 

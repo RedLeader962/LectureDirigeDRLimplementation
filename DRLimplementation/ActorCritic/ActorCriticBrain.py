@@ -3,15 +3,16 @@ import gym
 import tensorflow as tf
 
 from blocAndTools.buildingbloc import (ExperimentSpec, GymPlayground, build_MLP_computation_graph,
-                                       policy_theta_discrete_space, discrete_pseudo_loss, )
+                                       policy_theta_discrete_space, discrete_pseudo_loss, policy_optimizer)
 from blocAndTools.rl_vocabulary import rl_name
 
+tf_cv1 = tf.compat.v1  # shortcut
 vocab = rl_name()
 
 
 def build_actor_policy_graph(observation_placeholder: tf.Tensor, action_placeholder: tf.Tensor,
                              advantage_placeholder: tf.Tensor, experiment_spec: ExperimentSpec,
-                             playground: GymPlayground) -> (tf.Tensor, tf.Tensor, tf.Tensor):
+                             playground: GymPlayground) -> (tf.Tensor, tf.Tensor, tf.Tensor, tf.Operation):
     """
     The ACTOR graph(aka the policy network)
 
@@ -25,8 +26,9 @@ def build_actor_policy_graph(observation_placeholder: tf.Tensor, action_placehol
 
         3. Actor loss
             input: the probabilities of each action in the action space, the collected actions, the computed advantages
-            output: Grad_theta log pi_theta * A^pi
+        output: Grad_theta log pi_theta * A^pi
 
+    :return: sampled_action, theta_mlp, actor_loss, actor_policy_optimizer_op
     """
     with tf.name_scope(vocab.actor_network) as scope:
 
@@ -63,11 +65,14 @@ def build_actor_policy_graph(observation_placeholder: tf.Tensor, action_placehol
                   "{} yet.\n\n".format(playground.env.action_space))
             raise NotImplementedError
 
-    return sampled_action, theta_mlp, actor_loss
+        """ ---- Actor optimizer ---- """
+        actor_policy_optimizer_op = policy_optimizer(actor_loss, experiment_spec.learning_rate)
+
+    return sampled_action, theta_mlp, actor_loss, actor_policy_optimizer_op
 
 
 def build_critic_graph(observation_placeholder: tf.Tensor, target_placeholder: tf.Tensor,
-                       experiment_spec: ExperimentSpec) -> (tf.Tensor, tf.Tensor):
+                       experiment_spec: ExperimentSpec) -> (tf.Tensor, tf.Tensor, tf.Operation):
     """
     The CRITIC graph
 
@@ -78,6 +83,8 @@ def build_critic_graph(observation_placeholder: tf.Tensor, target_placeholder: t
         2. Critic loss
             input: the target y (either Monte Carlo target or Bootstraped estimate target)
             output: the Mean Squared Error (MSE)
+
+    :return: critic, critic_loss, critic_optimizer
 
     """
 
@@ -98,4 +105,8 @@ def build_critic_graph(observation_placeholder: tf.Tensor, target_placeholder: t
         with tf.name_scope(vocab.critic_loss):
             critic_loss = tf.reduce_mean((target_placeholder - critic) ** 2)
 
-    return critic, critic_loss
+        """ ---- Critic optimizer ---- """
+        critic_optimizer = tf_cv1.train.AdamOptimizer(learning_rate=experiment_spec['critic_learning_rate']
+                                                      ).minimize(critic_loss, name=vocab.critic_optimizer)
+
+    return critic, critic_loss, critic_optimizer

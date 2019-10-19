@@ -232,18 +232,6 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, output_dim, hidden
     In the context of deep learning, 'logits' is the equivalent of 'raw output' of our prediction.
     It will later be transform into probabilies using the 'softmax function'
 
-    :param output_dim:
-    :type output_dim:
-    :param input_placeholder:
-    :type input_placeholder: tf.Tensor
-    :param hidden_layer_topology:
-    :type hidden_layer_topology:
-    :param hidden_layers_activation:
-    :type hidden_layers_activation:
-    :param output_layers_activation:
-    :type output_layers_activation:
-    :param name:
-    :type name:
     :return: a well construct computation graph
     :rtype: tf.Tensor
     """
@@ -285,41 +273,33 @@ def discrete_space_placeholder(space: gym.spaces.Discrete, shape_constraint: tup
 
 
 def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground, obs_shape_constraint: tuple = None,
-                                               action_shape_constraint: tuple = None) -> (tf.Tensor, tf.Tensor, tf.Tensor):
+                                               action_shape_constraint: tuple = None,
+                                               Q_name: str = vocab.Qvalues_ph) -> (tf.Tensor, tf.Tensor, tf.Tensor):
     """
     Configure handle for feeding value to the computation graph
             Continuous space    -->     dtype=tf.float32
             Discrete scpace     -->     dtype=tf.int32
-    :param action_shape_constraint:
-    :type action_shape_constraint:
-    :param obs_shape_constraint:
-    :type obs_shape_constraint:
-    :param playground:
-    :type playground: GymPlayground
-    :return: input_placeholder, output_placeholder, Q_values_placeholder
+
+    :return: obs_ph, act_ph, Q_values_placeholder
     :rtype: (tf.Tensor, tf.Tensor, tf.Tensor)
     """
     assert isinstance(playground, GymPlayground), "\n\n>>> Expected a builded GymPlayground.\n\n"
 
     if isinstance(playground.env.observation_space, gym.spaces.Box):
         """observation space is continuous"""
-        input_placeholder = continuous_space_placeholder(playground.OBSERVATION_SPACE, obs_shape_constraint,
-                                                         vocab.input_placeholder)
+        obs_ph = continuous_space_placeholder(playground.OBSERVATION_SPACE, obs_shape_constraint, vocab.obs_ph)
     elif isinstance(playground.env.action_space, gym.spaces.Discrete):
         """observation space is discrete"""
-        input_placeholder = discrete_space_placeholder(playground.OBSERVATION_SPACE, obs_shape_constraint,
-                                                       vocab.input_placeholder)
+        obs_ph = discrete_space_placeholder(playground.OBSERVATION_SPACE, obs_shape_constraint, vocab.obs_ph)
     else:
         raise NotImplementedError
 
     if isinstance(playground.env.action_space, gym.spaces.Box):
         """action space is continuous"""
-        output_placeholder = continuous_space_placeholder(playground.ACTION_SPACE, action_shape_constraint,
-                                                          vocab.output_placeholder)
+        act_ph = continuous_space_placeholder(playground.ACTION_SPACE, action_shape_constraint, vocab.act_ph)
     elif isinstance(playground.env.action_space, gym.spaces.Discrete):
         """action space is discrete"""
-        output_placeholder = discrete_space_placeholder(playground.ACTION_SPACE, action_shape_constraint,
-                                                        vocab.output_placeholder)
+        act_ph = discrete_space_placeholder(playground.ACTION_SPACE, action_shape_constraint, vocab.act_ph)
     else:
         raise NotImplementedError
 
@@ -327,9 +307,10 @@ def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground, obs_sh
         shape = (*obs_shape_constraint,)
     else:
         shape = (None,)
-    Q_values_ph = tf_cv1.placeholder(dtype=tf.float32, shape=shape, name=vocab.Qvalues_placeholder)
 
-    return input_placeholder, output_placeholder, Q_values_ph
+    Q_values_ph = tf_cv1.placeholder(dtype=tf.float32, shape=shape, name=Q_name)
+
+    return obs_ph, act_ph, Q_values_ph
 
 
 def policy_theta_discrete_space(logits_layer: tf.Tensor, playground: GymPlayground, name=vocab.policy_theta_D) -> (tf.Tensor, tf.Tensor):

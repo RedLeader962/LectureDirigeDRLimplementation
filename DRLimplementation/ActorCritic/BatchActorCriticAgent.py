@@ -39,22 +39,18 @@ class ActorCriticAgent(Agent):
 
         """ ---- Placeholder ---- """
         self.observation_ph, self.action_ph, self.target_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
-            self.playground, obs_shape_constraint=None, action_shape_constraint=None)
+            self.playground, obs_shape_constraint=None, action_shape_constraint=None, Q_name=vocab.target_ph)
 
-        self.Advantage_ph = tf_cv1.placeholder(tf.float32, shape=self.target_ph.shape, name='target_placeholder')
+        self.Advantage_ph = tf_cv1.placeholder(tf.float32, shape=self.target_ph.shape, name=vocab.advantage_ph)
 
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
         # *                                                                                                           *
         # *                                         Actor computation graph                                           *
         # *                                                                                                           *
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-        """ ---- The policy and is neural net theta ---- """
         actor_graph = build_actor_policy_graph(self.observation_ph, self.action_ph, self.Advantage_ph,
                                                self.exp_spec, self.playground)
-        (self.policy_action_sampler, self.theta_mlp, self.actor_loss) = actor_graph
-
-        """ ---- Actor optimizer ---- """
-        self.actor_policy_optimizer_op = bloc.policy_optimizer(self.actor_loss, self.exp_spec.learning_rate)
+        self.policy_action_sampler, _, self.actor_loss, self.actor_policy_optimizer = actor_graph
 
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
         # *                                                                                                           *
@@ -62,11 +58,8 @@ class ActorCriticAgent(Agent):
         # *                                                                                                           *
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
         """ ---- The value function estimator ---- """
-        self.V_phi_estimator, self.V_phi_loss = build_critic_graph(self.observation_ph,
-                                                                   self.target_ph, self.exp_spec)
-        """ ---- Critic optimizer ---- """
-        self.V_phi_optimizer = tf_cv1.train.AdamOptimizer(
-            learning_rate=self.exp_spec['critic_learning_rate']).minimize(self.V_phi_loss, name=vocab.critic_optimizer)
+        self.V_phi_estimator, self.V_phi_loss, self.V_phi_optimizer = build_critic_graph(self.observation_ph,
+                                                                                         self.target_ph, self.exp_spec)
 
         return None
 
@@ -76,11 +69,10 @@ class ActorCriticAgent(Agent):
         Data collector utility
 
         :return: Collertor utility
-        :rtype: (TrajectoryCollector, UniformBatchCollector)
+        :rtype: (TrajectoryCollectorBatchActorCritic, UniformBatchCollectorBatchActorCritic)
         """
-        the_TRAJECTORY_COLLECTOR = TrajectoryCollectorBatchActorCritic(self.exp_spec, self.playground,
-                                                                       MonteCarloTarget=self.exp_spec[
-                                                                           'MonteCarloTarget'])
+        the_TRAJECTORY_COLLECTOR = TrajectoryCollectorBatchActorCritic(
+            self.exp_spec, self.playground, MonteCarloTarget=self.exp_spec['MonteCarloTarget'])
         the_UNI_BATCH_COLLECTOR = UniformBatchCollectorBatchActorCritic(self.exp_spec.batch_size_in_ts)
         return the_TRAJECTORY_COLLECTOR, the_UNI_BATCH_COLLECTOR
 
@@ -136,13 +128,16 @@ class ActorCriticAgent(Agent):
                         observe_reaction, reward, done, _ = self.playground.env.step(action)
 
                         """ ---- Agent: Collect current timestep events ---- """
-                        the_TRAJECTORY_COLLECTOR.collect(current_observation, action, reward,
-                                                         bloc.to_scalar(V_estimate))
+                        the_TRAJECTORY_COLLECTOR.collect(observation=current_observation,
+                                                         action=action,
+                                                         reward=reward,
+                                                         V_estimate=bloc.to_scalar(V_estimate))
                         current_observation = observe_reaction  # <-- (!)
 
                         if done:
                             """ ---- Simulator: trajectory as ended ---- """
                             trj_return = the_TRAJECTORY_COLLECTOR.trajectory_ended()
+                            # todo --> add to tf summary:
 
                             """ ---- Agent: Collect the sampled trajectory  ---- """
                             trj_container = the_TRAJECTORY_COLLECTOR.pop_trajectory_and_reset()
@@ -168,20 +163,21 @@ class ActorCriticAgent(Agent):
 
                 batch_observations = batch_container.batch_observations
                 batch_actions = batch_container.batch_actions
-                batch_Q_values = batch_container.batch_Qvalues
+                batch_target_values = batch_container.batch_Qvalues
                 batch_Advantages = batch_container.batch_Advantages
 
-                # self._data_shape_is_compatibility_with_graph(batch_Q_values, batch_actions, batch_observations)
+                # self._data_shape_is_compatibility_with_graph(batch_target_values, batch_actions, batch_observations)
 
                 """ ---- Agent: Compute gradient & update policy ---- """
                 feed_dictionary = bloc.build_feed_dictionary(
                     [self.observation_ph, self.action_ph, self.target_ph, self.Advantage_ph],
-                    [batch_observations, batch_actions, batch_Q_values, batch_Advantages])
+                    [batch_observations, batch_actions, batch_target_values, batch_Advantages])
+
                 e_actor_loss, e_V_phi_loss = sess.run([self.actor_loss, self.V_phi_loss],
                                                       feed_dict=feed_dictionary)
 
                 """ ---- Train actor ---- """
-                sess.run(self.actor_policy_optimizer_op, feed_dict=feed_dictionary)
+                sess.run(self.actor_policy_optimizer, feed_dict=feed_dictionary)
 
                 """ ---- Train critic ---- """
                 for c_loop in range(self.exp_spec['critique_loop_len']):

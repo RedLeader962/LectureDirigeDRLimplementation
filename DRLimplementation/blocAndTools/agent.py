@@ -87,8 +87,9 @@ class Agent(object, metaclass=ABCMeta):
 
         """ ---- setup summary collection for TensorBoard ---- """
         date_now = datetime.now()
-        run_str = "Run--{}h{}--{}-{}-{}".format(date_now.hour, date_now.minute, date_now.day,
-                                                date_now.month, date_now.year)
+        cleaned_param_name = self.exp_spec.paramameter_set_name.replace(" ", "_")
+        run_str = "Run--{}-{}d{}h{}m".format(cleaned_param_name, date_now.day, date_now.hour, date_now.minute,
+                                                )
         writer = tf_cv1.summary.FileWriter("{}/graph/runs/{}".format(self.agent_root_dir, run_str),
                                            tf_cv1.get_default_graph())
 

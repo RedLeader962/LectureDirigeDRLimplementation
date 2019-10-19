@@ -67,8 +67,9 @@ class REINFORCEagent(Agent):
         """
 
         """ ---- Placeholder ---- """
-        observation_ph, action_ph, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
-            self.playground, obs_shape_constraint=None, action_shape_constraint=None)
+        observation_ph, action_ph, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(self.playground,
+                                                                                                 obs_shape_constraint=None,
+                                                                                                 action_shape_constraint=None)
         self.observation_ph = observation_ph
         self.action_ph = action_ph
         self.Q_values_ph = Q_values_ph

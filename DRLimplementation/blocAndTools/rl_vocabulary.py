@@ -21,7 +21,7 @@ _rl_vocab_list = [
     'learning_rate',
     'entropy', 'KL',
     'Multi_Layer_Perceptron',
-    'input_placeholder', 'output_placeholder', 'Qvalues_placeholder',
+    'graph_input', 'obs_ph', 'act_ph', 'Qvalues_ph', 'advantage_ph', 'target_ph',
     'input_layer', 'hidden_', 'output_layer', 'logits'
 ]
 

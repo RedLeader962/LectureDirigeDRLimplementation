@@ -65,8 +65,8 @@ def gym_and_tf_continuous_setup():
     """
     exp_spec = bloc.ExperimentSpec(batch_size_in_ts=1000, max_epoch=2, theta_nn_hidden_layer_topology=(2, 2))
     playground = bloc.GymPlayground('LunarLanderContinuous-v2')
-    obs_p, act_p, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
-        playground, action_shape_constraint=(1,))
+    obs_p, act_p, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground,
+                                                                                action_shape_constraint=(1,))
     yield obs_p, act_p, exp_spec, playground
     tf_cv1.reset_default_graph()
 
@@ -78,8 +78,8 @@ def gym_and_tf_discrete_setup():
     """
     exp_spec = bloc.ExperimentSpec(batch_size_in_ts=1000, max_epoch=2, theta_nn_hidden_layer_topology=(2, 2))
     playground = bloc.GymPlayground('LunarLander-v2')
-    obs_p, act_p, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
-        playground, action_shape_constraint=(1,))
+    obs_p, act_p, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground,
+                                                                                action_shape_constraint=(1,))
     yield obs_p, act_p, exp_spec, playground
     tf_cv1.reset_default_graph()
 
@@ -136,16 +136,18 @@ def test_gym_env_to_tf_graph_adapter_WRONG_IMPORT_TYPE():
 
 def test_gym_env_to_tf_graph_adapter_DISCRETE_PASS(gym_discrete_setup):
     _, playground = gym_discrete_setup
-    input_placeholder, output_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
-        playground, action_shape_constraint=(1,))
+    input_placeholder, output_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground,
+                                                                                                         action_shape_constraint=(
+                                                                                                         1,))
     assert input_placeholder.shape[-1] == playground.OBSERVATION_SPACE.shape[0]
     print(output_placeholder.shape)
     assert output_placeholder.shape.rank == 1
 
 def test_gym_env_to_tf_graph_adapter_CONTINUOUS_PASS(gym_continuous_setup):
     _, playground = gym_continuous_setup
-    input_placeholder, output_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
-        playground, action_shape_constraint=(1,))
+    input_placeholder, output_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground,
+                                                                                                         action_shape_constraint=(
+                                                                                                         1,))
     assert input_placeholder.shape[-1] == playground.OBSERVATION_SPACE.shape[0]
     assert output_placeholder.shape.rank == 2
 
@@ -165,14 +167,16 @@ def test_build_MLP_computation_graph_io(tf_setup, gym_discrete_setup):
 
 def test_build_MLP_computation_graph_with_DISCRETE_adapter(gym_discrete_setup):
     _, playground = gym_discrete_setup
-    input_placeholder, out_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
-        playground, action_shape_constraint=(1,))
+    input_placeholder, out_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground,
+                                                                                                      action_shape_constraint=(
+                                                                                                      1,))
     bloc.build_MLP_computation_graph(input_placeholder, playground.ACTION_CHOICES, hidden_layer_topology=(2, 2))
 
 def test_build_MLP_computation_graph_with_CONTINUOUS_adapter(gym_continuous_setup):
     _, playground = gym_continuous_setup
-    input_placeholder, out_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
-        playground, action_shape_constraint=(1,))
+    input_placeholder, out_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground,
+                                                                                                      action_shape_constraint=(
+                                                                                                      1,))
     bloc.build_MLP_computation_graph(input_placeholder, playground.ACTION_CHOICES, hidden_layer_topology=(2, 2))
 
 
@@ -182,8 +186,9 @@ def test_integration_Playground_to_adapter_to_build_graph(gym_continuous_setup):
     # (!) fake input data
     input_data = np.ones((20, *playground.OBSERVATION_SPACE.shape))
 
-    input_placeholder, out_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
-        playground, action_shape_constraint=(1,))
+    input_placeholder, out_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground,
+                                                                                                      action_shape_constraint=(
+                                                                                                      1,))
 
     """Build a Multi Layer Perceptron (MLP) as the policy parameter theta using a computation graph"""
     theta = bloc.build_MLP_computation_graph(input_placeholder, playground.ACTION_CHOICES,
