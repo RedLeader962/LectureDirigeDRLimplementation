@@ -45,21 +45,21 @@ def set_up_PWD_to_project_root():
     return_to_initial_working_directory(initial_CWD)
 
 
-def test_ActorCritic_agent_discrete_PLAY_command_line_invocation(set_up_PWD_to_project_root):
+def test_ActorCritic_agent_discrete_TRAIN_command_line_invocation(set_up_PWD_to_project_root):
     from os import system
 
-    out = system("python -m ActorCritic"
-                 " --play_for=6"
+    out = system("python -m ActorCritic --train"
                  " --test_run")
 
     # Note: exit(0) <==> clean exit without any errors/problems
     assert 0 == out, "Agent invocated from command line exited with error {}".format(out)
 
 
-def test_ActorCritic_agent_discrete_TRAIN_command_line_invocation(set_up_PWD_to_project_root):
+def test_ActorCritic_agent_discrete_PLAY_command_line_invocation(set_up_PWD_to_project_root):
     from os import system
 
-    out = system("python -m ActorCritic --train"
+    out = system("python -m ActorCritic"
+                 " --play_for=6"
                  " --test_run")
 
     # Note: exit(0) <==> clean exit without any errors/problems

@@ -31,6 +31,7 @@ class CycleIndexer(object):
 class ConsolPrintLearningStats(object):
     def __init__(self, experiment_spec, print_metric_every_what_epoch=5, consol_span=90):
         self.cycle_indexer = CycleIndexer(cycle_lenght=10)
+        self.cycle_indexer2 = CycleIndexer(cycle_lenght=10)
         self.epoch = 0
         self.trj = 0
         self.the_trajectory_return = None
@@ -66,8 +67,8 @@ class ConsolPrintLearningStats(object):
 
     def start_the_crazy_experiment(self, message=("3", "2", "1", "READY")) -> None:
         print("\n\n")
-        self.anim_line(start_anim_at_a_new_line=True, keep_cursor_at_same_line_on_exit=False)
-        self.anim_line(nb_of_cycle=1, keep_cursor_at_same_line_on_exit=True)
+        self._anim_line(start_anim_at_a_new_line=True, keep_cursor_at_same_line_on_exit=False)
+        self._anim_line(nb_of_cycle=1, keep_cursor_at_same_line_on_exit=True)
 
         for m in message:
             print("\r{:^{span}}".format(m, span=self.span), end="", flush=True)
@@ -84,8 +85,8 @@ class ConsolPrintLearningStats(object):
         print("{:^{span}}".format(
             stats_str, span=self.span), end="\n\n", flush=True)
         print("{:=>{span}}".format(" EXPERIMENT END ===", span=self.span), end="\n", flush=True)
-        self.anim_line(caracter=">", nb_of_cycle=1, start_anim_at_a_new_line=False)
-        self.anim_line(caracter="<", nb_of_cycle=1, keep_cursor_at_same_line_on_exit=False)
+        self._anim_line(caracter=">", nb_of_cycle=1, start_anim_at_a_new_line=False)
+        self._anim_line(caracter="<", nb_of_cycle=1, keep_cursor_at_same_line_on_exit=False)
 
         print("")  # to force the consol go to a new line on exit
 
@@ -97,16 +98,15 @@ class ConsolPrintLearningStats(object):
 
         return None
 
-    def anim_line(self, caracter=">", nb_of_cycle=2,
-                  start_anim_at_a_new_line=False,
-                  keep_cursor_at_same_line_on_exit=True):
+    def _anim_line(self, caracter=">", nb_of_cycle=2, start_anim_at_a_new_line=False,
+                   keep_cursor_at_same_line_on_exit=True, sleep=0.0005):
         if start_anim_at_a_new_line:
             print("\n")
 
         for c in range(nb_of_cycle):
             for i in range(self.span):
                 print(caracter, end="", flush=True)
-                time.sleep(0.0005)
+                time.sleep(sleep)
 
             if (c == nb_of_cycle -1) and not keep_cursor_at_same_line_on_exit:
                 print("\n", end="", flush=True)
@@ -146,7 +146,7 @@ class ConsolPrintLearningStats(object):
         self.loss_smoothing_buffer += epoch_loss
         self.lenght_smoothing_buffer += epoch_average_trjs_lenght
 
-        if (self.epoch) % self.print_metric_every == 0:
+        if self.epoch % self.print_metric_every == 0:
             smoothed_batch_loss = self.loss_smoothing_buffer / self.print_metric_every
             smoothed_return = self.return_smoothing_buffer / self.print_metric_every
             smoothed_lenght = self.lenght_smoothing_buffer / self.print_metric_every
@@ -207,26 +207,12 @@ class ConsolPrintLearningStats(object):
         self.timestep = timestep
         return None
 
-#
-# class UltraBasicLivePloter(object):
-#     # (Ice-Boxed) todo:implement --> live ploting for trainig: (!) alternative --> use TensorBoard
-#     def __init__(self):
-#         fig, ax = plt.subplots(figsize=(8, 6))
-#         self.fig = fig
-#         self.ax = ax
-#         plt.xlabel('Epoch')
-#         ax.grid(True)
-#         ax.legend(loc='best')
-#
-#         plt.ion()  # for live plot
-#
-#     def draw(self, epoch_average_return: list, epoch_average_loss: list) -> None:
-#         x_axes = range(0, len(epoch_average_return))
-#         self.ax.plot(x_axes, epoch_average_return, label='Average Return')
-#         self.ax.plot(x_axes, epoch_average_loss, label='Average loss')
-#
-#         plt.draw()
-#         return None
+    def track_progress(self, progress: int, message: str) -> None:
+        print("\r     ↳ {:^3} :: {} ".format(self.epoch, message),
+              ">" * self.cycle_indexer2.i, " " * self.cycle_indexer2.j,
+              "  loop {:>2}".format(progress),
+              sep='', end='', flush=True)
+        self.cycle_indexer2.__next__()
 
 
 def ultra_basic_ploter(epoch_average_return: list, epoch_average_loss: list, epoch_average_lenght: list,

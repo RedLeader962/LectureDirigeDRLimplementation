@@ -2,9 +2,10 @@
 import gym
 import tensorflow as tf
 
-from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground, build_MLP_computation_graph, \
-    policy_theta_discrete_space, discrete_pseudo_loss
+from blocAndTools.buildingbloc import (ExperimentSpec, GymPlayground, build_MLP_computation_graph,
+                                       policy_theta_discrete_space, discrete_pseudo_loss, )
 from blocAndTools.rl_vocabulary import rl_name
+
 vocab = rl_name()
 
 
@@ -50,7 +51,7 @@ def build_actor_policy_graph(observation_placeholder: tf.Tensor, action_placehol
 
             """ ---- Build the pseudo loss function ---- """
             actor_loss = discrete_pseudo_loss(log_p_all, action_placeholder, advantage_placeholder,
-                                               playground, name='actor_loss')
+                                              playground, name=vocab.actor_loss)
 
         # ::Continuous case
         elif isinstance(playground.env.action_space, gym.spaces.Box):
@@ -86,13 +87,12 @@ def build_critic_graph(observation_placeholder: tf.Tensor, target_placeholder: t
             target_placeholder.shape.as_list()[0], observation_placeholder.shape.as_list()[0])
 
     with tf.name_scope(vocab.critic_network) as scope:
-
         """ ---- Build parameter PHI as a multilayer perceptron ---- """
         critic = build_MLP_computation_graph(observation_placeholder, 1,
-                                              experiment_spec.theta_nn_h_layer_topo,
-                                              hidden_layers_activation=experiment_spec.theta_hidden_layers_activation,
-                                              output_layers_activation=experiment_spec.theta_output_layers_activation,
-                                              name=vocab.phi_NeuralNet)
+                                             experiment_spec.theta_nn_h_layer_topo,
+                                             hidden_layers_activation=experiment_spec.theta_hidden_layers_activation,
+                                             output_layers_activation=experiment_spec.theta_output_layers_activation,
+                                             name=vocab.phi_NeuralNet)
 
         """ ---- Build the Mean Square Error loss function ---- """
         with tf.name_scope(vocab.critic_loss):

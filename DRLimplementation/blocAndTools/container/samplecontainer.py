@@ -275,7 +275,7 @@ class UniformBatchCollector(object):
       |       to a long ndarray than it is to append ndarray to each other
 
     """
-    def __init__(self, capacity: ExperimentSpec):
+    def __init__(self, capacity: int):
         self.CAPACITY = capacity
         self._reset()
 

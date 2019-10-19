@@ -10,15 +10,20 @@ from typing import List, Tuple, Any
 from ActorCritic.ActorCriticBrain import build_actor_policy_graph, build_critic_graph
 from blocAndTools.agent import Agent
 from blocAndTools.rl_vocabulary import rl_name
-from blocAndTools import buildingbloc as bloc
+from blocAndTools import buildingbloc as bloc, ConsolPrintLearningStats
 # from blocAndTools.container.samplecontainer import TrajectoryCollector, UniformBatchCollector
-from blocAndTools.container.samplecontainerbatchactorcritic import TrajectoryContainerBatchActorCritic, TrajectoryCollectorBatchActorCritic, UniformeBatchContainerBatchActorCritic, UniformBatchCollectorBatchActorCritic
-from blocAndTools.temporal_difference_computation import computhe_the_Advantage, compute_TD_target, get_t_and_tPrime_array_view_for_element_wise_op
+from blocAndTools.container.samplecontainerbatchactorcritic import (TrajectoryContainerBatchActorCritic,
+                                                                    TrajectoryCollectorBatchActorCritic,
+                                                                    UniformeBatchContainerBatchActorCritic,
+                                                                    UniformBatchCollectorBatchActorCritic, )
+from blocAndTools.temporal_difference_computation import (computhe_the_Advantage, compute_TD_target,
+                                                          get_t_and_tPrime_array_view_for_element_wise_op, )
 
-
-tf_cv1 = tf.compat.v1   # shortcut
+tf_cv1 = tf.compat.v1  # shortcut
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 vocab = rl_name()
+
+
 # endregion
 
 class ActorCriticAgent(Agent):
@@ -45,7 +50,7 @@ class ActorCriticAgent(Agent):
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
         """ ---- The policy and is neural net theta ---- """
         actor_graph = build_actor_policy_graph(self.observation_ph, self.action_ph, self.Advantage_ph,
-                                                 self.exp_spec, self.playground)
+                                               self.exp_spec, self.playground)
         (self.policy_action_sampler, self.theta_mlp, self.actor_loss) = actor_graph
 
         """ ---- Actor optimizer ---- """
@@ -61,11 +66,12 @@ class ActorCriticAgent(Agent):
                                                                    self.target_ph, self.exp_spec)
         """ ---- Critic optimizer ---- """
         self.V_phi_optimizer = tf_cv1.train.AdamOptimizer(
-            learning_rate=self.exp_spec.learning_rate).minimize(self.V_phi_loss, name=vocab.critic_optimizer)
+            learning_rate=self.exp_spec['critic_learning_rate']).minimize(self.V_phi_loss, name=vocab.critic_optimizer)
 
         return None
 
-    def _instantiate_data_collector(self) -> Tuple[TrajectoryCollectorBatchActorCritic, UniformBatchCollectorBatchActorCritic]:
+    def _instantiate_data_collector(self) -> Tuple[
+        TrajectoryCollectorBatchActorCritic, UniformBatchCollectorBatchActorCritic]:
         """
         Data collector utility
 
@@ -74,13 +80,14 @@ class ActorCriticAgent(Agent):
         """
         # (Priority) todo:implement --> implement MonteCarloTarget param acces from argument & exp_spec:
         the_TRAJECTORY_COLLECTOR = TrajectoryCollectorBatchActorCritic(self.exp_spec, self.playground,
-                                                                       MonteCarloTarget=True)
+                                                                       MonteCarloTarget=self.exp_spec[
+                                                                           'MonteCarloTarget'])
         the_UNI_BATCH_COLLECTOR = UniformBatchCollectorBatchActorCritic(self.exp_spec.batch_size_in_ts)
         return the_TRAJECTORY_COLLECTOR, the_UNI_BATCH_COLLECTOR
 
     # todo:implement --> critic training variation: target y = Monte Carlo target
     # todo:implement --> critic training variation: target y = Bootstrap estimate target
-    def _training_epoch_generator(self, consol_print_learning_stats, render_env):
+    def _training_epoch_generator(self, consol_print_learning_stats: ConsolPrintLearningStats, render_env: bool):
         """
         Training epoch generator
 
@@ -130,7 +137,8 @@ class ActorCriticAgent(Agent):
                         observe_reaction, reward, done, _ = self.playground.env.step(action)
 
                         """ ---- Agent: Collect current timestep events ---- """
-                        the_TRAJECTORY_COLLECTOR.collect(current_observation, action, reward, bloc.to_scalar(V_estimate))
+                        the_TRAJECTORY_COLLECTOR.collect(current_observation, action, reward,
+                                                         bloc.to_scalar(V_estimate))
                         current_observation = observe_reaction  # <-- (!)
 
                         if done:
@@ -167,8 +175,9 @@ class ActorCriticAgent(Agent):
                 # self._data_shape_is_compatibility_with_graph(batch_Q_values, batch_actions, batch_observations)
 
                 """ ---- Agent: Compute gradient & update policy ---- """
-                feed_dictionary = bloc.build_feed_dictionary([self.observation_ph, self.action_ph, self.target_ph, self.Advantage_ph],
-                                                             [batch_observations, batch_actions, batch_Q_values, batch_Advantages])
+                feed_dictionary = bloc.build_feed_dictionary(
+                    [self.observation_ph, self.action_ph, self.target_ph, self.Advantage_ph],
+                    [batch_observations, batch_actions, batch_Q_values, batch_Advantages])
                 e_actor_loss, e_V_phi_loss = sess.run([self.actor_loss, self.V_phi_loss],
                                                       feed_dict=feed_dictionary)
 
@@ -176,8 +185,8 @@ class ActorCriticAgent(Agent):
                 sess.run(self.actor_policy_optimizer_op, feed_dict=feed_dictionary)
 
                 """ ---- Train critic ---- """
-                critique_loop_len = 80  # (CRITICAL) todo:implement --> push definition in exp_spec:
-                for c_loop in range(critique_loop_len):
+                for c_loop in range(self.exp_spec['critique_loop_len']):
+                    consol_print_learning_stats.track_progress(progress=c_loop, message="Critic training")
                     sess.run(self.V_phi_optimizer, feed_dict=feed_dictionary)
 
                 consol_print_learning_stats.epoch_training_stat(
@@ -186,7 +195,7 @@ class ActorCriticAgent(Agent):
                     epoch_average_trjs_lenght=batch_average_trjs_lenght,
                     number_of_trj_collected=batch_trj_collected,
                     total_timestep_collected=batch_timestep_collected
-                )
+                    )
 
                 """ ---- Save learned model ---- """
                 if batch_average_trjs_return == 200:
@@ -196,4 +205,3 @@ class ActorCriticAgent(Agent):
                 yield (epoch, e_actor_loss, batch_average_trjs_return, batch_average_trjs_lenght)
 
         return None
-

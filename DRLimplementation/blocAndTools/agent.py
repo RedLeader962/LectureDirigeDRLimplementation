@@ -10,8 +10,7 @@ from blocAndTools import buildingbloc as bloc
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 from blocAndTools.visualisationtools import ConsolPrintLearningStats
 
-
-tf_cv1 = tf.compat.v1   # shortcut
+tf_cv1 = tf.compat.v1  # shortcut
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 
@@ -50,7 +49,7 @@ class Agent(object, metaclass=ABCMeta):
 
     @abstractmethod
     def _use_hardcoded_agent_root_directory(self):
-        raise NotImplementedError   # todo: implement
+        raise NotImplementedError  # todo: implement
         pass
 
     @abstractmethod
@@ -101,7 +100,7 @@ class Agent(object, metaclass=ABCMeta):
         return None
 
     @abstractmethod
-    def _training_epoch_generator(self, consol_print_learning_stats, render_env):
+    def _training_epoch_generator(self, consol_print_learning_stats: ConsolPrintLearningStats, render_env: bool):
         """
         Training epoch generator
 

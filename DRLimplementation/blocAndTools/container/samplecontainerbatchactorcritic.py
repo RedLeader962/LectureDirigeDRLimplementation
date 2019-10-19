@@ -1,5 +1,5 @@
 # coding=utf-8
-from typing import List, Tuple, Any
+from typing import List, Tuple, Any, Iterable
 
 import numpy as np
 
@@ -26,7 +26,7 @@ class TrajectoryContainerBatchActorCritic(TrajectoryContainer):
         self.V_estimates = self.V_estimates[:max_lenght]
         super().cut(max_lenght)
 
-    def unpack(self) -> Tuple[Any, list]:
+    def unpack(self) -> Tuple[list, list, list, list, float, int, list]:
         """
         Unpack the full trajectorie as a tuple of numpy array
 
@@ -34,9 +34,11 @@ class TrajectoryContainerBatchActorCritic(TrajectoryContainer):
         :rtype: (list, list, list, list, float, int, list)
         """
         # (nice to have) todo:refactor --> as a namedtuple
-        tc = super().unpack()
+        unpacked_super = super().unpack()
 
-        return (*tc, self.V_estimates)
+        observations, actions, rewards, Q_values, trajectory_return, _trajectory_lenght = unpacked_super
+
+        return observations, actions, rewards, Q_values, trajectory_return, _trajectory_lenght, self.V_estimates
 
     def __repr__(self):
         myRep = super().__repr__()
@@ -54,6 +56,8 @@ class TrajectoryCollectorBatchActorCritic(TrajectoryCollector):
             b. Output a TrajectoryContainer feed with collected sample
             c. Reset ready for next trajectory
     """
+    _q_values: list
+
     def __init__(self, experiment_spec: ExperimentSpec, playground: GymPlayground, discounted: bool = True,
                  MonteCarloTarget=True):
 

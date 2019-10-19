@@ -10,8 +10,11 @@ from BasicPolicyGradient.REINFORCEbrain import REINFORCE_policy
 from blocAndTools import buildingbloc as bloc
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 from blocAndTools.rl_vocabulary import rl_name
+
 vocab = rl_name()
-tf_cv1 = tf.compat.v1   # shortcut
+tf_cv1 = tf.compat.v1  # shortcut
+
+
 # endregion
 
 
@@ -27,20 +30,20 @@ def record_REINFORCE_agent_discrete(env='CartPole-v0', nb_of_clip_recorded=5):
     exp_spec = ExperimentSpec()
 
     cartpole_param_dict_2 = {
-        'prefered_environment': 'CartPole-v0',
-        'paramameter_set_name': 'RedLeader CartPole-v0',
-        'batch_size_in_ts': 5000,
-        'max_epoch': 50,
-        'discounted_reward_to_go': True,
-        'discout_factor': 0.999,
-        'learning_rate': 1e-2,
-        'theta_nn_h_layer_topo': (62,),
-        'random_seed': 82,
+        'prefered_environment':           'CartPole-v0',
+        'paramameter_set_name':           'RedLeader CartPole-v0',
+        'batch_size_in_ts':               5000,
+        'max_epoch':                      50,
+        'discounted_reward_to_go':        True,
+        'discout_factor':                 0.999,
+        'learning_rate':                  1e-2,
+        'theta_nn_h_layer_topo':          (62,),
+        'random_seed':                    82,
         'theta_hidden_layers_activation': tf.nn.tanh,  # tf.nn.relu,
         'theta_output_layers_activation': None,
-        'render_env_every_What_epoch': 100,
-        'print_metric_every_what_epoch': 2,
-    }
+        'render_env_every_What_epoch':    100,
+        'print_metric_every_what_epoch':  2,
+        }
     exp_spec.set_experiment_spec(cartpole_param_dict_2)
     playground = GymPlayground(environment_name=exp_spec.prefered_environment)
 
@@ -69,13 +72,13 @@ def record_REINFORCE_agent_discrete(env='CartPole-v0', nb_of_clip_recorded=5):
 
         """ ---- Execute recording loop ---- """
         for run in range(nb_of_clip_recorded):
-            current_observation = playground.env.reset()    # <-- fetch initial observation
+            current_observation = playground.env.reset()  # <-- fetch initial observation
 
             date_now = datetime.now()
             timestamp = "{}{}".format(date_now.minute, date_now.microsecond)
             recorder = VideoRecorder(playground.env,
-                                     '../../video/REINFORCE_agent_cartpole_{}--{}.mp4'.format(run+1, timestamp))
-            print("\n:: Start recording trajectory {}\n".format(run+1))
+                                     '../../video/REINFORCE_agent_cartpole_{}--{}.mp4'.format(run + 1, timestamp))
+            print("\n:: Start recording trajectory {}\n".format(run + 1))
 
             """ ---- Simulator: time-steps ---- """
             while True:
@@ -99,12 +102,10 @@ def record_REINFORCE_agent_discrete(env='CartPole-v0', nb_of_clip_recorded=5):
 
 
 if __name__ == '__main__':
-
     import argparse
+
     parser = argparse.ArgumentParser(description="Command line arg for agent recording")
     parser.add_argument('--env', type=str, default='CartPole-v0')
     args = parser.parse_args()
 
     record_REINFORCE_agent_discrete(env=args.env)
-
-

@@ -218,9 +218,9 @@ class ActorTrainingPlotter(object):
         plt.ion()  # for live plot
 
     def plot(self, render_observations=False):
-        '''do live plotting
+        """do live plotting
         :param render_observations:
-        '''
+        """
 
         # ---- Header ---------------------------------------------------------------
 
@@ -347,7 +347,7 @@ class ActorTrainingPlotter(object):
         plt.pause(1e-30)
 
     def save(self):
-        '''save graph to filename'''
+        """save graph to filename"""
         if self.run_dir:
             file_name = self.graph_filename.replace(" ", "_")
             self.figure.savefig("{}/{}.png".format(self.run_dir, file_name), facecolor='#3C3F41')

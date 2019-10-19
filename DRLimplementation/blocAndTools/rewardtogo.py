@@ -44,15 +44,15 @@ def discounted_reward_to_go(rewards: list, experiment_spec: ExperimentSpec) -> l
     assert isinstance(rewards, list)
 
     backward_rewards = rewards[::-1]
-    discounted_reward_to_go = np.zeros_like(rewards)
+    the_discounted_reward_to_go = np.zeros_like(rewards)
 
     for r in range(len(rewards)):
         exp = 0
         for i in range(r, len(rewards)):
-            discounted_reward_to_go[i] += gamma**exp * backward_rewards[r]
+            the_discounted_reward_to_go[i] += gamma**exp * backward_rewards[r]
             exp += 1
 
-    return list(discounted_reward_to_go[::-1])
+    return list(the_discounted_reward_to_go[::-1])
 
 
 def discounted_reward_to_go_np(rewards: np.ndarray, experiment_spec: ExperimentSpec) -> np.ndarray:

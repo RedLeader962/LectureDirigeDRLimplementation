@@ -91,6 +91,7 @@ def training_loop(epoch_generator, env_max_return):
     Utility fct for REINFORCE type algorithm integration testing
     """
     agent_learned = False
+    epoch_stats = None
 
     for epoch_stats in epoch_generator:
         epoch, batch_loss, mean_return, average_len = epoch_stats

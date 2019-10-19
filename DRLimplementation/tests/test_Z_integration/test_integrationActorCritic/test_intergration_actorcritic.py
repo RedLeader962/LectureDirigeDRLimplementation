@@ -31,8 +31,9 @@ CARTPOLE_HPARAM = {
     'max_epoch': 50,
     'discounted_reward_to_go': False,
     'discout_factor': 0.99,
-    'learning_rate': 1e-2,
+    'learning_rate': 3e-4,
     'critic_learning_rate': 1e-3,
+    'critique_loop_len': 80,
     'theta_nn_h_layer_topo': (62, 62),
     'random_seed': 82,
     'theta_hidden_layers_activation': tf.nn.tanh,        # tf.nn.relu,
@@ -93,6 +94,7 @@ def training_loop(epoch_generator, env_max_return):
     Utility fct for Actor-Critic type algorithm integration testing
     """
     agent_learned = False
+    epoch_stats = None
 
     for epoch_stats in epoch_generator:
         epoch, batch_loss, mean_return, average_len = epoch_stats
