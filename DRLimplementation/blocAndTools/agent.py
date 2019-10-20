@@ -46,6 +46,7 @@ class Agent(object, metaclass=ABCMeta):
 
         """ ---- Setup parameters saving ---- """
         self.saver = tf_cv1.train.Saver()
+        self.writer = None
 
     @abstractmethod
     def _use_hardcoded_agent_root_directory(self):
@@ -90,14 +91,14 @@ class Agent(object, metaclass=ABCMeta):
         cleaned_param_name = self.exp_spec.paramameter_set_name.replace(" ", "_")
         run_str = "Run--{}-{}d{}h{}m".format(cleaned_param_name, date_now.day, date_now.hour, date_now.minute,
                                                 )
-        writer = tf_cv1.summary.FileWriter("{}/graph/runs/{}".format(self.agent_root_dir, run_str),
+        self.writer = tf_cv1.summary.FileWriter("{}/graph/runs/{}".format(self.agent_root_dir, run_str),
                                            tf_cv1.get_default_graph())
 
         for epoch in self._training_epoch_generator(consol_print_learning_stats, render_env):
             (epoch, epoch_loss, batch_average_trjs_return, batch_average_trjs_lenght) = epoch
 
         consol_print_learning_stats.print_experiment_stats(print_plot=not self.exp_spec.isTestRun)
-        writer.close()
+        self.writer.close()
         return None
 
     @abstractmethod
