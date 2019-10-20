@@ -25,20 +25,6 @@ vocab = rl_name()
 # endregion
 
 
-def log_scalar(writer, tag, value, step):
-    """Log a scalar variable.
-    Parameter
-    ----------
-    writer
-    tag : basestring Name of the scalar
-    value :
-    step : int training iteration
-    """
-    summary = tf.Summary(value=[tf.Summary.Value(tag=tag,
-                                                 simple_value=value)])
-
-    writer.add_summary(summary, step)
-
 
 class ActorCriticAgent(Agent):
     def _use_hardcoded_agent_root_directory(self):
@@ -153,7 +139,7 @@ class ActorCriticAgent(Agent):
                         if done:
                             """ ---- Simulator: trajectory as ended ---- """
                             trj_return = the_TRAJECTORY_COLLECTOR.trajectory_ended()
-                            log_scalar(self.writer, 'trj_return', trj_return, epoch*self.exp_spec.max_epoch+step)
+                            self.log_scalar('trj_return', trj_return, epoch*self.exp_spec.max_epoch+step)
 
                             """ ---- Agent: Collect the sampled trajectory  ---- """
                             trj_container = the_TRAJECTORY_COLLECTOR.pop_trajectory_and_reset()
@@ -177,8 +163,8 @@ class ActorCriticAgent(Agent):
                 batch_container: UniformeBatchContainerBatchActorCritic = the_UNI_BATCH_COLLECTOR.pop_batch_and_reset()
                 batch_average_trjs_return, batch_average_trjs_lenght = batch_container.compute_metric()
 
-                log_scalar(self.writer, 'batch_avg_trjs_return', batch_average_trjs_return, epoch * self.exp_spec.max_epoch)
-                log_scalar(self.writer, 'batch_avg_trjs_lenght', batch_average_trjs_lenght, epoch * self.exp_spec.max_epoch)
+                self.log_scalar('batch_avg_trjs_return', batch_average_trjs_return, epoch * self.exp_spec.max_epoch)
+                self.log_scalar('batch_avg_trjs_lenght', batch_average_trjs_lenght, epoch * self.exp_spec.max_epoch)
 
                 batch_observations = batch_container.batch_observations
                 batch_actions = batch_container.batch_actions
@@ -195,9 +181,9 @@ class ActorCriticAgent(Agent):
                 e_actor_loss, e_V_phi_loss = sess.run([self.actor_loss, self.V_phi_loss],
                                                       feed_dict=feed_dictionary)
 
-                log_scalar(self.writer, 'e_actor_loss', e_actor_loss,
+                self.log_scalar('e_actor_loss', e_actor_loss,
                            epoch * self.exp_spec.max_epoch)
-                log_scalar(self.writer, 'e_V_phi_loss', e_V_phi_loss,
+                self.log_scalar('e_V_phi_loss', e_V_phi_loss,
                            epoch * self.exp_spec.max_epoch)
 
                 """ ---- Train actor ---- """
