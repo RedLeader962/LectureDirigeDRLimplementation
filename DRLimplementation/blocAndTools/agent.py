@@ -176,17 +176,4 @@ class Agent(object, metaclass=ABCMeta):
         self.playground.env.close()
         print(":: Agent >>> CLOSED")
 
-    def log_scalar(self, tag, value, step):
-        """Log a scalar variable.
-        Parameter
-        ----------
-        writer
-        tag : basestring Name of the scalar
-        value :
-        step : int training iteration
-        """
-        # summary = tf_cv1.Summary(value=[tf_cv1.Summary.Value(tag=tag,
-        #                                                      simple_value=value)])
-
-        # self.writer.add_summary(summary, step)  # (CRITICAL) todo:fixme!! --> summary writer does not work:
 

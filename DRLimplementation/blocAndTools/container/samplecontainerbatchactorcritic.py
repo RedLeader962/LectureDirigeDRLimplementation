@@ -90,6 +90,7 @@ class TrajectoryCollectorBatchActorCritic(TrajectoryCollector):
             super()._compute_Q_values()
         else:
             self._q_values = compute_TD_target(self._rewards, self._V_estimates).tolist()  # (Priority) todo:unit-test --> the stored result and cascading behavior:
+        self._q_values_computed = True
         return None
 
     def pop_trajectory_and_reset(self) -> TrajectoryContainerBatchActorCritic:

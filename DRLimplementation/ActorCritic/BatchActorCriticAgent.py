@@ -61,6 +61,16 @@ class ActorCriticAgent(Agent):
         self.V_phi_estimator, self.V_phi_loss, self.V_phi_optimizer = build_critic_graph(self.observation_ph,
                                                                                          self.target_ph, self.exp_spec)
 
+
+        """ ---- Episode summary ---- """
+        # those intantiated in graph will be agregate to
+        self.Summary_batch_avg_trjs_return_ph = tf.placeholder(tf.float32, name='Summary_batch_avg_trjs_return_ph')               # \\\\\\    hlThis    \\\\\\
+        tf.summary.scalar('Batch average return', self.Summary_batch_avg_trjs_return_ph)                                      # \\\\\\    hlThis    \\\\\\
+        self.summary_op = tf_cv1.summary.merge_all()                                                     # \\\\\\    hlThis    \\\\\\
+
+        """ ---- Trajectory summary ---- """
+        self.Summary_trj_return_ph = tf.placeholder(tf.float32, name='Summary_trj_return_ph')               # \\\\\\    hlThis    \\\\\\
+        self.summary_trj_op = tf.summary.scalar('Trajectory return', self.Summary_trj_return_ph)                                      # \\\\\\    hlThis    \\\\\\
         return None
 
     def _instantiate_data_collector(self) -> Tuple[
@@ -105,6 +115,7 @@ class ActorCriticAgent(Agent):
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
             """ ---- Simulator: Epochs ---- """
+            global_step_i = 0
             for epoch in range(self.exp_spec.max_epoch):
                 consol_print_learning_stats.next_glorious_epoch()
 
@@ -114,9 +125,8 @@ class ActorCriticAgent(Agent):
                     consol_print_learning_stats.next_glorious_trajectory()
 
                     """ ---- Simulator: time-steps ---- """
-                    step = 0
                     while True:
-                        step+=1
+                        global_step_i+=1
                         self._render_trajectory_on_condition(epoch, render_env,
                                                              the_UNI_BATCH_COLLECTOR.trj_collected_so_far())
 
@@ -139,7 +149,10 @@ class ActorCriticAgent(Agent):
                         if done:
                             """ ---- Simulator: trajectory as ended ---- """
                             trj_return = the_TRAJECTORY_COLLECTOR.trajectory_ended()
-                            self.log_scalar('trj_return', trj_return, epoch*self.exp_spec.max_epoch+step)
+
+                            trj_summary = sess.run(self.summary_trj_op, {self.Summary_trj_return_ph: trj_return})         # \\\\\\    hlThis    \\\\\\
+                            self.writer.add_summary(trj_summary, global_step=global_step_i)     # \\\\\\    hlThis    \\\\\\
+
 
                             """ ---- Agent: Collect the sampled trajectory  ---- """
                             trj_container = the_TRAJECTORY_COLLECTOR.pop_trajectory_and_reset()
@@ -163,9 +176,6 @@ class ActorCriticAgent(Agent):
                 batch_container: UniformeBatchContainerBatchActorCritic = the_UNI_BATCH_COLLECTOR.pop_batch_and_reset()
                 batch_average_trjs_return, batch_average_trjs_lenght = batch_container.compute_metric()
 
-                self.log_scalar('batch_avg_trjs_return', batch_average_trjs_return, epoch * self.exp_spec.max_epoch)
-                self.log_scalar('batch_avg_trjs_lenght', batch_average_trjs_lenght, epoch * self.exp_spec.max_epoch)
-
                 batch_observations = batch_container.batch_observations
                 batch_actions = batch_container.batch_actions
                 batch_target_values = batch_container.batch_Qvalues
@@ -175,16 +185,13 @@ class ActorCriticAgent(Agent):
 
                 """ ---- Agent: Compute gradient & update policy ---- """
                 feed_dictionary = bloc.build_feed_dictionary(
-                    [self.observation_ph, self.action_ph, self.target_ph, self.Advantage_ph],
-                    [batch_observations, batch_actions, batch_target_values, batch_Advantages])
+                    [self.observation_ph, self.action_ph, self.target_ph, self.Advantage_ph, self.Summary_batch_avg_trjs_return_ph],    # \\\\\\    hlThis    \\\\\\
+                    [batch_observations, batch_actions, batch_target_values, batch_Advantages, batch_average_trjs_return])     # \\\\\\    hlThis    \\\\\\
 
-                e_actor_loss, e_V_phi_loss = sess.run([self.actor_loss, self.V_phi_loss],
+                e_actor_loss, e_V_phi_loss, summary = sess.run([self.actor_loss, self.V_phi_loss, self.summary_op],
                                                       feed_dict=feed_dictionary)
 
-                self.log_scalar('e_actor_loss', e_actor_loss,
-                           epoch * self.exp_spec.max_epoch)
-                self.log_scalar('e_V_phi_loss', e_V_phi_loss,
-                           epoch * self.exp_spec.max_epoch)
+                self.writer.add_summary(summary, global_step=global_step_i)                  # \\\\\\    hlThis    \\\\\\
 
                 """ ---- Train actor ---- """
                 sess.run(self.actor_policy_optimizer, feed_dict=feed_dictionary)

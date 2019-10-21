@@ -7,7 +7,7 @@ Invoke Actor-Critic agent using
 
 Note on TensorBoard usage:
     Start TensorBoard in terminal:
-        cd DRLimplementation
+        cd DRLimplementation    <-- (!)
         tensorboard --logdir=ActorCritic/graph/runs
 
     In browser, go to:
@@ -39,14 +39,14 @@ cartpole_hparam = {
     'paramameter_set_name':           'Batch AC CartPole-v0',
     'MonteCarloTarget':               True,
     'isTestRun':                      False,
-    'batch_size_in_ts':               6000,
-    'max_epoch':                      100,
+    'batch_size_in_ts':               2000,
+    'max_epoch':                      160,
     'discounted_reward_to_go':        True,
     'discout_factor':                 0.99,
-    'learning_rate':                  1e-3,
-    'critic_learning_rate':           1e-3,
-    'critique_loop_len':              160,
-    'theta_nn_h_layer_topo':          (62, 62),
+    'learning_rate':                  1e-2,
+    'critic_learning_rate':           1e-2,
+    'critique_loop_len':              30,
+    'theta_nn_h_layer_topo':          (32,),
     'random_seed':                    0,
     'theta_hidden_layers_activation': tf.nn.tanh,  # tf.nn.relu,
     'theta_output_layers_activation': None,
@@ -56,7 +56,7 @@ cartpole_hparam = {
 
 test_hparam = {
     'prefered_environment':           'CartPole-v0',
-    'paramameter_set_name':           'Actor-Critic Test spec',
+    'paramameter_set_name':           'Batch AC Test spec',
     'MonteCarloTarget':               True,
     'isTestRun':                      True,
     'batch_size_in_ts':               1000,
@@ -91,6 +91,7 @@ parser.add_argument('-d', '--discounted', default=None, type=bool,
 
 parser.add_argument('-p', '--play_for', type=int, default=20,
                     help='(Playing option) Max playing trajectory, default=20')
+
 parser.add_argument('--test_run', action='store_true')
 
 args = parser.parse_args()
