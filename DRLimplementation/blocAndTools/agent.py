@@ -48,8 +48,7 @@ class Agent(object, metaclass=ABCMeta):
         """ ---- Setup parameters saving ---- """
         self.saver = tf_cv1.train.Saver()
         self.writer = None
-
-
+        self.run_dir = None
 
     @abstractmethod
     def _use_hardcoded_agent_root_directory(self):
@@ -94,17 +93,17 @@ class Agent(object, metaclass=ABCMeta):
         cleaned_param_name = self.exp_spec.paramameter_set_name.replace(" ", "_")
         runs_dir = "{}/graph/runs".format(self.agent_root_dir)
         run_str = "Run--{}-{}d{}h{}m".format(cleaned_param_name, date_now.day, date_now.hour, date_now.minute,)
-        run_dir = "{}/{}".format(runs_dir, run_str)
+        self.run_dir = "{}/{}".format(runs_dir, run_str)
+
+        """ ---- Create run dir & setup file writer for TensorBoard ---- """
+        self.writer = tf_cv1.summary.FileWriter(self.run_dir, tf_cv1.get_default_graph())
 
         """ ---- Log experiment spec in run directory ---- """
         try:
-            with open("{}/config.txt".format(run_dir), "w") as f:
+            with open("{}/config.txt".format(self.run_dir), "w") as f:
                 f.write(self.exp_spec.__repr__())
         except IOError as e:
             raise IOError("The config file cannot be saved in the run directory!") from e
-
-        """ ---- setup file writer for TensorBoard ---- """
-        self.writer = tf_cv1.summary.FileWriter(run_dir, tf_cv1.get_default_graph())
 
         """ ---- Start training agent ---- """
         for epoch in self._training_epoch_generator(consol_print_learning_stats, render_env):
@@ -139,7 +138,11 @@ class Agent(object, metaclass=ABCMeta):
             self.playground.env.render()  # keep environment rendering turned OFF during unit test
 
     def _save_checkpoint(self, epoch: int, sess: tf_cv1.Session, graph_name: str):
-        self.saver.save(sess, '{}/graph/checkpoint_directory/{}_agent'.format(self.agent_root_dir, graph_name),
+        # todo:remove --> legacy code:
+        # self.saver.save(sess, '{}/graph/checkpoint_directory/{}_agent'.format(self.agent_root_dir, graph_name),
+        #                 global_step=epoch)
+
+        self.saver.save(sess, '{}/checkpoint/{}_agent'.format(self.run_dir, graph_name),
                         global_step=epoch)
         print("\n\n    :: {} network parameters were saved\n".format(graph_name))
 

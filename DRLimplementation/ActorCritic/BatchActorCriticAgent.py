@@ -62,13 +62,13 @@ class ActorCriticAgent(Agent):
 
         """ ---- Episode summary ---- """
         # those intantiated in graph will be agregate to
-        self.Summary_batch_avg_trjs_return_ph = tf.placeholder(tf.float32, name='Summary_batch_avg_trjs_return_ph') # \\\\\\    hlThis    \\\\\\
-        tf.summary.scalar('Batch average return', self.Summary_batch_avg_trjs_return_ph)                        # \\\\\\    hlThis    \\\\\\
-        self.summary_op = tf_cv1.summary.merge_all()                                                     # \\\\\\    hlThis    \\\\\\
+        self.Summary_batch_avg_trjs_return_ph = tf.placeholder(tf.float32, name='Summary_batch_avg_trjs_return_ph')     # =HL=
+        tf.summary.scalar('Batch average return', self.Summary_batch_avg_trjs_return_ph, family=vocab.G)                # =HL=
+        self.summary_op = tf_cv1.summary.merge_all()                                                                    # =HL=
 
         """ ---- Trajectory summary ---- """
-        self.Summary_trj_return_ph = tf.placeholder(tf.float32, name='Summary_trj_return_ph')               # \\\\\\    hlThis    \\\\\\
-        self.summary_trj_op = tf.summary.scalar('Trajectory return', self.Summary_trj_return_ph)                                      # \\\\\\    hlThis    \\\\\\
+        self.Summary_trj_return_ph = tf.placeholder(tf.float32, name='Summary_trj_return_ph')                           # =HL=
+        self.summary_trj_op = tf.summary.scalar('Trajectory return', self.Summary_trj_return_ph, family=vocab.G)        # =HL=
         return None
 
     def _instantiate_data_collector(self) -> Tuple[
@@ -149,8 +149,8 @@ class ActorCriticAgent(Agent):
                             trj_return = the_TRAJECTORY_COLLECTOR.trajectory_ended()
 
                             trj_summary = sess.run(self.summary_trj_op,
-                                                   {self.Summary_trj_return_ph: trj_return})    # \\\\\\    hlThis    \\\\\\
-                            self.writer.add_summary(trj_summary, global_step=global_step_i)     # \\\\\\    hlThis    \\\\\\
+                                                   {self.Summary_trj_return_ph: trj_return})    # =HL=
+                            self.writer.add_summary(trj_summary, global_step=global_step_i)     # =HL=
 
 
                             """ ---- Agent: Collect the sampled trajectory  ---- """
@@ -184,20 +184,20 @@ class ActorCriticAgent(Agent):
 
                 """ ---- Agent: Compute gradient & update policy ---- """
                 feed_dictionary = bloc.build_feed_dictionary(
-                    [self.observation_ph, self.action_ph, self.target_ph, self.Advantage_ph, self.Summary_batch_avg_trjs_return_ph],    # \\\\\\    hlThis    \\\\\\
-                    [batch_observations, batch_actions, batch_target_values, batch_Advantages, batch_average_trjs_return])     # \\\\\\    hlThis    \\\\\\
+                    [self.observation_ph, self.action_ph, self.target_ph, self.Advantage_ph, self.Summary_batch_avg_trjs_return_ph],    # =HL=
+                    [batch_observations, batch_actions, batch_target_values, batch_Advantages, batch_average_trjs_return])     # =HL=
 
                 e_actor_loss, e_V_phi_loss, summary = sess.run([self.actor_loss, self.V_phi_loss, self.summary_op],
                                                       feed_dict=feed_dictionary)
 
-                self.writer.add_summary(summary, global_step=global_step_i)                  # \\\\\\    hlThis    \\\\\\
+                self.writer.add_summary(summary, global_step=global_step_i)                                             # =HL=
 
                 """ ---- Train actor ---- """
                 sess.run(self.actor_policy_optimizer, feed_dict=feed_dictionary)
 
                 critic_feed_dictionary = bloc.build_feed_dictionary(
-                    [self.observation_ph, self.target_ph],                          # \\\\\\    hlThis    \\\\\\
-                    [batch_observations, batch_target_values])                          # \\\\\\    hlThis    \\\\\\
+                    [self.observation_ph, self.target_ph],                                                              # =HL=
+                    [batch_observations, batch_target_values])                                                          # =HL=
 
                 """ ---- Train critic ---- """
                 for c_loop in range(self.exp_spec['critique_loop_len']):

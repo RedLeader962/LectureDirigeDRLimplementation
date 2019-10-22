@@ -34,8 +34,6 @@ deprecation._PRINT_DEPRECATION_WARNINGS = False
 vocab = rl_name()
 # endregion
 
-
-
 class IntegrationActorCriticAgent(Agent):
     def _use_hardcoded_agent_root_directory(self):
         self.agent_root_dir = 'ActorCritic'
@@ -98,30 +96,30 @@ class IntegrationActorCriticAgent(Agent):
 
         # note: Design architecture
         #   |    collect:
-        #    |      - Target: MonteCarlo or Bootstrap
+        #   |      - Target: MonteCarlo or Bootstrap
 
         # Actor: action probabilities
-        actor = dense_nn(self.observation_ph, [32, 32, self.playground.env.action_space.n],                     # ////// Original bloc //////
-                         name=vocab.theta_NeuralNet)
+        actor_graph = dense_nn(self.observation_ph, [32, 32, self.playground.env.action_space.n],     # ////// Original bloc //////
+                               name=vocab.theta_NeuralNet)
 
-        self.policy_action_sampler = tf.squeeze(tf.multinomial(actor, 1))                                       # ////// Original bloc //////
-
+        self.policy_action_sampler = tf.squeeze(tf.multinomial(actor_graph, 1))                       # ////// Original bloc //////
 
         # Critic: action value (Q-value)
-        critic = dense_nn(self.observation_ph, [32, 32, 1],                                                     # ////// Original bloc //////
+        critic = dense_nn(self.observation_ph, [32, 32, 1],                                           # ////// Original bloc //////
                           name=vocab.phi_NeuralNet)
 
-        action_ohe = tf.one_hot(self.action_ph, self.playground.ACTION_CHOICES, 1.0, 0.0, name='action_one_hot')# ////// Original bloc //////
+        # ////// Original bloc //////
+        action_ohe = tf.one_hot(self.action_ph, self.playground.ACTION_CHOICES, 1.0, 0.0, name='action_one_hot')
 
-        V_estimate = tf.reduce_sum(critic * action_ohe, reduction_indices=-1, name='q_acted')                   # ////// Original bloc //////
+        V_estimate = tf.reduce_sum(critic * action_ohe, reduction_indices=-1, name='q_acted')         # ////// Original bloc //////
         flatten_V_estimate = tf.reshape(V_estimate, [-1])
-        Advantage = self.target_ph - flatten_V_estimate  # ////// Original bloc //////
+        Advantage = self.target_ph - flatten_V_estimate                                               # ////// Original bloc //////
 
         # ////// Original bloc //////
         with tf_cv1.variable_scope(vocab.actor_network):
             self.actor_loss = tf.reduce_mean(
                 tf.stop_gradient(Advantage) * tf.nn.sparse_softmax_cross_entropy_with_logits(
-                    logits=actor, labels=self.action_ph),
+                    logits=actor_graph, labels=self.action_ph),
                 name='loss_actor')
             self.actor_policy_optimizer = tf_cv1.train.AdamOptimizer(0.01).minimize(self.actor_loss)
 
