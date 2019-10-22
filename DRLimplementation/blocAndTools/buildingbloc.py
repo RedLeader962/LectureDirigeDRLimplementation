@@ -17,7 +17,7 @@ tf_cv1 = tf.compat.v1   # shortcut
 class ExperimentSpec:
     def __init__(self, batch_size_in_ts=5000, max_epoch=2, discout_factor=0.99, learning_rate=1e-2,
                  theta_nn_hidden_layer_topology: tuple = (32, 32), random_seed=42, discounted_reward_to_go=True,
-                 environment_name='CartPole-v1', print_metric_every_what_epoch=5, isTestRun=False):
+                 environment_name='CartPole-v1', print_metric_every_what_epoch=5, isTestRun=False, show_plot=True):
         """
         Gather the specification for a experiement regarding NN and algo training hparam plus some environment detail
         
@@ -25,6 +25,8 @@ class ExperimentSpec:
           |     EPOCH definition:
           |         In our casse, collecting and updating the gradient of a set of trajectories of
           |         size=batch_size_in_ts is equal to one EPOCH
+          :param show_plot:
+          :type show_plot:
 
         """
         # todo: add a param for the neural net configuration via a dict fed as a argument
@@ -37,6 +39,7 @@ class ExperimentSpec:
 
         self.isTestRun = isTestRun
         self.prefered_environment = environment_name
+        self.show_plot = show_plot
 
         self.batch_size_in_ts = batch_size_in_ts
         self.max_epoch = max_epoch
@@ -263,13 +266,14 @@ def continuous_space_placeholder(space: gym.spaces.Box, shape_constraint: tuple 
     return tf_cv1.placeholder(dtype=tf.float32, shape=shape, name=name)
 
 
-def discrete_space_placeholder(space: gym.spaces.Discrete, shape_constraint: tuple = None, name=None) -> tf.Tensor:
+def discrete_space_placeholder(space: gym.spaces.Discrete, shape_constraint: tuple = None, dtype=tf.int32, name=None) -> tf.Tensor:
     assert isinstance(space, gym.spaces.Discrete)
     if shape_constraint is not None:
         shape = (*shape_constraint,)
     else:
         shape = (None,)
-    return tf_cv1.placeholder(dtype=tf.int32, shape=shape, name=name)
+
+    return tf_cv1.placeholder(dtype=dtype, shape=shape, name=name)
 
 
 def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground, obs_shape_constraint: tuple = None,
@@ -287,19 +291,20 @@ def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground, obs_sh
 
     if isinstance(playground.env.observation_space, gym.spaces.Box):
         """observation space is continuous"""
-        obs_ph = continuous_space_placeholder(playground.OBSERVATION_SPACE, obs_shape_constraint, vocab.obs_ph)
+        obs_ph = continuous_space_placeholder(playground.OBSERVATION_SPACE, obs_shape_constraint, name=vocab.obs_ph)
     elif isinstance(playground.env.action_space, gym.spaces.Discrete):
         """observation space is discrete"""
-        obs_ph = discrete_space_placeholder(playground.OBSERVATION_SPACE, obs_shape_constraint, vocab.obs_ph)
+        obs_ph = discrete_space_placeholder(playground.OBSERVATION_SPACE, obs_shape_constraint, dtype=tf_cv1.float32,
+                                            name=vocab.obs_ph)
     else:
         raise NotImplementedError
 
     if isinstance(playground.env.action_space, gym.spaces.Box):
         """action space is continuous"""
-        act_ph = continuous_space_placeholder(playground.ACTION_SPACE, action_shape_constraint, vocab.act_ph)
+        act_ph = continuous_space_placeholder(playground.ACTION_SPACE, action_shape_constraint,name=vocab.act_ph)
     elif isinstance(playground.env.action_space, gym.spaces.Discrete):
         """action space is discrete"""
-        act_ph = discrete_space_placeholder(playground.ACTION_SPACE, action_shape_constraint, vocab.act_ph)
+        act_ph = discrete_space_placeholder(playground.ACTION_SPACE, action_shape_constraint,name=vocab.act_ph)
     else:
         raise NotImplementedError
 

@@ -97,7 +97,9 @@ class Agent(object, metaclass=ABCMeta):
         for epoch in self._training_epoch_generator(consol_print_learning_stats, render_env):
             (epoch, epoch_loss, batch_average_trjs_return, batch_average_trjs_lenght) = epoch
 
-        consol_print_learning_stats.print_experiment_stats(print_plot=not self.exp_spec.isTestRun)
+        if self.exp_spec.show_plot:
+            consol_print_learning_stats.print_experiment_stats(print_plot=not self.exp_spec.isTestRun)
+
         self.writer.close()
         return None
 

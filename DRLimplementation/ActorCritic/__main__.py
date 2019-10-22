@@ -18,6 +18,7 @@ Note on TensorBoard usage:
 import argparse
 import tensorflow as tf
 
+from ActorCritic.referenceBatchActorCriticAgent import ReferenceActorCriticAgent
 from ActorCritic.BatchActorCriticAgent import ActorCriticAgent
 from blocAndTools.buildingbloc import ExperimentSpec
 
@@ -39,19 +40,41 @@ cartpole_hparam = {
     'paramameter_set_name':           'Batch AC CartPole-v0',
     'MonteCarloTarget':               True,
     'isTestRun':                      False,
-    'batch_size_in_ts':               2000,
-    'max_epoch':                      160,
+    'batch_size_in_ts':               3000,
+    'max_epoch':                      100,
     'discounted_reward_to_go':        True,
-    'discout_factor':                 0.99,
-    'learning_rate':                  1e-2,
-    'critic_learning_rate':           1e-2,
-    'critique_loop_len':              30,
-    'theta_nn_h_layer_topo':          (32,),
+    'discout_factor':                 0.999,
+    'learning_rate':                  2e-3,
+    'critic_learning_rate':           1e-3,
+    'critique_loop_len':              40,
+    'theta_nn_h_layer_topo':          (82,),
     'random_seed':                    0,
     'theta_hidden_layers_activation': tf.nn.tanh,  # tf.nn.relu,
     'theta_output_layers_activation': None,
     'render_env_every_What_epoch':    100,
     'print_metric_every_what_epoch':  2,
+    'show_plot': False,
+    }
+
+cartpole_ref_impl_hparam = {
+    'prefered_environment':           'CartPole-v0',
+    'paramameter_set_name':           'Reference B AC CartPole-v0',
+    'MonteCarloTarget':               True,
+    'isTestRun':                      False,
+    'batch_size_in_ts':               4000,
+    'max_epoch':                      30,
+    'discounted_reward_to_go':        True,
+    'discout_factor':                 0.99,
+    'learning_rate':                  2e-3,
+    'critic_learning_rate':           1e-3,
+    'critique_loop_len':              80,
+    'theta_nn_h_layer_topo':          (62,),
+    'random_seed':                    0,
+    'theta_hidden_layers_activation': tf.nn.tanh,  # tf.nn.relu,
+    'theta_output_layers_activation': None,
+    'render_env_every_What_epoch':    100,
+    'print_metric_every_what_epoch':  2,
+    'show_plot': False,
     }
 
 test_hparam = {
@@ -83,6 +106,7 @@ parser = argparse.ArgumentParser(description=(
 
 # parser.add_argument('--env', type=str, default='CartPole-v0')
 parser.add_argument('--train', action='store_true', help='Execute training of Actor-Critic agent')
+parser.add_argument('--reference', action='store_true', help='Execute training of Reference Actor-Critic agent')
 
 parser.add_argument('-r', '--render_training', action='store_true',
                     help='(Training option) Watch the agent execute trajectories while he is on traning duty')
@@ -109,6 +133,18 @@ if args.train:
         exp_spec.set_experiment_spec({'discounted_reward_to_go': args.discounted})
 
     ac_agent = ActorCriticAgent(exp_spec)
+    ac_agent.train(render_env=args.render_training)
+elif args.reference:
+    # Configure experiment hyper-parameter
+    if args.test_run:
+        exp_spec.set_experiment_spec(test_hparam)
+    else:
+        exp_spec.set_experiment_spec(cartpole_ref_impl_hparam)
+
+    if args.discounted is not None:
+        exp_spec.set_experiment_spec({'discounted_reward_to_go': args.discounted})
+
+    ac_agent = ReferenceActorCriticAgent(exp_spec)
     ac_agent.train(render_env=args.render_training)
 else:
     exp_spec.set_experiment_spec(cartpole_hparam)

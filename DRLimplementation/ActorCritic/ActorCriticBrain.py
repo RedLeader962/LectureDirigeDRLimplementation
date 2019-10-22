@@ -69,8 +69,7 @@ def build_actor_policy_graph(observation_placeholder: tf.Tensor, action_placehol
         actor_policy_optimizer_op = policy_optimizer(actor_loss, experiment_spec.learning_rate)
 
         """ ---- Actor summary ops ---- """
-        # tf.summary.scalar('Sampled_action', sampled_action)                                     # \\\\\\    hlThis    \\\\\\
-        tf.summary.scalar('Actor_loss', actor_loss)                                             # \\\\\\    hlThis    \\\\\\
+        tf_cv1.summary.scalar('Actor_loss', actor_loss, family=vocab.loss)                                              # =HL=
 
     return sampled_action, theta_mlp, actor_loss, actor_policy_optimizer_op
 
@@ -114,6 +113,6 @@ def build_critic_graph(observation_placeholder: tf.Tensor, target_placeholder: t
                                                       ).minimize(critic_loss, name=vocab.critic_optimizer)
 
         """ ---- Actor summary ops ---- """
-        tf.summary.scalar('Critic_loss', critic_loss)                                         # \\\\\\    hlThis    \\\\\\
+        tf_cv1.summary.scalar('Critic_loss', critic_loss, family=vocab.loss)                                            # =HL=
 
     return critic, critic_loss, critic_optimizer

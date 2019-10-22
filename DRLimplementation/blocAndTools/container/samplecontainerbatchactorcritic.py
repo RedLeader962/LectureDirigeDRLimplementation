@@ -138,6 +138,15 @@ class UniformeBatchContainerBatchActorCritic(UniformeBatchContainer):
 
         super().__init__(batch_container_list, batch_constraint)
 
+        # (CRITICAL) todo:validate --> mute temporarely for reference implementation:
+        # # normalize advantage
+        # tmp_Adv: np.ndarray = np.array(self.batch_Advantages)
+        # Adv_mean = tmp_Adv.mean()
+        # Adv_std = tmp_Adv.std()
+        #
+        # self.batch_Advantages = ((tmp_Adv - Adv_mean) / Adv_std).tolist()
+
+
     def _container_feed_on_init_hook(self, aTrjContainer: TrajectoryContainerBatchActorCritic):
         aTrj_obss, aTrj_acts, aTrj_rews, aTrj_Qs, aTrj_return, aTrj_lenght, aTrj_Values = aTrjContainer.unpack()
 
@@ -146,10 +155,12 @@ class UniformeBatchContainerBatchActorCritic(UniformeBatchContainer):
         # (Priority) todo:refactor --> pull the Advantage computation outside of the container:
         #                                       - sepration of concern
         #                                       - computation done on the last trajectory collected is bogus because it is most likely cut
-        # compute the advantage
-        aTrj_Advantages = computhe_the_Advantage(aTrj_rews, aTrj_Values).tolist()
-        assert len(aTrj_Advantages) == len(aTrj_acts), "Problem with Advantage computation"
-        self.batch_Advantages += aTrj_Advantages
+
+        # (CRITICAL) todo:validate --> mute temporarely for reference implementation:
+        # # compute the advantage
+        # aTrj_Advantages = computhe_the_Advantage(aTrj_rews, aTrj_Values).tolist()
+        # assert len(aTrj_Advantages) == len(aTrj_acts), "Problem with Advantage computation"
+        # self.batch_Advantages += aTrj_Advantages
 
         return aTrj_obss, aTrj_acts, aTrj_rews, aTrj_Qs, aTrj_return, aTrj_lenght
 
