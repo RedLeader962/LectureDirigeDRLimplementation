@@ -1,6 +1,7 @@
 # coding=utf-8
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
+import json
 
 import tensorflow as tf
 import tensorflow.python.util.deprecation as deprecation
@@ -48,6 +49,8 @@ class Agent(object, metaclass=ABCMeta):
         self.saver = tf_cv1.train.Saver()
         self.writer = None
 
+
+
     @abstractmethod
     def _use_hardcoded_agent_root_directory(self):
         raise NotImplementedError  # todo: implement
@@ -86,17 +89,28 @@ class Agent(object, metaclass=ABCMeta):
         consol_print_learning_stats = ConsolPrintLearningStats(self.exp_spec,
                                                                self.exp_spec.print_metric_every_what_epoch)
 
-        """ ---- setup summary collection for TensorBoard ---- """
+        """ ---- Setup run dir name ---- """
         date_now = datetime.now()
         cleaned_param_name = self.exp_spec.paramameter_set_name.replace(" ", "_")
-        run_str = "Run--{}-{}d{}h{}m".format(cleaned_param_name, date_now.day, date_now.hour, date_now.minute,
-                                                )
-        self.writer = tf_cv1.summary.FileWriter("{}/graph/runs/{}".format(self.agent_root_dir, run_str),
-                                           tf_cv1.get_default_graph())
+        runs_dir = "{}/graph/runs".format(self.agent_root_dir)
+        run_str = "Run--{}-{}d{}h{}m".format(cleaned_param_name, date_now.day, date_now.hour, date_now.minute,)
+        run_dir = "{}/{}".format(runs_dir, run_str)
 
+        """ ---- Log experiment spec in run directory ---- """
+        try:
+            with open("{}/config.txt".format(run_dir), "w") as f:
+                f.write(self.exp_spec.__repr__())
+        except IOError as e:
+            raise IOError("The config file cannot be saved in the run directory!") from e
+
+        """ ---- setup file writer for TensorBoard ---- """
+        self.writer = tf_cv1.summary.FileWriter(run_dir, tf_cv1.get_default_graph())
+
+        """ ---- Start training agent ---- """
         for epoch in self._training_epoch_generator(consol_print_learning_stats, render_env):
             (epoch, epoch_loss, batch_average_trjs_return, batch_average_trjs_lenght) = epoch
 
+        """ ---- Teardown ---- """
         if self.exp_spec.show_plot:
             consol_print_learning_stats.print_experiment_stats(print_plot=not self.exp_spec.isTestRun)
 
@@ -131,6 +145,20 @@ class Agent(object, metaclass=ABCMeta):
 
     def play(self, run_name: str, max_trajectories=20) -> None:
         with tf_cv1.Session() as sess:
+
+            # todo:implement --> hparam loading functionality : Required to make experiment management clean and bug free
+            # note: Past implementation ref
+            #   |       - Store: Deep_RL/DQN/DQN_OpenAI_Baseline/FalconX_env/train_2_DQN_OpenAi_baseline_FalconX.py
+            #   |       - Load: Deep_RL/DQN/DQN_OpenAI_Baseline/FalconX_env/enjoy_2_DQN_OpenAI_baseline_FalconX.py
+            # Loading code:
+            #    import ast
+            #    try:
+            #        config = None
+            #        with open("{}/{}/config.txt".format(EXPERIMENT_ROOT, run_directory), "r") as f:
+            #            s = f.readline()
+            #            config = ast.literal_eval(s)
+            #    except IOError as e:
+            #        raise IOError("The config file cannot be found in the run directory!") from e
 
             self.load_selected_trained_agent(sess, run_name)
 

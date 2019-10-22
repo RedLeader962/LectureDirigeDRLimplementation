@@ -8,7 +8,8 @@ Invoke Actor-Critic agent using
 import sys
 import os
 
-from ActorCritic.referenceBatchActorCriticAgent import ReferenceActorCriticAgent
+from ActorCritic.integrationBatchAAC import IntegrationActorCriticAgent
+from ActorCritic.referenceBatchAAC_LilLog import ReferenceActorCriticAgent
 from ActorCritic.BatchActorCriticAgent import ActorCriticAgent
 from ActorCritic.ActorCriticBrain import build_actor_policy_graph, build_critic_graph
 

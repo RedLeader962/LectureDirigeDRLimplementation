@@ -1,3 +1,12 @@
+# coding=utf-8
+"""
+Integration test based on 'REINFORCE with reward to go' simplest implementation from OpenAI SpinningUp at:
+    https://github.com/openai/spinningup/blob/master/spinup/examples/pg_math/2_rtg_pg.py
+
+Use in conjunction with: ../tests/test_Z_integration/test_intergration_reinforce_REFERENCE_SpinningUp.py
+
+Code from referenced implementation are marked with ////// Original bloc ////// on line end or at code bloc begining
+"""
 from datetime import datetime
 
 import tensorflow as tf
@@ -11,12 +20,6 @@ from blocAndTools.container.samplecontainer import TrajectoryCollector, UniformB
 
 tf_cv1 = tf.compat.v1   # shortcut
 
-"""
-Integration test based on 'REINFORCE with reward to go' simplest implementation from OpenAI SpinningUp at:
-    https://github.com/openai/spinningup/blob/master/spinup/examples/pg_math/2_rtg_pg.py
-
-Use in conjunction with: ../tests/test_Z_integration/test_intergration_reinforce_REFERENCE_SpinningUp.py
-"""
 
 # ////// Original bloc //////
 # def mlp(x, sizes, activation=tf.tanh, output_activation=None):

@@ -1,4 +1,14 @@
 # coding=utf-8
+"""
+Integration test based on 'Actro-Critic' implementation from Lil-log at:
+    https://lilianweng.github.io/lil-log/2018/05/05/implementing-deep-reinforcement-learning-models.html#actor-critic
+
+Use in conjunction with: ../tests/test_Z_integration/... .py
+
+Code from referenced implementation are marked with ////// Original bloc ////// on line end or at code bloc begining
+"""
+
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 # region ::Import statement ...
@@ -91,17 +101,18 @@ class ReferenceActorCriticAgent(Agent):
         #    |      - Target: MonteCarlo or Bootstrap
 
         # Actor: action probabilities
-        actor = dense_nn(self.observation_ph, [32, 32, self.playground.env.action_space.n], name='actor')       # ////// Original bloc //////
-
-        # Critic: action value (Q-value)
-        critic = dense_nn(self.observation_ph, [32, 32, 1], name='critic')                                      # ////// Original bloc //////
+        actor = dense_nn(self.observation_ph, [32, 32, self.playground.env.action_space.n],                     # ////// Original bloc //////
+                         name=vocab.theta_NeuralNet)
 
         self.policy_action_sampler = tf.squeeze(tf.multinomial(actor, 1))                                       # ////// Original bloc //////
 
+
+        # Critic: action value (Q-value)
+        critic = dense_nn(self.observation_ph, [32, 32, 1],                                                     # ////// Original bloc //////
+                          name=vocab.phi_NeuralNet)
+
         action_ohe = tf.one_hot(self.action_ph, self.playground.ACTION_CHOICES, 1.0, 0.0, name='action_one_hot')# ////// Original bloc //////
 
-        # note: critic * action_ohe ==> the critic learn V_estimate
-        #   |
         V_estimate = tf.reduce_sum(critic * action_ohe, reduction_indices=-1, name='q_acted')                   # ////// Original bloc //////
         flatten_V_estimate = tf.reshape(V_estimate, [-1])
         Advantage = self.target_ph - flatten_V_estimate  # ////// Original bloc //////

@@ -18,7 +18,8 @@ Note on TensorBoard usage:
 import argparse
 import tensorflow as tf
 
-from ActorCritic.referenceBatchActorCriticAgent import ReferenceActorCriticAgent
+from ActorCritic.integrationBatchAAC import IntegrationActorCriticAgent
+from ActorCritic.referenceBatchAAC_LilLog import ReferenceActorCriticAgent
 from ActorCritic.BatchActorCriticAgent import ActorCriticAgent
 from blocAndTools.buildingbloc import ExperimentSpec
 
@@ -35,9 +36,9 @@ from blocAndTools.buildingbloc import ExperimentSpec
 #           Example with experiment average step of 100:
 #              0.9^100 = 0.000026 vs 0.99^100 = 0.366003 vs 0.999^100 = 0.904792
 
-cartpole_hparam = {
+batch_AAC_hparam = {
     'prefered_environment':           'CartPole-v0',
-    'paramameter_set_name':           'Batch AC CartPole-v0',
+    'paramameter_set_name':           'Batch AAC',
     'MonteCarloTarget':               True,
     'isTestRun':                      False,
     'batch_size_in_ts':               3000,
@@ -56,9 +57,9 @@ cartpole_hparam = {
     'show_plot': False,
     }
 
-cartpole_ref_impl_hparam = {
+lilLogBatch_AAC_hparam = {
     'prefered_environment':           'CartPole-v0',
-    'paramameter_set_name':           'Reference B AC CartPole-v0',
+    'paramameter_set_name':           'Lil-Log Batch AAC',
     'MonteCarloTarget':               True,
     'isTestRun':                      False,
     'batch_size_in_ts':               4000,
@@ -77,9 +78,13 @@ cartpole_ref_impl_hparam = {
     'show_plot': False,
     }
 
+integrationBatch_AAC_hparm = lilLogBatch_AAC_hparam.copy()
+integrationBatch_AAC_hparm['paramameter_set_name'] = 'Integration Batch AAC'
+integrationBatch_AAC_hparm['MonteCarloTarget'] = True
+
 test_hparam = {
     'prefered_environment':           'CartPole-v0',
-    'paramameter_set_name':           'Batch AC Test spec',
+    'paramameter_set_name':           'Batch AAC TestSpec',
     'MonteCarloTarget':               True,
     'isTestRun':                      True,
     'batch_size_in_ts':               1000,
@@ -107,6 +112,7 @@ parser = argparse.ArgumentParser(description=(
 # parser.add_argument('--env', type=str, default='CartPole-v0')
 parser.add_argument('--train', action='store_true', help='Execute training of Actor-Critic agent')
 parser.add_argument('--reference', action='store_true', help='Execute training of Reference Actor-Critic agent')
+parser.add_argument('--integration', action='store_true', help='Execute training of Integration Actor-Critic agent')
 
 parser.add_argument('-r', '--render_training', action='store_true',
                     help='(Training option) Watch the agent execute trajectories while he is on traning duty')
@@ -127,7 +133,7 @@ if args.train:
     if args.test_run:
         exp_spec.set_experiment_spec(test_hparam)
     else:
-        exp_spec.set_experiment_spec(cartpole_hparam)
+        exp_spec.set_experiment_spec(batch_AAC_hparam)
 
     if args.discounted is not None:
         exp_spec.set_experiment_spec({'discounted_reward_to_go': args.discounted})
@@ -135,11 +141,25 @@ if args.train:
     ac_agent = ActorCriticAgent(exp_spec)
     ac_agent.train(render_env=args.render_training)
 elif args.reference:
+    """ ---- Lil-Log reference run ---- """
     # Configure experiment hyper-parameter
     if args.test_run:
         exp_spec.set_experiment_spec(test_hparam)
     else:
-        exp_spec.set_experiment_spec(cartpole_ref_impl_hparam)
+        exp_spec.set_experiment_spec(lilLogBatch_AAC_hparam)
+
+    if args.discounted is not None:
+        exp_spec.set_experiment_spec({'discounted_reward_to_go': args.discounted})
+
+    ac_agent = ReferenceActorCriticAgent(exp_spec)
+    ac_agent.train(render_env=args.render_training)
+elif args.integration:
+    """ ---- Integration run ---- """
+    # Configure experiment hyper-parameter
+    if args.test_run:
+        exp_spec.set_experiment_spec(test_hparam)
+    else:
+        exp_spec.set_experiment_spec(integrationBatch_AAC_hparm)
 
     if args.discounted is not None:
         exp_spec.set_experiment_spec({'discounted_reward_to_go': args.discounted})
@@ -147,7 +167,7 @@ elif args.reference:
     ac_agent = ReferenceActorCriticAgent(exp_spec)
     ac_agent.train(render_env=args.render_training)
 else:
-    exp_spec.set_experiment_spec(cartpole_hparam)
+    exp_spec.set_experiment_spec(batch_AAC_hparam)
     if args.test_run:
         exp_spec.set_experiment_spec({'isTestRun': True})
 
