@@ -78,49 +78,20 @@ class IntegrationActorCriticAgent(Agent):
         # self.V_phi_estimator, self.V_phi_loss, self.V_phi_optimizer = build_critic_graph(self.observation_ph,
         #                                                                                  self.Qvalues_ph, self.exp_spec)
 
-        # ////// Original bloc //////
-        # def dense_nn(inputs, layers_sizes, name):
-        #     """Creates a densely connected multi-layer neural network.
-        #     inputs: the input tensor
-        #     layers_sizes (list<int>): defines the number of units in each layer. The output
-        #         layer has the size layers_sizes[-1].
-        #     """
-        #     with tf_cv1.variable_scope(name):
-        #         for i, size in enumerate(layers_sizes):
-        #             inputs = tf.layers.dense(
-        #                 inputs,
-        #                 size,
-        #                 # Add relu activation only for internal layers.
-        #                 activation=tf.nn.relu if i < len(layers_sizes) - 1 else None,
-        #                 kernel_initializer=tf.contrib.layers.xavier_initializer(),
-        #                 name=name + '_l' + str(i)
-        #                 )
-        #     return inputs
-
-
-        # Actor: action probabilities
-        # ////// Original bloc //////
-        # actor = dense_nn(self.observation_ph, [32, 32, self.playground.env.action_space.n],
-        #                  name=vocab.theta_NeuralNet)
-
         actor = bloc.build_MLP_computation_graph(self.observation_ph, self.playground.ACTION_CHOICES,
-                                                        self.exp_spec.theta_nn_h_layer_topo,
-                                                        hidden_layers_activation=self.exp_spec.theta_hidden_layers_activation,
-                                                        output_layers_activation=self.exp_spec.theta_output_layers_activation,
-                                                        name=vocab.theta_NeuralNet)
+                                                 self.exp_spec.theta_nn_h_layer_topo,
+                                                 hidden_layers_activation=self.exp_spec.theta_hidden_layers_activation,
+                                                 output_layers_activation=self.exp_spec.theta_output_layers_activation,
+                                                 name=vocab.theta_NeuralNet)
 
         # ////// Original bloc //////
         self.policy_action_sampler = tf.squeeze(tf.multinomial(actor, 1))
 
-        # ////// Original bloc //////
-        # self.V_phi_estimator = dense_nn(self.observation_ph, [32, 32, 1],
-        #                                 name=vocab.phi_NeuralNet)
-        #
         self.V_phi_estimator = bloc.build_MLP_computation_graph(self.observation_ph, 1,
-                                                     self.exp_spec.theta_nn_h_layer_topo,
-                                                     hidden_layers_activation=self.exp_spec.theta_hidden_layers_activation,
-                                                     output_layers_activation=self.exp_spec.theta_output_layers_activation,
-                                                     name=vocab.phi_NeuralNet)
+                                                                self.exp_spec.theta_nn_h_layer_topo,
+                                                                hidden_layers_activation=self.exp_spec.theta_hidden_layers_activation,
+                                                                output_layers_activation=self.exp_spec.theta_output_layers_activation,
+                                                                name=vocab.phi_NeuralNet)
 
         with tf_cv1.name_scope(vocab.Advantage):
             # ////// Original bloc //////
@@ -135,8 +106,11 @@ class IntegrationActorCriticAgent(Agent):
                 tf.stop_gradient(Advantage) * tf.nn.sparse_softmax_cross_entropy_with_logits(
                     logits=actor, labels=self.action_ph),
                 name=vocab.actor_loss)
-            with tf_cv1.variable_scope(vocab.policy_optimizer):
-                self.actor_policy_optimizer = tf_cv1.train.AdamOptimizer(0.01).minimize(self.actor_loss)
+
+            # with tf_cv1.variable_scope(vocab.policy_optimizer):
+            #     self.actor_policy_optimizer = tf_cv1.train.AdamOptimizer(0.01).minimize(self.actor_loss)
+
+            self.actor_policy_optimizer = bloc.policy_optimizer(self.actor_loss, self.exp_spec.learning_rate)
 
         # \\\\\\    My bloc    \\\\\\
         tf_cv1.summary.scalar('Actor_loss', self.actor_loss, family=vocab.loss)  # =HL=
@@ -146,8 +120,11 @@ class IntegrationActorCriticAgent(Agent):
             with tf_cv1.variable_scope(vocab.critic_loss):
                 self.V_phi_loss = tf.reduce_mean(tf.square(Advantage))
 
-            with tf_cv1.variable_scope(vocab.critic_optimizer):
-                self.V_phi_optimizer = tf_cv1.train.AdamOptimizer(0.01).minimize(self.V_phi_loss)
+            # with tf_cv1.variable_scope(vocab.critic_optimizer):
+            #     self.V_phi_optimizer = tf_cv1.train.AdamOptimizer(0.01).minimize(self.V_phi_loss)
+
+            self.V_phi_optimizer = tf_cv1.train.AdamOptimizer(learning_rate=self.exp_spec['critic_learning_rate']
+                                                                  ).minimize(self.V_phi_loss, name=vocab.critic_optimizer)
 
         # \\\\\\    My bloc    \\\\\\
         tf_cv1.summary.scalar('Critic_loss', self.V_phi_loss, family=vocab.loss)  # =HL=
