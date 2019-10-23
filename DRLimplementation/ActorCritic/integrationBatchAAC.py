@@ -46,12 +46,21 @@ class IntegrationActorCriticAgent(Agent):
         """
 
         """ ---- Placeholder ---- """
+        # ////// Original bloc //////
+        # Inputs
+        # states = tf.placeholder(tf.float32, shape=(None, observation_size), name='state')
+        # actions = tf.placeholder(tf.int32, shape=(None,), name='action')
+        # td_targets = tf.placeholder(tf.float32, shape=(None,), name='td_target')
+
         # \\\\\\    My bloc    \\\\\\
         self.observation_ph, self.action_ph, self.Qvalues_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
             self.playground, obs_shape_constraint=None, action_shape_constraint=None, Q_name=vocab.target_ph)
 
         # \\\\\\    My bloc    \\\\\\
         # self.Advantage_ph = tf_cv1.placeholder(tf.float32, shape=self.Qvalues_ph.shape, name=vocab.advantage_ph)
+
+
+        # \\\\\\    My bloc    \\\\\\
         # # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
         # # *                                                                                                           *
         # # *                                         Actor computation graph                                           *
@@ -70,68 +79,75 @@ class IntegrationActorCriticAgent(Agent):
         #                                                                                  self.Qvalues_ph, self.exp_spec)
 
         # ////// Original bloc //////
-        def dense_nn(inputs, layers_sizes, name):
-            """Creates a densely connected multi-layer neural network.
-            inputs: the input tensor
-            layers_sizes (list<int>): defines the number of units in each layer. The output
-                layer has the size layers_sizes[-1].
-            """
-            with tf_cv1.variable_scope(name):
-                for i, size in enumerate(layers_sizes):
-                    inputs = tf.layers.dense(
-                        inputs,
-                        size,
-                        # Add relu activation only for internal layers.
-                        activation=tf.nn.relu if i < len(layers_sizes) - 1 else None,
-                        kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                        name=name + '_l' + str(i)
-                        )
-            return inputs
+        # def dense_nn(inputs, layers_sizes, name):
+        #     """Creates a densely connected multi-layer neural network.
+        #     inputs: the input tensor
+        #     layers_sizes (list<int>): defines the number of units in each layer. The output
+        #         layer has the size layers_sizes[-1].
+        #     """
+        #     with tf_cv1.variable_scope(name):
+        #         for i, size in enumerate(layers_sizes):
+        #             inputs = tf.layers.dense(
+        #                 inputs,
+        #                 size,
+        #                 # Add relu activation only for internal layers.
+        #                 activation=tf.nn.relu if i < len(layers_sizes) - 1 else None,
+        #                 kernel_initializer=tf.contrib.layers.xavier_initializer(),
+        #                 name=name + '_l' + str(i)
+        #                 )
+        #     return inputs
 
-        # ////// Original bloc //////
-        # Inputs
-        # states = tf.placeholder(tf.float32, shape=(None, observation_size), name='state')
-        # actions = tf.placeholder(tf.int32, shape=(None,), name='action')
-        # td_targets = tf.placeholder(tf.float32, shape=(None,), name='td_target')
-
-        # note: Design architecture
-        #   |    collect:
-        #    |      - Target: MonteCarlo or Bootstrap
 
         # Actor: action probabilities
-        actor = dense_nn(self.observation_ph, [32, 32, self.playground.env.action_space.n],
-                         # ////// Original bloc //////
-                         name=vocab.theta_NeuralNet)
+        # ////// Original bloc //////
+        # actor = dense_nn(self.observation_ph, [32, 32, self.playground.env.action_space.n],
+        #                  name=vocab.theta_NeuralNet)
 
-        self.policy_action_sampler = tf.squeeze(tf.multinomial(actor, 1))  # ////// Original bloc //////
+        actor = bloc.build_MLP_computation_graph(self.observation_ph, self.playground.ACTION_CHOICES,
+                                                        self.exp_spec.theta_nn_h_layer_topo,
+                                                        hidden_layers_activation=self.exp_spec.theta_hidden_layers_activation,
+                                                        output_layers_activation=self.exp_spec.theta_output_layers_activation,
+                                                        name=vocab.theta_NeuralNet)
 
-        # Critic: action value (Q-value)
-        critic = dense_nn(self.observation_ph, [32, 32, 1],  # ////// Original bloc //////
-                          name=vocab.phi_NeuralNet)
+        # ////// Original bloc //////
+        self.policy_action_sampler = tf.squeeze(tf.multinomial(actor, 1))
 
-        action_ohe = tf.one_hot(self.action_ph, self.playground.ACTION_CHOICES, 1.0, 0.0,
-                                name='action_one_hot')  # ////// Original bloc //////
+        # ////// Original bloc //////
+        # self.V_phi_estimator = dense_nn(self.observation_ph, [32, 32, 1],
+        #                                 name=vocab.phi_NeuralNet)
+        #
+        self.V_phi_estimator = bloc.build_MLP_computation_graph(self.observation_ph, 1,
+                                                     self.exp_spec.theta_nn_h_layer_topo,
+                                                     hidden_layers_activation=self.exp_spec.theta_hidden_layers_activation,
+                                                     output_layers_activation=self.exp_spec.theta_output_layers_activation,
+                                                     name=vocab.phi_NeuralNet)
 
-        V_estimate = tf.reduce_sum(critic * action_ohe, reduction_indices=-1,
-                                   name='q_acted')  # ////// Original bloc //////
-        flatten_V_estimate = tf.reshape(V_estimate, [-1])
-        Advantage = self.Qvalues_ph - flatten_V_estimate  # ////// Original bloc //////
+        with tf_cv1.name_scope(vocab.Advantage):
+            # ////// Original bloc //////
+            action_ohe = tf.one_hot(self.action_ph, self.playground.ACTION_CHOICES, 1.0, 0.0, name='action_one_hot')
+            V_estimate = tf.reduce_sum(self.V_phi_estimator * action_ohe, reduction_indices=-1, name='q_acted')
+            flatten_V_estimate = tf.reshape(V_estimate, [-1])
+            Advantage = self.Qvalues_ph - flatten_V_estimate
 
         # ////// Original bloc //////
         with tf_cv1.variable_scope(vocab.actor_network):
             self.actor_loss = tf.reduce_mean(
                 tf.stop_gradient(Advantage) * tf.nn.sparse_softmax_cross_entropy_with_logits(
                     logits=actor, labels=self.action_ph),
-                name='loss_actor')
-            self.actor_policy_optimizer = tf_cv1.train.AdamOptimizer(0.01).minimize(self.actor_loss)
+                name=vocab.actor_loss)
+            with tf_cv1.variable_scope(vocab.policy_optimizer):
+                self.actor_policy_optimizer = tf_cv1.train.AdamOptimizer(0.01).minimize(self.actor_loss)
 
         # \\\\\\    My bloc    \\\\\\
         tf_cv1.summary.scalar('Actor_loss', self.actor_loss, family=vocab.loss)  # =HL=
 
         # ////// Original bloc //////
         with tf_cv1.variable_scope(vocab.critic_network):
-            self.V_phi_loss = tf.reduce_mean(tf.square(Advantage))
-            self.V_phi_optimizer = tf_cv1.train.AdamOptimizer(0.01).minimize(self.V_phi_loss)
+            with tf_cv1.variable_scope(vocab.critic_loss):
+                self.V_phi_loss = tf.reduce_mean(tf.square(Advantage))
+
+            with tf_cv1.variable_scope(vocab.critic_optimizer):
+                self.V_phi_optimizer = tf_cv1.train.AdamOptimizer(0.01).minimize(self.V_phi_loss)
 
         # \\\\\\    My bloc    \\\\\\
         tf_cv1.summary.scalar('Critic_loss', self.V_phi_loss, family=vocab.loss)  # =HL=
@@ -150,6 +166,7 @@ class IntegrationActorCriticAgent(Agent):
         self.Summary_trj_return_ph = tf_cv1.placeholder(tf.float32, name='Summary_trj_return_ph')  # =HL=
         self.summary_trj_op = tf_cv1.summary.scalar('Trajectory return', self.Summary_trj_return_ph,
                                                     family=vocab.G)  # =HL=
+
         return None
 
     def _instantiate_data_collector(self) -> Tuple[

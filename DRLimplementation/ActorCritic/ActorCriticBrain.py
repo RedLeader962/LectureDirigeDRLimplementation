@@ -32,15 +32,14 @@ def build_actor_policy_graph(observation_placeholder: tf.Tensor, action_placehol
     """
     with tf.name_scope(vocab.actor_network) as scope:
 
-        """ ---- Build parameter THETA as a multilayer perceptron ---- """
-        theta_mlp = build_MLP_computation_graph(observation_placeholder, playground.ACTION_CHOICES,
-                                                experiment_spec.theta_nn_h_layer_topo,
-                                                hidden_layers_activation=experiment_spec.theta_hidden_layers_activation,
-                                                output_layers_activation=experiment_spec.theta_output_layers_activation,
-                                                name=vocab.theta_NeuralNet)
-
         # ::Discrete case
         if isinstance(playground.env.action_space, gym.spaces.Discrete):
+            """ ---- Build parameter THETA as a multilayer perceptron ---- """
+            theta_mlp = build_MLP_computation_graph(observation_placeholder, playground.ACTION_CHOICES,
+                                                    experiment_spec.theta_nn_h_layer_topo,
+                                                    hidden_layers_activation=experiment_spec.theta_hidden_layers_activation,
+                                                    output_layers_activation=experiment_spec.theta_output_layers_activation,
+                                                    name=vocab.theta_NeuralNet)
 
             """ ---- Assess the input shape compatibility ---- """
             are_compatible = observation_placeholder.shape.as_list()[-1] == playground.OBSERVATION_SPACE.shape[0]
