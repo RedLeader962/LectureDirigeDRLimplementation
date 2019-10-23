@@ -39,6 +39,8 @@ class ActorCriticAgent(Agent):
         self.observation_ph, self.action_ph, self.target_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
             self.playground, obs_shape_constraint=None, action_shape_constraint=None, Q_name=vocab.target_ph)
 
+        # (CRITICAL) todo:refactor all module --> follow DRLimplementation/ActorCritic/integrationBatchAAC.py
+
         self.Advantage_ph = tf_cv1.placeholder(tf.float32, shape=self.target_ph.shape, name=vocab.advantage_ph)
 
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -46,6 +48,7 @@ class ActorCriticAgent(Agent):
         # *                                         Actor computation graph                                           *
         # *                                                                                                           *
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
         actor_graph = build_actor_policy_graph(self.observation_ph, self.exp_spec, self.playground)
         self.policy_action_sampler, _, self.actor_loss, self.actor_policy_optimizer = actor_graph
 

@@ -1,5 +1,6 @@
 # coding=utf-8
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Union
 import gym
 from gym.wrappers import TimeLimit
@@ -461,4 +462,11 @@ def to_scalar(action_array: np.ndarray):
 
     return action_array.item()
 
+def setup_commented_run_dir_str(exp_spec, agent_root_dir):
+    date_now = datetime.now()
+    cleaned_param_name = exp_spec.paramameter_set_name.replace(" ", "_")
+    runs_dir = "{}/graph".format(agent_root_dir)
+    run_str = "Run--{}-{}d{}h{}m".format(cleaned_param_name, date_now.day, date_now.hour, date_now.minute, )
+    run_dir = "{}/{}".format(runs_dir, run_str)
+    return run_dir
 

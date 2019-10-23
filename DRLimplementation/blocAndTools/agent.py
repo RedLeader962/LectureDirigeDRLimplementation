@@ -8,7 +8,7 @@ import tensorflow.python.util.deprecation as deprecation
 import numpy as np
 
 from blocAndTools import buildingbloc as bloc
-from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
+from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground, setup_commented_run_dir_str
 from blocAndTools.visualisationtools import ConsolPrintLearningStats
 
 tf_cv1 = tf.compat.v1  # shortcut
@@ -48,7 +48,7 @@ class Agent(object, metaclass=ABCMeta):
         """ ---- Setup parameters saving ---- """
         self.saver = tf_cv1.train.Saver()
         self.writer = None
-        self.run_dir = None
+        self.this_run_dir = None
 
     @abstractmethod
     def _use_hardcoded_agent_root_directory(self):
@@ -89,18 +89,14 @@ class Agent(object, metaclass=ABCMeta):
                                                                self.exp_spec.print_metric_every_what_epoch)
 
         """ ---- Setup run dir name ---- """
-        date_now = datetime.now()
-        cleaned_param_name = self.exp_spec.paramameter_set_name.replace(" ", "_")
-        runs_dir = "{}/graph/runs".format(self.agent_root_dir)
-        run_str = "Run--{}-{}d{}h{}m".format(cleaned_param_name, date_now.day, date_now.hour, date_now.minute,)
-        self.run_dir = "{}/{}".format(runs_dir, run_str)
+        self.this_run_dir = setup_commented_run_dir_str(self.exp_spec, self.agent_root_dir)
 
         """ ---- Create run dir & setup file writer for TensorBoard ---- """
-        self.writer = tf_cv1.summary.FileWriter(self.run_dir, tf_cv1.get_default_graph())
+        self.writer = tf_cv1.summary.FileWriter(self.this_run_dir, tf_cv1.get_default_graph())
 
         """ ---- Log experiment spec in run directory ---- """
         try:
-            with open("{}/config.txt".format(self.run_dir), "w") as f:
+            with open("{}/config.txt".format(self.this_run_dir), "w") as f:
                 f.write(self.exp_spec.__repr__())
         except IOError as e:
             raise IOError("The config file cannot be saved in the run directory!") from e
@@ -142,7 +138,7 @@ class Agent(object, metaclass=ABCMeta):
         # self.saver.save(sess, '{}/graph/checkpoint_directory/{}_agent'.format(self.agent_root_dir, graph_name),
         #                 global_step=epoch)
 
-        self.saver.save(sess, '{}/checkpoint/{}_agent'.format(self.run_dir, graph_name),
+        self.saver.save(sess, '{}/checkpoint/{}_agent'.format(self.this_run_dir, graph_name),
                         global_step=epoch)
         print("\n\n    :: {} network parameters were saved\n".format(graph_name))
 

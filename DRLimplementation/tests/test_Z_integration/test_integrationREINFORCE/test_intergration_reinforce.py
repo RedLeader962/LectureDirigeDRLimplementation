@@ -5,7 +5,7 @@ import tensorflow.python.util.deprecation as deprecation
 from datetime import datetime
 
 from DRLimplementation.BasicPolicyGradient.REINFORCEagent import REINFORCEagent
-from blocAndTools.buildingbloc import ExperimentSpec
+from blocAndTools.buildingbloc import ExperimentSpec, setup_commented_run_dir_str
 from blocAndTools.visualisationtools import ConsolPrintLearningStats
 
 tf_cv1 = tf.compat.v1   # shortcut
@@ -55,7 +55,7 @@ def init_spec_and_REINFORCEagent(hparam):
     def epoch_generator():
         return reinforce_agent._training_epoch_generator(consol_print_learning_stats, render_env=False)
 
-    return epoch_generator, exp_spec, consol_print_learning_stats
+    return epoch_generator, exp_spec, consol_print_learning_stats, reinforce_agent
 
 
 @pytest.fixture
@@ -63,17 +63,17 @@ def setup_REINFORCE_train_algo_generator_with_PASSING_spec():
     nb_of_try = 2
     env_max_return = 200.000
 
-    """ ---- setup summary collection for TensorBoard ---- """
-    date_now = datetime.now()
-    run_str = "Run--{}h{}--{}-{}-{}".format(date_now.hour, date_now.minute, date_now.day,
-                                            date_now.month, date_now.year)
-    writer = tf_cv1.summary.FileWriter("{}/graph/runs/{}".format(AGENT_ROOT_DIR, run_str),
-                                       tf_cv1.get_default_graph())
+    epoch_generator, exp_spec, consol_print_learning_stats, reinforce_agent = init_spec_and_REINFORCEagent(hparam=CARTPOLE_HPARAM)
 
-    epoch_generator, exp_spec, consol_print_learning_stats = init_spec_and_REINFORCEagent(hparam=CARTPOLE_HPARAM)
+    this_run_dir = setup_commented_run_dir_str(exp_spec, AGENT_ROOT_DIR)
+    writer = tf_cv1.summary.FileWriter(this_run_dir, tf_cv1.get_default_graph())
+
+    reinforce_agent.this_run_dir = this_run_dir
+    reinforce_agent.writer = writer
+
     yield epoch_generator, nb_of_try, env_max_return, exp_spec
     consol_print_learning_stats.print_experiment_stats(print_plot=not exp_spec.isTestRun)
-    writer.close()
+    reinforce_agent.writer.close()
 
 
 @pytest.fixture
@@ -81,10 +81,17 @@ def setup_REINFORCE_train_algo_generator_with_FAILING_spec():
     nb_of_try = 2
     env_max_return = 200.000
 
-    epoch_generator, exp_spec, consol_print_learning_stats = init_spec_and_REINFORCEagent(hparam=CARTPOLE_HPARAM_FAIL)
+    epoch_generator, exp_spec, consol_print_learning_stats, reinforce_agent = init_spec_and_REINFORCEagent(hparam=CARTPOLE_HPARAM_FAIL)
+
+    this_run_dir = setup_commented_run_dir_str(exp_spec, AGENT_ROOT_DIR)
+    writer = tf_cv1.summary.FileWriter(this_run_dir, tf_cv1.get_default_graph())
+
+    reinforce_agent.this_run_dir = this_run_dir
+    reinforce_agent.writer = writer
+
     yield epoch_generator, nb_of_try, env_max_return, exp_spec
     consol_print_learning_stats.print_experiment_stats(print_plot=not exp_spec.isTestRun)
-
+    reinforce_agent.writer.close()
 
 def training_loop(epoch_generator, env_max_return):
     """
