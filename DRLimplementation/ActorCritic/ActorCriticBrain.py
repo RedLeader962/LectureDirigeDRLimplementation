@@ -11,7 +11,7 @@ vocab = rl_name()
 
 
 def build_actor_policy_graph(observation_placeholder: tf.Tensor, action_placeholder: tf.Tensor,
-                             advantage_placeholder: tf.Tensor, experiment_spec: ExperimentSpec,
+                             advantage: tf.Tensor, experiment_spec: ExperimentSpec,
                              playground: GymPlayground) -> (tf.Tensor, tf.Tensor, tf.Tensor, tf.Operation):
     """
     The ACTOR graph(aka the policy network)
@@ -52,7 +52,7 @@ def build_actor_policy_graph(observation_placeholder: tf.Tensor, action_placehol
             sampled_action, log_p_all = policy_theta_discrete_space(theta_mlp, playground)
 
             """ ---- Build the pseudo loss function ---- """
-            actor_loss = discrete_pseudo_loss(log_p_all, action_placeholder, advantage_placeholder,
+            actor_loss = discrete_pseudo_loss(log_p_all, action_placeholder, advantage,
                                               playground, name=vocab.actor_loss)
 
         # ::Continuous case
@@ -93,7 +93,7 @@ def build_critic_graph(observation_placeholder: tf.Tensor, target_placeholder: t
 
     """ Tensor first dimension shape compatibility assessment """
     assert observation_placeholder.shape.as_list()[0] == target_placeholder.shape.as_list()[0], \
-        "target_ph shape {} first dimension is NOT compatible with Obs_ph shape first dimension {} ".format(
+        "Qvalues_ph shape {} first dimension is NOT compatible with Obs_ph shape first dimension {} ".format(
             target_placeholder.shape.as_list()[0], observation_placeholder.shape.as_list()[0])
 
     with tf.name_scope(vocab.critic_network) as scope:

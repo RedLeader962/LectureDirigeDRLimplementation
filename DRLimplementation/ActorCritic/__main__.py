@@ -19,7 +19,7 @@ import argparse
 import tensorflow as tf
 
 from ActorCritic.integrationBatchAAC import IntegrationActorCriticAgent
-from ActorCritic.referenceBatchAAC_LilLog import ReferenceActorCriticAgent
+from ActorCritic.reference_LilLog_BatchAAC import ReferenceActorCriticAgent
 from ActorCritic.BatchActorCriticAgent import ActorCriticAgent
 from blocAndTools.buildingbloc import ExperimentSpec
 
@@ -79,7 +79,8 @@ lilLogBatch_AAC_hparam = {
     }
 
 integrationBatch_AAC_hparm = lilLogBatch_AAC_hparam.copy()
-integrationBatch_AAC_hparm['paramameter_set_name'] = 'Integration Batch AAC'
+exp_iter = ''
+integrationBatch_AAC_hparm['paramameter_set_name'] = 'Integration Batch AAC'+exp_iter
 integrationBatch_AAC_hparm['MonteCarloTarget'] = True
 
 test_hparam = {
@@ -164,7 +165,7 @@ elif args.integration:
     if args.discounted is not None:
         exp_spec.set_experiment_spec({'discounted_reward_to_go': args.discounted})
 
-    ac_agent = ReferenceActorCriticAgent(exp_spec)
+    ac_agent = IntegrationActorCriticAgent(exp_spec)
     ac_agent.train(render_env=args.render_training)
 else:
     exp_spec.set_experiment_spec(batch_AAC_hparam)

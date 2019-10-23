@@ -7,7 +7,7 @@ _rl_vocab_list = [
     'REINFORCE', 'ActorCritic', 'DQN',
     'Discrete', 'Continuous',
     'trajectorie', 'timestep', 'epoch', 'horizon',
-    'observation', 'action', 'policy', 'transition_dynamic', 'reward', 'reward_to_go', 'Qvalues', 'G',
+    'observation', 'action', 'policy', 'transition_dynamic', 'reward', 'reward_to_go', 'Qvalues', 'G', 'Advantage',
     'policy_theta', 'policy_theta_D', 'policy_theta_C',
     'theta_NeuralNet', 'phi_NeuralNet', 'actor_network', 'critic_network',
     'sampled_action', 'sampled_action_log_pr', 'action_space_log_pr',

@@ -9,7 +9,7 @@ import sys
 import os
 
 from ActorCritic.integrationBatchAAC import IntegrationActorCriticAgent
-from ActorCritic.referenceBatchAAC_LilLog import ReferenceActorCriticAgent
+from ActorCritic.reference_LilLog_BatchAAC import ReferenceActorCriticAgent
 from ActorCritic.BatchActorCriticAgent import ActorCriticAgent
 from ActorCritic.ActorCriticBrain import build_actor_policy_graph, build_critic_graph
 
