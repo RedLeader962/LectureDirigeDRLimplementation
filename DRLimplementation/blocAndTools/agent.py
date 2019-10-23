@@ -133,14 +133,14 @@ class Agent(object, metaclass=ABCMeta):
                 and trj_collected_so_far == 0):
             self.playground.env.render()  # keep environment rendering turned OFF during unit test
 
-    def _save_checkpoint(self, epoch: int, sess: tf_cv1.Session, graph_name: str):
-        # todo:remove --> legacy code:
-        # self.saver.save(sess, '{}/graph/checkpoint_directory/{}_agent'.format(self.agent_root_dir, graph_name),
-        #                 global_step=epoch)
+    def _save_learned_model(self, batch_average_trjs_return: float, epoch, sess: tf_cv1.Session) -> None:
+        if batch_average_trjs_return == float(self.exp_spec.expected_reward_goal):
+            self._save_checkpoint(epoch, sess, self.exp_spec.algo_name)
 
-        self.saver.save(sess, '{}/checkpoint/{}_agent'.format(self.this_run_dir, graph_name),
+    def _save_checkpoint(self, epoch: int, sess: tf_cv1.Session, algo_name: str) -> None:
+        self.saver.save(sess, '{}/checkpoint/{}_agent'.format(self.this_run_dir, algo_name),
                         global_step=epoch)
-        print("\n\n    :: {} network parameters were saved\n".format(graph_name))
+        print("\n\n    :: {} network parameters were saved\n".format(algo_name))
 
     def play(self, run_name: str, max_trajectories=20) -> None:
         with tf_cv1.Session() as sess:
@@ -204,5 +204,6 @@ class Agent(object, metaclass=ABCMeta):
         tf_cv1.reset_default_graph()
         self.playground.env.close()
         print(":: Agent >>> CLOSED")
+
 
 

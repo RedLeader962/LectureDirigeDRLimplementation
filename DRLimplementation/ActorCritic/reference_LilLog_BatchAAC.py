@@ -293,9 +293,7 @@ class ReferenceActorCriticAgent(Agent):
                     total_timestep_collected=batch_timestep_collected
                     )
 
-                """ ---- Save learned model ---- """
-                if batch_average_trjs_return == 200:
-                    self._save_checkpoint(epoch, sess, 'REINFORCE')
+                self._save_learned_model(batch_average_trjs_return, epoch, sess)
 
                 """ ---- Expose current epoch computed information for integration test ---- """
                 yield (epoch, e_actor_loss, batch_average_trjs_return, batch_average_trjs_lenght)

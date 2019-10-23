@@ -37,9 +37,12 @@ from blocAndTools.buildingbloc import ExperimentSpec
 #              0.9^100 = 0.000026 vs 0.99^100 = 0.366003 vs 0.999^100 = 0.904792
 
 batch_AAC_hparam = {
-    'prefered_environment':           'CartPole-v0',
     'paramameter_set_name':           'Batch AAC',
+    'algo_name':                      'ActorCritic',
+    'comment':                        None,
     'MonteCarloTarget':               True,
+    'prefered_environment':           'CartPole-v0',
+    'expected_reward_goal':           200,
     'isTestRun':                      False,
     'batch_size_in_ts':               3000,
     'max_epoch':                      100,
@@ -58,9 +61,12 @@ batch_AAC_hparam = {
     }
 
 lilLogBatch_AAC_hparam = {
-    'prefered_environment':           'CartPole-v0',
-    'paramameter_set_name':           'Lil-Log Batch AAC',
+    'paramameter_set_name':           'Batch AAC',
+    'algo_name':                      'ActorCritic',
+    'comment':                        'Lil-Log reference',
     'MonteCarloTarget':               True,
+    'prefered_environment':           'CartPole-v0',
+    'expected_reward_goal':           200,
     'isTestRun':                      False,
     'batch_size_in_ts':               4000,
     'max_epoch':                      30,
@@ -79,14 +85,17 @@ lilLogBatch_AAC_hparam = {
     }
 
 integrationBatch_AAC_hparm = lilLogBatch_AAC_hparam.copy()
-comment = '_myActorGraph'
-integrationBatch_AAC_hparm['paramameter_set_name'] = 'Integrate Batch AAC' + comment
+integrationBatch_AAC_hparm['paramameter_set_name'] = 'Integrate Batch AAC'
+integrationBatch_AAC_hparm['comment'] = 'myActorGraph'
 integrationBatch_AAC_hparm['MonteCarloTarget'] = True
 
 test_hparam = {
-    'prefered_environment':           'CartPole-v0',
-    'paramameter_set_name':           'Batch AAC TestSpec',
+    'paramameter_set_name':           'Batch AAC',
+    'algo_name':                      'ActorCritic',
+    'comment':                        'TestSpec',
     'MonteCarloTarget':               True,
+    'prefered_environment':           'CartPole-v0',
+    'expected_reward_goal':           200,
     'isTestRun':                      True,
     'batch_size_in_ts':               1000,
     'max_epoch':                      5,

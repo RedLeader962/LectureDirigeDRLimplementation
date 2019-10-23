@@ -23,9 +23,12 @@ In browser, go to:
 AGENT_ROOT_DIR = "test_Z_integration/test_integrationActorCritic"
 
 CARTPOLE_HPARAM = {
-    'prefered_environment': 'CartPole-v0',
-    'paramameter_set_name': 'Batch AC Int-test CartPole-v0',
-    'MonteCarloTarget': True,
+    'paramameter_set_name':           'Batch AAC',
+    'algo_name':                      'ActorCritic',
+    'comment':                        'Integrate',
+    'MonteCarloTarget':               True,
+    'prefered_environment':           'CartPole-v0',
+    'expected_reward_goal':           200,
     'isTestRun': False,
     'batch_size_in_ts': 4000,
     'max_epoch': 50,

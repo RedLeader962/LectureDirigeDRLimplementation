@@ -23,8 +23,11 @@ In browser, go to:
 AGENT_ROOT_DIR = "test_Z_integration/test_integrationREINFORCE"
 
 CARTPOLE_HPARAM = {
-    'prefered_environment': 'CartPole-v0',
-    'paramameter_set_name': 'Integration test CartPole-v0',
+    'paramameter_set_name':           'Integrate',
+    'algo_name':                      'REINFORCE',
+    'comment':                        'SpiningUp',
+    'prefered_environment':           'CartPole-v0',
+    'expected_reward_goal':           200,
     'isTestRun': False,
     'batch_size_in_ts': 5000,
     'max_epoch': 50,

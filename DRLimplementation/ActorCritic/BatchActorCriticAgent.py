@@ -5,19 +5,16 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import tensorflow as tf
 import tensorflow.python.util.deprecation as deprecation
 import numpy as np
-from typing import List, Tuple, Any
+from typing import Tuple
 
 from ActorCritic.ActorCriticBrain import build_actor_policy_graph, build_critic_graph
 from blocAndTools.agent import Agent
 from blocAndTools.rl_vocabulary import rl_name
 from blocAndTools import buildingbloc as bloc, ConsolPrintLearningStats
 # from blocAndTools.container.samplecontainer import TrajectoryCollector, UniformBatchCollector
-from blocAndTools.container.samplecontainerbatchactorcritic import (TrajectoryContainerBatchActorCritic,
-                                                                    TrajectoryCollectorBatchActorCritic,
+from blocAndTools.container.samplecontainerbatchactorcritic import (TrajectoryCollectorBatchActorCritic,
                                                                     UniformeBatchContainerBatchActorCritic,
                                                                     UniformBatchCollectorBatchActorCritic, )
-from blocAndTools.temporal_difference_computation import (computhe_the_Advantage, compute_TD_target,
-                                                          get_t_and_tPrime_array_view_for_element_wise_op, )
 
 tf_cv1 = tf.compat.v1  # shortcut
 deprecation._PRINT_DEPRECATION_WARNINGS = False
@@ -214,9 +211,7 @@ class ActorCriticAgent(Agent):
                     total_timestep_collected=batch_timestep_collected
                     )
 
-                """ ---- Save learned model ---- """
-                if batch_average_trjs_return == 200:
-                    self._save_checkpoint(epoch, sess, 'REINFORCE')
+                self._save_learned_model(batch_average_trjs_return, epoch, sess)
 
                 """ ---- Expose current epoch computed information for integration test ---- """
                 yield (epoch, e_actor_loss, batch_average_trjs_return, batch_average_trjs_lenght)

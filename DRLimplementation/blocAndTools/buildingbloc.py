@@ -16,9 +16,10 @@ tf_cv1 = tf.compat.v1   # shortcut
 
 
 class ExperimentSpec:
-    def __init__(self, batch_size_in_ts=5000, max_epoch=2, discout_factor=0.99, learning_rate=1e-2,
-                 theta_nn_hidden_layer_topology: tuple = (32, 32), random_seed=42, discounted_reward_to_go=True,
-                 environment_name='CartPole-v1', print_metric_every_what_epoch=5, isTestRun=False, show_plot=True):
+    def __init__(self, algo_name=None, comment=None, batch_size_in_ts=5000, max_epoch=2, discout_factor=0.99,
+                 learning_rate=1e-2, theta_nn_hidden_layer_topology: tuple = (32, 32), random_seed=42,
+                 discounted_reward_to_go=True, environment_name='CartPole-v1', expected_reward_goal=None,
+                 print_metric_every_what_epoch=5, isTestRun=False, show_plot=True):
         """
         Gather the specification for a experiement regarding NN and algo training hparam plus some environment detail
         
@@ -26,8 +27,6 @@ class ExperimentSpec:
           |     EPOCH definition:
           |         In our casse, collecting and updating the gradient of a set of trajectories of
           |         size=batch_size_in_ts is equal to one EPOCH
-          :param show_plot:
-          :type show_plot:
 
         """
         # todo: add a param for the neural net configuration via a dict fed as a argument
@@ -36,10 +35,13 @@ class ExperimentSpec:
         # (nice to have) todo --> add any NN usefull param:
         # (Ice-Boxed) todo:refactor --> self.paramameter_set_name as a mandatory param if class receive any arg on init:
 
+        self.algo_name = algo_name
+        self.comment = comment
         self.paramameter_set_name = 'default'
 
         self.isTestRun = isTestRun
         self.prefered_environment = environment_name
+        self.expected_reward_goal = expected_reward_goal
         self.show_plot = show_plot
 
         self.batch_size_in_ts = batch_size_in_ts
@@ -462,11 +464,15 @@ def to_scalar(action_array: np.ndarray):
 
     return action_array.item()
 
-def setup_commented_run_dir_str(exp_spec, agent_root_dir):
+def setup_commented_run_dir_str(exp_spec: ExperimentSpec, agent_root_dir: str) -> str:
     date_now = datetime.now()
-    cleaned_param_name = exp_spec.paramameter_set_name.replace(" ", "_")
+    experiment_name = exp_spec.paramameter_set_name
+    if exp_spec.comment is not None:
+        experiment_name = experiment_name + "(" + exp_spec.comment + ")"
+
+    cleaned_name = experiment_name.replace(" ", "_")
     runs_dir = "{}/graph".format(agent_root_dir)
-    run_str = "Run--{}-{}d{}h{}m".format(cleaned_param_name, date_now.day, date_now.hour, date_now.minute, )
+    run_str = "Run--{}-{}d{}h{}m".format(cleaned_name, date_now.day, date_now.hour, date_now.minute, )
     run_dir = "{}/{}".format(runs_dir, run_str)
     return run_dir
 

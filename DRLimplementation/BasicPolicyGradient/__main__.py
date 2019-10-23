@@ -27,9 +27,11 @@ from blocAndTools.buildingbloc import ExperimentSpec
 #              0.9^100 = 0.000026 vs 0.99^100 = 0.366003 vs 0.999^100 = 0.904792
 
 cartpole_hparam = {
+    'paramameter_set_name':           'Basic',
+    'algo_name':                      'REINFORCE',
+    'comment':                        None,
     'prefered_environment':           'CartPole-v0',
-    'paramameter_set_name':           'RedLeader CartPole-v0',
-    'isTestRun':                      False,
+    'expected_reward_goal':           200,
     'batch_size_in_ts':               5000,
     'max_epoch':                      40,
     'discounted_reward_to_go':        True,
@@ -41,12 +43,15 @@ cartpole_hparam = {
     'theta_output_layers_activation': None,
     'render_env_every_What_epoch':    100,
     'print_metric_every_what_epoch':  2,
+    'isTestRun':                      False,
     }
 
 test_hparam = {
+    'paramameter_set_name':           'Basic',
+    'algo_name':                      'REINFORCE',
+    'comment':                        'TestSpec',
     'prefered_environment':           'CartPole-v0',
-    'paramameter_set_name':           'Test spec',
-    'isTestRun':                      True,
+    'expected_reward_goal':           200,
     'batch_size_in_ts':               1000,
     'max_epoch':                      5,
     'discounted_reward_to_go':        True,
@@ -58,6 +63,7 @@ test_hparam = {
     'theta_output_layers_activation': None,
     'render_env_every_What_epoch':    5,
     'print_metric_every_what_epoch':  2,
+    'isTestRun':                      True,
     }
 
 parser = argparse.ArgumentParser(description=(
