@@ -17,7 +17,7 @@ _rl_vocab_list = [
     'discout_factor',
     'baseline',
     'objective', 'loss', 'inference',
-    'optimizer', 'policy_optimizer', 'critic_optimizer',
+    'optimizer', 'policy_optimizer', 'critic_optimizer', 'policy_training', 'critic_training',
     'learning_rate',
     'entropy', 'KL',
     'Multi_Layer_Perceptron',

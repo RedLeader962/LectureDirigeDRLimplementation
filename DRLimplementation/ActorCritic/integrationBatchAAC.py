@@ -17,7 +17,7 @@ import tensorflow.python.util.deprecation as deprecation
 import numpy as np
 from typing import List, Tuple, Any
 
-from ActorCritic.ActorCriticBrain import build_actor_policy_graph, build_critic_graph
+from ActorCritic.ActorCriticBrain import build_actor_policy_graph, build_critic_graph, critic_train, actor_train
 from blocAndTools.agent import Agent
 from blocAndTools.rl_vocabulary import rl_name
 from blocAndTools import buildingbloc as bloc, ConsolPrintLearningStats
@@ -54,95 +54,128 @@ class IntegrationActorCriticAgent(Agent):
 
         # \\\\\\    My bloc    \\\\\\
         self.observation_ph, self.action_ph, self.Qvalues_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
-            self.playground, obs_shape_constraint=None, action_shape_constraint=None, Q_name=vocab.target_ph)
+            self.playground, obs_shape_constraint=None, action_shape_constraint=None, Q_name=vocab.Qvalues_ph)
 
+
+        # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+        # *                                                                                                           *
+        # *                                         Critic computation graph                                          *
+        # *                                                                                                           *
+        # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+        """ ---- The value function estimator ---- """
+        # \\\\\\    My bloc    \\\\\\
+        # self.V_phi_estimator = bloc.build_MLP_computation_graph(self.observation_ph, 1,
+        #                                                         self.exp_spec.theta_nn_h_layer_topo,
+        #                                                         hidden_layers_activation=self.exp_spec.theta_hidden_layers_activation,
+        #                                                         output_layers_activation=self.exp_spec.theta_output_layers_activation,
+        #                                                         name=vocab.phi_NeuralNet)
+
+        # \\\\\\    My bloc    \\\\\\
+        self.V_phi_estimator = build_critic_graph(self.observation_ph, self.exp_spec)
+
+        # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+        # *                                                                                                           *
+        # *                                                 Advantage                                                 *
+        # *                                                                                                           *
+        # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
         # \\\\\\    My bloc    \\\\\\
         # self.Advantage_ph = tf_cv1.placeholder(tf.float32, shape=self.Qvalues_ph.shape, name=vocab.advantage_ph)
 
-
-        # \\\\\\    My bloc    \\\\\\
-        # # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-        # # *                                                                                                           *
-        # # *                                         Actor computation graph                                           *
-        # # *                                                                                                           *
-        # # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-        # actor_graph = build_actor_policy_graph(self.observation_ph, self.action_ph, self.Advantage_ph,
-        #                                        self.exp_spec, self.playground)
-        # self.policy_action_sampler, _, self.actor_loss, self.actor_policy_optimizer = actor_graph
-        # # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-        # # *                                                                                                           *
-        # # *                                         Critic computation graph                                          *
-        # # *                                                                                                           *
-        # # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-        # """ ---- The value function estimator ---- """
-        # self.V_phi_estimator, self.V_phi_loss, self.V_phi_optimizer = build_critic_graph(self.observation_ph,
-        #                                                                                  self.Qvalues_ph, self.exp_spec)
-
-        actor = bloc.build_MLP_computation_graph(self.observation_ph, self.playground.ACTION_CHOICES,
-                                                 self.exp_spec.theta_nn_h_layer_topo,
-                                                 hidden_layers_activation=self.exp_spec.theta_hidden_layers_activation,
-                                                 output_layers_activation=self.exp_spec.theta_output_layers_activation,
-                                                 name=vocab.theta_NeuralNet)
-
-        # ////// Original bloc //////
-        self.policy_action_sampler = tf.squeeze(tf.multinomial(actor, 1))
-
-        self.V_phi_estimator = bloc.build_MLP_computation_graph(self.observation_ph, 1,
-                                                                self.exp_spec.theta_nn_h_layer_topo,
-                                                                hidden_layers_activation=self.exp_spec.theta_hidden_layers_activation,
-                                                                output_layers_activation=self.exp_spec.theta_output_layers_activation,
-                                                                name=vocab.phi_NeuralNet)
-
         with tf_cv1.name_scope(vocab.Advantage):
+            # (Priority) todo:investigate?? --> The original bloc (LilLog Advantage formulation) is much faster (!): why?
+
             # ////// Original bloc //////
+            # FASTER computation
             action_ohe = tf.one_hot(self.action_ph, self.playground.ACTION_CHOICES, 1.0, 0.0, name='action_one_hot')
             V_estimate = tf.reduce_sum(self.V_phi_estimator * action_ohe, reduction_indices=-1, name='q_acted')
             flatten_V_estimate = tf.reshape(V_estimate, [-1])
             Advantage = self.Qvalues_ph - flatten_V_estimate
 
+            # \\\\\\    My bloc    \\\\\\
+            # SLOWER computation
+            # Advantage = self.Qvalues_ph - self.V_phi_estimator
+
+
+        # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+        # *                                                                                                           *
+        # *                                         Actor computation graph                                           *
+        # *                                                                                                           *
+        # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+        # \\\\\\    My bloc    \\\\\\
+        self.policy_action_sampler, log_pi, theta_mlp = build_actor_policy_graph(self.observation_ph, self.exp_spec, self.playground)
+
+        # \\\\\\    My bloc    \\\\\\
+        # theta_mlp = bloc.build_MLP_computation_graph(self.observation_ph, self.playground.ACTION_CHOICES,
+        #                                          self.exp_spec.theta_nn_h_layer_topo,
+        #                                          hidden_layers_activation=self.exp_spec.theta_hidden_layers_activation,
+        #                                          output_layers_activation=self.exp_spec.theta_output_layers_activation,
+        #                                          name=vocab.theta_NeuralNet)
+
         # ////// Original bloc //////
-        with tf_cv1.variable_scope(vocab.actor_network):
-            self.actor_loss = tf.reduce_mean(
-                tf.stop_gradient(Advantage) * tf.nn.sparse_softmax_cross_entropy_with_logits(
-                    logits=actor, labels=self.action_ph),
-                name=vocab.actor_loss)
+        # self.policy_action_sampler = tf.squeeze(tf.multinomial(theta_mlp, 1))
 
-            # with tf_cv1.variable_scope(vocab.policy_optimizer):
-            #     self.actor_policy_optimizer = tf_cv1.train.AdamOptimizer(0.01).minimize(self.actor_loss)
+        # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+        # *                                                                                                           *
+        # *                                           Actor & Critic Train                                            *
+        # *                                                                                                           *
+        # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
-            self.actor_policy_optimizer = bloc.policy_optimizer(self.actor_loss, self.exp_spec.learning_rate)
+        # with tf_cv1.variable_scope(vocab.actor_network):
+        #     # ////// Original bloc //////
+        #     # self.actor_loss = tf.reduce_mean(
+        #     #     tf.stop_gradient(Advantage) * tf.nn.sparse_softmax_cross_entropy_with_logits(
+        #     #         logits=theta_mlp, labels=self.action_ph),
+        #     #     name=vocab.actor_loss)
+        #
+        #     self.actor_loss = bloc.discrete_pseudo_loss(tf.nn.log_softmax(theta_mlp), self.action_ph, Advantage,
+        #                                                 self.playground, name=vocab.actor_loss)
+        #
+        #     # ////// Original bloc //////
+        #     # with tf_cv1.variable_scope(vocab.policy_optimizer):
+        #     #     self.actor_policy_optimizer = tf_cv1.train.AdamOptimizer(0.01).minimize(self.actor_loss)
+        #
+        #     self.actor_policy_optimizer = bloc.policy_optimizer(self.actor_loss, self.exp_spec.learning_rate)
 
-        # \\\\\\    My bloc    \\\\\\
-        tf_cv1.summary.scalar('Actor_loss', self.actor_loss, family=vocab.loss)  # =HL=
+        self.actor_loss, self.actor_policy_optimizer = actor_train(self.action_ph, log_pi=log_pi, advantage=Advantage,
+                                                                   experiment_spec=self.exp_spec,
+                                                                   playground=self.playground)
+        # with tf_cv1.variable_scope(vocab.critic_training):
+        #     # ////// Original bloc //////
+        #     # with tf_cv1.variable_scope(vocab.critic_loss):
+        #     #     self.V_phi_loss = tf.reduce_mean(tf.square(Advantage))
+        #
+        #     with tf.name_scope(vocab.critic_loss):
+        #         self.V_phi_loss = tf.reduce_mean(Advantage ** 2)
+        #
+        #     # ////// Original bloc //////
+        #     # with tf_cv1.variable_scope(vocab.critic_optimizer):
+        #     #     self.V_phi_optimizer = tf_cv1.train.AdamOptimizer(0.01).minimize(self.V_phi_loss)
+        #
+        #     self.V_phi_optimizer = tf_cv1.train.AdamOptimizer(learning_rate=self.exp_spec['critic_learning_rate']
+        #                                                       ).minimize(self.V_phi_loss, name=vocab.critic_optimizer)
 
-        # ////// Original bloc //////
-        with tf_cv1.variable_scope(vocab.critic_network):
-            with tf_cv1.variable_scope(vocab.critic_loss):
-                self.V_phi_loss = tf.reduce_mean(tf.square(Advantage))
+        self.V_phi_loss, self.V_phi_optimizer = critic_train(Advantage, self.exp_spec)
 
-            # with tf_cv1.variable_scope(vocab.critic_optimizer):
-            #     self.V_phi_optimizer = tf_cv1.train.AdamOptimizer(0.01).minimize(self.V_phi_loss)
+        tf_cv1.summary.scalar('Actor_loss', self.actor_loss, family=vocab.loss)
+        tf_cv1.summary.scalar('Critic_loss', self.V_phi_loss, family=vocab.loss)
 
-            self.V_phi_optimizer = tf_cv1.train.AdamOptimizer(learning_rate=self.exp_spec['critic_learning_rate']
-                                                                  ).minimize(self.V_phi_loss, name=vocab.critic_optimizer)
-
-        # \\\\\\    My bloc    \\\\\\
-        tf_cv1.summary.scalar('Critic_loss', self.V_phi_loss, family=vocab.loss)  # =HL=
-
-        # train_ops = [optim_c, optim_a]
-
-        # \\\\\\    My bloc    \\\\\\
+        # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
+        # *                                                                                                            *
+        # *                                                 Summary ops                                                *
+        # *                                                                                                            *
+        # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
         """ ---- Episode summary ---- """
         # those intantiated in graph will be agregate to
         self.Summary_batch_avg_trjs_return_ph = tf_cv1.placeholder(tf.float32,
-                                                                   name='Summary_batch_avg_trjs_return_ph')  # =HL=
-        tf_cv1.summary.scalar('Batch average return', self.Summary_batch_avg_trjs_return_ph, family=vocab.G)  # =HL=
-        self.summary_op = tf_cv1.summary.merge_all()  # =HL=
+                                                                   name='Summary_batch_avg_trjs_return_ph')
+        tf_cv1.summary.scalar('Batch average return', self.Summary_batch_avg_trjs_return_ph, family=vocab.G)
+        self.summary_op = tf_cv1.summary.merge_all()
 
         """ ---- Trajectory summary ---- """
-        self.Summary_trj_return_ph = tf_cv1.placeholder(tf.float32, name='Summary_trj_return_ph')  # =HL=
+        self.Summary_trj_return_ph = tf_cv1.placeholder(tf.float32, name='Summary_trj_return_ph')
         self.summary_trj_op = tf_cv1.summary.scalar('Trajectory return', self.Summary_trj_return_ph,
-                                                    family=vocab.G)  # =HL=
+                                                    family=vocab.G)
 
         return None
 
@@ -260,8 +293,8 @@ class IntegrationActorCriticAgent(Agent):
 
                 """ ---- Agent: Compute gradient & update policy ---- """
                 feed_dictionary = bloc.build_feed_dictionary(
-                    [self.observation_ph, self.action_ph, self.Qvalues_ph, self.Summary_batch_avg_trjs_return_ph],       # =HL=
-                    [batch_observations, batch_actions, batch_Qvalues, batch_average_trjs_return])                # =HL=
+                    [self.observation_ph, self.action_ph, self.Qvalues_ph, self.Summary_batch_avg_trjs_return_ph],      # =HL=
+                    [batch_observations, batch_actions, batch_Qvalues, batch_average_trjs_return])                      # =HL=
 
                 e_actor_loss, e_V_phi_loss, summary = sess.run([self.actor_loss, self.V_phi_loss, self.summary_op],
                                                       feed_dict=feed_dictionary)
@@ -271,11 +304,15 @@ class IntegrationActorCriticAgent(Agent):
                 """ ---- Train actor ---- """
                 sess.run(self.actor_policy_optimizer, feed_dict=feed_dictionary)
 
+                # (!) Use with MY Advantage formulation
+                # critic_feed_dictionary = bloc.build_feed_dictionary(
+                #     [self.observation_ph, self.Qvalues_ph],
+                #     [batch_observations, batch_Qvalues])
+
+                # (!) Use with LilLog Advantage formulation
                 critic_feed_dictionary = bloc.build_feed_dictionary(
-                    # [self.observation_ph, self.Qvalues_ph],                                                            # =HL=
-                    # [batch_observations, batch_Qvalues])                                                        # =HL=
-                    [self.observation_ph, self.action_ph, self.Qvalues_ph],                                              # =HL=
-                    [batch_observations, batch_actions, batch_Qvalues])                                           # =HL=
+                    [self.observation_ph, self.action_ph, self.Qvalues_ph],
+                    [batch_observations, batch_actions, batch_Qvalues])
 
                 """ ---- Train critic ---- """
                 for c_loop in range(self.exp_spec['critique_loop_len']):

@@ -46,8 +46,7 @@ class ActorCriticAgent(Agent):
         # *                                         Actor computation graph                                           *
         # *                                                                                                           *
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-        actor_graph = build_actor_policy_graph(self.observation_ph, self.action_ph, self.Advantage_ph,
-                                               self.exp_spec, self.playground)
+        actor_graph = build_actor_policy_graph(self.observation_ph, self.exp_spec, self.playground)
         self.policy_action_sampler, _, self.actor_loss, self.actor_policy_optimizer = actor_graph
 
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -57,7 +56,7 @@ class ActorCriticAgent(Agent):
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
         """ ---- The value function estimator ---- """
         self.V_phi_estimator, self.V_phi_loss, self.V_phi_optimizer = build_critic_graph(self.observation_ph,
-                                                                                         self.target_ph, self.exp_spec)
+                                                                                         self.exp_spec)
 
 
         """ ---- Episode summary ---- """

@@ -42,7 +42,7 @@ def test_ActorCritic_agent_ACTOR_DISCRETE_PASS(gym_and_tf_discrete_setup):
     obs_p, act_p, _, exp_spec, playground = gym_and_tf_discrete_setup
     A_ph = tf_cv1.placeholder(tf.float32, shape=(None,), name='advantage_placeholder')
 
-    actor_graph = ActorCriticBrain.build_actor_policy_graph(obs_p, act_p, A_ph, exp_spec, playground)
+    actor_graph = ActorCriticBrain.build_actor_policy_graph(obs_p, exp_spec, playground)
     sampled_action, theta_mlp, actor_loss, optimizer = actor_graph
 
 
@@ -51,7 +51,7 @@ def test_ActorCritic_agent_CRITIC_DISCRETE_PASS(gym_and_tf_discrete_setup):
     obs_p, _, Q_values_ph, exp_spec, playground = gym_and_tf_discrete_setup
     target_ph = tf_cv1.placeholder(tf.float32, shape=(None,), name='target_placeholder')
 
-    value_fct_estimator = ActorCriticBrain.build_critic_graph(obs_p, target_ph, exp_spec)
+    value_fct_estimator = ActorCriticBrain.build_critic_graph(obs_p, exp_spec)
     v_phi, critic_loss, optimizer = value_fct_estimator
 
 

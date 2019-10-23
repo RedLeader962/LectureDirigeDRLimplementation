@@ -79,7 +79,7 @@ lilLogBatch_AAC_hparam = {
     }
 
 integrationBatch_AAC_hparm = lilLogBatch_AAC_hparam.copy()
-comment = '_myOptimizer'
+comment = '_myActorGraph'
 integrationBatch_AAC_hparm['paramameter_set_name'] = 'Integrate Batch AAC' + comment
 integrationBatch_AAC_hparm['MonteCarloTarget'] = True
 
