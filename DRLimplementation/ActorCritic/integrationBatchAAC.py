@@ -42,35 +42,19 @@ class IntegrationActorCriticAgent(Agent):
     def _build_computation_graph(self):
         """
         Build the Policy_theta & V_phi computation graph with theta and phi as multi-layer perceptron
-
         """
 
         """ ---- Placeholder ---- """
-        # ////// Original bloc //////
-        # Inputs
-        # states = tf.placeholder(tf.float32, shape=(None, observation_size), name='state')
-        # actions = tf.placeholder(tf.int32, shape=(None,), name='action')
-        # td_targets = tf.placeholder(tf.float32, shape=(None,), name='td_target')
-
-        # \\\\\\    My bloc    \\\\\\
         self.observation_ph, self.action_ph, self.Qvalues_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
             self.playground, obs_shape_constraint=None, action_shape_constraint=None, Q_name=vocab.Qvalues_ph)
-
 
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
         # *                                                                                                           *
         # *                                         Critic computation graph                                          *
+        # *                                      (The value function estimator)                                       *
         # *                                                                                                           *
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-        """ ---- The value function estimator ---- """
-        # \\\\\\    My bloc    \\\\\\
-        # self.V_phi_estimator = bloc.build_MLP_computation_graph(self.observation_ph, 1,
-        #                                                         self.exp_spec.theta_nn_h_layer_topo,
-        #                                                         hidden_layers_activation=self.exp_spec.theta_hidden_layers_activation,
-        #                                                         output_layers_activation=self.exp_spec.theta_output_layers_activation,
-        #                                                         name=vocab.phi_NeuralNet)
-
-        # \\\\\\    My bloc    \\\\\\
+        """ ----  ---- """
         self.V_phi_estimator = build_critic_graph(self.observation_ph, self.exp_spec)
 
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -78,7 +62,9 @@ class IntegrationActorCriticAgent(Agent):
         # *                                                 Advantage                                                 *
         # *                                                                                                           *
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-        # \\\\\\    My bloc    \\\\\\
+
+        # # \\\\\\    My bloc    \\\\\\
+        # # alternate architecture with element wise computed advantage
         # self.Advantage_ph = tf_cv1.placeholder(tf.float32, shape=self.Qvalues_ph.shape, name=vocab.advantage_ph)
 
         with tf_cv1.name_scope(vocab.Advantage):
@@ -91,86 +77,42 @@ class IntegrationActorCriticAgent(Agent):
             flatten_V_estimate = tf.reshape(V_estimate, [-1])
             Advantage = self.Qvalues_ph - flatten_V_estimate
 
-            # \\\\\\    My bloc    \\\\\\
-            # SLOWER computation
+            # # \\\\\\    My bloc    \\\\\\
+            # # SLOWER computation
             # Advantage = self.Qvalues_ph - self.V_phi_estimator
-
 
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
         # *                                                                                                           *
         # *                                         Actor computation graph                                           *
         # *                                                                                                           *
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-
-        # \\\\\\    My bloc    \\\\\\
         self.policy_action_sampler, log_pi, theta_mlp = build_actor_policy_graph(self.observation_ph, self.exp_spec, self.playground)
-
-        # \\\\\\    My bloc    \\\\\\
-        # theta_mlp = bloc.build_MLP_computation_graph(self.observation_ph, self.playground.ACTION_CHOICES,
-        #                                          self.exp_spec.theta_nn_h_layer_topo,
-        #                                          hidden_layers_activation=self.exp_spec.theta_hidden_layers_activation,
-        #                                          output_layers_activation=self.exp_spec.theta_output_layers_activation,
-        #                                          name=vocab.theta_NeuralNet)
-
-        # ////// Original bloc //////
-        # self.policy_action_sampler = tf.squeeze(tf.multinomial(theta_mlp, 1))
 
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
         # *                                                                                                           *
         # *                                           Actor & Critic Train                                            *
         # *                                                                                                           *
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-
-        # with tf_cv1.variable_scope(vocab.actor_network):
-        #     # ////// Original bloc //////
-        #     # self.actor_loss = tf.reduce_mean(
-        #     #     tf.stop_gradient(Advantage) * tf.nn.sparse_softmax_cross_entropy_with_logits(
-        #     #         logits=theta_mlp, labels=self.action_ph),
-        #     #     name=vocab.actor_loss)
-        #
-        #     self.actor_loss = bloc.discrete_pseudo_loss(tf.nn.log_softmax(theta_mlp), self.action_ph, Advantage,
-        #                                                 self.playground, name=vocab.actor_loss)
-        #
-        #     # ////// Original bloc //////
-        #     # with tf_cv1.variable_scope(vocab.policy_optimizer):
-        #     #     self.actor_policy_optimizer = tf_cv1.train.AdamOptimizer(0.01).minimize(self.actor_loss)
-        #
-        #     self.actor_policy_optimizer = bloc.policy_optimizer(self.actor_loss, self.exp_spec.learning_rate)
-
         self.actor_loss, self.actor_policy_optimizer = actor_train(self.action_ph, log_pi=log_pi, advantage=Advantage,
                                                                    experiment_spec=self.exp_spec,
                                                                    playground=self.playground)
-        # with tf_cv1.variable_scope(vocab.critic_training):
-        #     # ////// Original bloc //////
-        #     # with tf_cv1.variable_scope(vocab.critic_loss):
-        #     #     self.V_phi_loss = tf.reduce_mean(tf.square(Advantage))
-        #
-        #     with tf.name_scope(vocab.critic_loss):
-        #         self.V_phi_loss = tf.reduce_mean(Advantage ** 2)
-        #
-        #     # ////// Original bloc //////
-        #     # with tf_cv1.variable_scope(vocab.critic_optimizer):
-        #     #     self.V_phi_optimizer = tf_cv1.train.AdamOptimizer(0.01).minimize(self.V_phi_loss)
-        #
-        #     self.V_phi_optimizer = tf_cv1.train.AdamOptimizer(learning_rate=self.exp_spec['critic_learning_rate']
-        #                                                       ).minimize(self.V_phi_loss, name=vocab.critic_optimizer)
 
         self.V_phi_loss, self.V_phi_optimizer = critic_train(Advantage, self.exp_spec)
-
-        tf_cv1.summary.scalar('Actor_loss', self.actor_loss, family=vocab.loss)
-        tf_cv1.summary.scalar('Critic_loss', self.V_phi_loss, family=vocab.loss)
 
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
         # *                                                                                                            *
         # *                                                 Summary ops                                                *
         # *                                                                                                            *
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
+
         """ ---- Episode summary ---- """
-        # those intantiated in graph will be agregate to
-        self.Summary_batch_avg_trjs_return_ph = tf_cv1.placeholder(tf.float32,
-                                                                   name='Summary_batch_avg_trjs_return_ph')
+        tf_cv1.summary.scalar('Actor_loss', self.actor_loss, family=vocab.loss)
+        tf_cv1.summary.scalar('Critic_loss', self.V_phi_loss, family=vocab.loss)
+
+        self.Summary_batch_avg_trjs_return_ph = tf_cv1.placeholder(tf.float32, name='Summary_batch_avg_trjs_return_ph')
         tf_cv1.summary.scalar('Batch average return', self.Summary_batch_avg_trjs_return_ph, family=vocab.G)
-        self.summary_op = tf_cv1.summary.merge_all()
+
+        self.summary_epoch_op = tf_cv1.summary.merge_all()
 
         """ ---- Trajectory summary ---- """
         self.Summary_trj_return_ph = tf_cv1.placeholder(tf.float32, name='Summary_trj_return_ph')
@@ -180,7 +122,7 @@ class IntegrationActorCriticAgent(Agent):
         return None
 
     def _instantiate_data_collector(self) -> Tuple[
-        TrajectoryCollectorBatchActorCritic, UniformBatchCollectorBatchActorCritic]:
+            TrajectoryCollectorBatchActorCritic, UniformBatchCollectorBatchActorCritic]:
         """
         Data collector utility
 
@@ -257,10 +199,8 @@ class IntegrationActorCriticAgent(Agent):
                             """ ---- Simulator: trajectory as ended ---- """
                             trj_return = the_TRAJECTORY_COLLECTOR.trajectory_ended()
 
-                            trj_summary = sess.run(self.summary_trj_op,
-                                                   {self.Summary_trj_return_ph: trj_return})    # =HL=
-                            self.writer.add_summary(trj_summary, global_step=global_step_i)     # =HL=
-
+                            trj_summary = sess.run(self.summary_trj_op, {self.Summary_trj_return_ph: trj_return})
+                            self.writer.add_summary(trj_summary, global_step=global_step_i)
 
                             """ ---- Agent: Collect the sampled trajectory  ---- """
                             trj_container = the_TRAJECTORY_COLLECTOR.pop_trajectory_and_reset()
@@ -293,23 +233,25 @@ class IntegrationActorCriticAgent(Agent):
 
                 """ ---- Agent: Compute gradient & update policy ---- """
                 feed_dictionary = bloc.build_feed_dictionary(
-                    [self.observation_ph, self.action_ph, self.Qvalues_ph, self.Summary_batch_avg_trjs_return_ph],      # =HL=
-                    [batch_observations, batch_actions, batch_Qvalues, batch_average_trjs_return])                      # =HL=
+                    [self.observation_ph, self.action_ph, self.Qvalues_ph, self.Summary_batch_avg_trjs_return_ph],
+                    [batch_observations, batch_actions, batch_Qvalues, batch_average_trjs_return])
 
-                e_actor_loss, e_V_phi_loss, summary = sess.run([self.actor_loss, self.V_phi_loss, self.summary_op],
-                                                      feed_dict=feed_dictionary)
+                e_actor_loss, e_V_phi_loss, summary = sess.run([self.actor_loss, self.V_phi_loss, self.summary_epoch_op],
+                                                               feed_dict=feed_dictionary)
 
-                self.writer.add_summary(summary, global_step=global_step_i)                                             # =HL=
+                self.writer.add_summary(summary, global_step=global_step_i)
 
                 """ ---- Train actor ---- """
                 sess.run(self.actor_policy_optimizer, feed_dict=feed_dictionary)
 
-                # (!) Use with MY Advantage formulation
+                # # \\\\\\    My bloc    \\\\\\
+                # # Use with MY Advantage formulation
                 # critic_feed_dictionary = bloc.build_feed_dictionary(
                 #     [self.observation_ph, self.Qvalues_ph],
                 #     [batch_observations, batch_Qvalues])
 
-                # (!) Use with LilLog Advantage formulation
+                # # ////// Original bloc //////
+                # # Use with LilLog Advantage formulation
                 critic_feed_dictionary = bloc.build_feed_dictionary(
                     [self.observation_ph, self.action_ph, self.Qvalues_ph],
                     [batch_observations, batch_actions, batch_Qvalues])
@@ -329,7 +271,7 @@ class IntegrationActorCriticAgent(Agent):
 
                 """ ---- Save learned model ---- """
                 if batch_average_trjs_return == 200:
-                    self._save_checkpoint(epoch, sess, 'REINFORCE')
+                    self._save_checkpoint(epoch, sess, 'ActorCritic')
 
                 """ ---- Expose current epoch computed information for integration test ---- """
                 yield (epoch, e_actor_loss, batch_average_trjs_return, batch_average_trjs_lenght)
