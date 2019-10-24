@@ -22,10 +22,10 @@ from blocAndTools.agent import Agent
 from blocAndTools.rl_vocabulary import rl_name
 from blocAndTools import buildingbloc as bloc, ConsolPrintLearningStats
 # from blocAndTools.container.samplecontainer import TrajectoryCollector, UniformBatchCollector
-from blocAndTools.container.samplecontainerbatchactorcritic import (TrajectoryContainerBatchActorCritic,
-                                                                    TrajectoryCollectorBatchActorCritic,
-                                                                    UniformeBatchContainerBatchActorCritic,
-                                                                    UniformBatchCollectorBatchActorCritic, )
+from blocAndTools.container.samplecontainer_batch_oarv import (TrajectoryContainerBatchOARV,
+                                                               TrajectoryCollectorBatchOARV,
+                                                               UniformeBatchContainerBatchOARV,
+                                                               UniformBatchCollectorBatchOARV, )
 from blocAndTools.temporal_difference_computation import (computhe_the_Advantage, compute_TD_target,
                                                           get_t_and_tPrime_array_view_for_element_wise_op, )
 
@@ -122,16 +122,15 @@ class IntegrationActorCriticAgent(Agent):
         return None
 
     def _instantiate_data_collector(self) -> Tuple[
-            TrajectoryCollectorBatchActorCritic, UniformBatchCollectorBatchActorCritic]:
+        TrajectoryCollectorBatchOARV, UniformBatchCollectorBatchOARV]:
         """
         Data collector utility
 
         :return: Collertor utility
-        :rtype: (TrajectoryCollectorBatchActorCritic, UniformBatchCollectorBatchActorCritic)
+        :rtype: (TrajectoryCollectorBatchOARV, UniformBatchCollectorBatchOARV)
         """
-        the_TRAJECTORY_COLLECTOR = TrajectoryCollectorBatchActorCritic(
-            self.exp_spec, self.playground, MonteCarloTarget=self.exp_spec['MonteCarloTarget'])
-        the_UNI_BATCH_COLLECTOR = UniformBatchCollectorBatchActorCritic(self.exp_spec.batch_size_in_ts)
+        the_TRAJECTORY_COLLECTOR = TrajectoryCollectorBatchOARV(self.exp_spec, self.playground)
+        the_UNI_BATCH_COLLECTOR = UniformBatchCollectorBatchOARV(self.exp_spec.batch_size_in_ts)
         return the_TRAJECTORY_COLLECTOR, the_UNI_BATCH_COLLECTOR
 
     # todo:implement --> critic training variation: target y = Monte Carlo target
@@ -169,7 +168,7 @@ class IntegrationActorCriticAgent(Agent):
 
                 """ ---- Simulator: trajectories ---- """
                 while the_UNI_BATCH_COLLECTOR.is_not_full():
-                    obs_t = self.playground.env.reset()  # <-- fetch initial observation
+                    obs_t = self.playground.env.reset()                                  # <-- fetch initial observation
                     consol_print_learning_stats.next_glorious_trajectory()
 
                     """ ---- Simulator: time-steps ---- """
@@ -188,12 +187,12 @@ class IntegrationActorCriticAgent(Agent):
                         obs_tPrime, reward, done, _ = self.playground.env.step(action)
 
                         """ ---- Agent: Collect current timestep events ---- """
-                        the_TRAJECTORY_COLLECTOR.collect(observation=obs_t,
-                                                         action=action,
-                                                         reward=reward,
-                                                         # V_estimate=bloc.to_scalar(V_estimate)
-                                                         )
-                        obs_t = obs_tPrime  # <-- (!)
+                        the_TRAJECTORY_COLLECTOR.collect_OAR(observation=obs_t,
+                                                             action=action,
+                                                             reward=reward,
+                                                             # V_estimate=bloc.to_scalar(V_estimate)
+                                                             )
+                        obs_t = obs_tPrime                                                                      # <-- (!)
 
                         if done:
                             """ ---- Simulator: trajectory as ended ---- """
@@ -221,12 +220,12 @@ class IntegrationActorCriticAgent(Agent):
                 # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
 
                 """ ---- Prepare data for backpropagation in the neural net ---- """
-                batch_container: UniformeBatchContainerBatchActorCritic = the_UNI_BATCH_COLLECTOR.pop_batch_and_reset()
+                batch_container: UniformeBatchContainerBatchOARV = the_UNI_BATCH_COLLECTOR.pop_batch_and_reset()
                 batch_average_trjs_return, batch_average_trjs_lenght = batch_container.compute_metric()
 
                 batch_observations = batch_container.batch_observations
                 batch_actions = batch_container.batch_actions
-                batch_Qvalues = batch_container.batch_Qvalues
+                batch_Qvalues = batch_container.batch_Qvalues                                                  # <-- (!)
                 # batch_Advantages = batch_container.batch_Advantages                                         # =Muted=
 
                 # self._data_shape_is_compatibility_with_graph(batch_Qvalues, batch_actions, batch_observations) # =Muted=

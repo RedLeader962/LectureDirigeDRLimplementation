@@ -48,9 +48,10 @@ def test_UniformBatchContainer_AT_BATCH_CAPACITY(gym_discrete_setup):
             rew = 1
             dummy_events = (obs, act, rew)
 
-            trajectory_collector.collect(*dummy_events)
+            trajectory_collector.collect_OAR(*dummy_events)
 
         trajectory_collector.trajectory_ended()
+        trajectory_collector.compute_Qvalues_as_rewardToGo()
         aTrajectory = trajectory_collector.pop_trajectory_and_reset()
 
         uni_batch_collector.collect(aTrajectory)
@@ -82,9 +83,10 @@ def test_UniformBatchContainer_METRIC(gym_discrete_setup):
             rew = 1
             dummy_events = (obs, act, rew)
 
-            trajectory_collector.collect(*dummy_events)
+            trajectory_collector.collect_OAR(*dummy_events)
 
         trajectory_collector.trajectory_ended()
+        trajectory_collector.compute_Qvalues_as_rewardToGo()
         aTrajectory = trajectory_collector.pop_trajectory_and_reset()
 
         uni_batch_collector.collect(aTrajectory)

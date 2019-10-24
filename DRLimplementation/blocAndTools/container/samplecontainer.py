@@ -11,7 +11,7 @@ class TrajectoryContainer(object):
     """
     Container for storage & retrieval of events collected at every timestep of a single batch of trajectories
     """
-    __slots__ = ['observations',
+    __slots__ = ['obs_t',
                  'actions',
                  'rewards',
                  'Q_values',
@@ -20,11 +20,11 @@ class TrajectoryContainer(object):
                  'trajectory_id',
                  ]
 
-    def __init__(self, observations: list, actions: list, rewards: list, Q_values: list, trajectory_return: list,
+    def __init__(self, obs_t: list, actions: list, rewards: list, Q_values: list, trajectory_return: list,
                  trajectory_id) -> None:
-        assert isinstance(observations, list) and isinstance(actions, list) and isinstance(rewards, list), "wrong argument type"
-        assert len(observations) == len(actions) == len(rewards), "{} vs {} vs {} !!!".format(observations, actions, rewards)
-        self.observations = observations
+        assert isinstance(obs_t, list) and isinstance(actions, list) and isinstance(rewards, list), "wrong argument type"
+        assert len(obs_t) == len(actions) == len(rewards), "{} vs {} vs {} !!!".format(obs_t, actions, rewards)
+        self.obs_t = obs_t
         self.actions = actions
         self.rewards = rewards
         self.Q_values = Q_values                        # Computed via reward to go or the discouted reward to go
@@ -40,7 +40,7 @@ class TrajectoryContainer(object):
 
     def cut(self, max_lenght):
         """Down size the number of timestep stored in the container"""
-        self.observations = self.observations[:max_lenght]
+        self.obs_t = self.obs_t[:max_lenght]
         self.actions = self.actions[:max_lenght]
         self.rewards = self.rewards[:max_lenght]
         self.Q_values = self.Q_values[:max_lenght]
@@ -52,16 +52,16 @@ class TrajectoryContainer(object):
         """
         Unpack the full trajectorie as a tuple of numpy array
 
-        :return: (observations, actions, rewards, Q_values, trajectory_return, _trajectory_lenght)
+        :return: (obs_t, actions, rewards, Q_values, trajectory_return, _trajectory_lenght)
         :rtype: (list, list, list, list, float, int)
         """
         # (nice to have) todo:refactor --> as a namedtuple
-        tc = self.observations, self.actions, self.rewards, self.Q_values, self.trajectory_return, self._trajectory_lenght
+        tc = self.obs_t, self.actions, self.rewards, self.Q_values, self.trajectory_return, self._trajectory_lenght
         return tc
 
     def __repr__(self):
         myRep = "\n::trajectory_container/\n"
-        myRep += ".observations=\n{}\n\n".format(self.observations)
+        myRep += ".obs_t=\n{}\n\n".format(self.obs_t)
         myRep += ".actions=\n{}\n\n".format(self.actions)
         myRep += ".rewards=\n{}\n\n".format(self.rewards)
         myRep += ".Q_values=\n{}\n\n".format(self.Q_values)
@@ -85,13 +85,13 @@ class TrajectoryCollector(object):
         self._playground_spec = playground.get_environment_spec()
         self.discounted = discounted
 
-        self._observations = []
-        self._actions = []
-        self._rewards = []
+        self.observations = []
+        self.actions = []
+        self.rewards = []
 
-        self._q_values = None
-        self._theReturn = None
-        self._lenght = None
+        self.q_values = None
+        self.theReturn = None
+        self.lenght = None
 
         # Internal state
         # (nice to have) todo:refactor --> using the namedtuple InertnalState:
@@ -108,18 +108,18 @@ class TrajectoryCollector(object):
 
         return TrajectoryCollectorInternalState(self._step_count_since_begining_of_training,
                                                 self._trj_collected,
-                                                self._q_values_computed, )
+                                                self._q_values_computed)
 
-    def collect(self, observation: np.ndarray, action, reward: float) -> None:
+    def collect_OAR(self, observation: np.ndarray, action, reward: float) -> None:
         """ Collect observation, action, reward for one timestep
 
         :type observation: np.ndarray
         :type action: int or float
         :type reward: float
         """
-        self._observations.append(observation)
-        self._actions.append(action)
-        self._rewards.append(reward)
+        self.observations.append(observation)
+        self.actions.append(action)
+        self.rewards.append(reward)
         self._step_count_since_begining_of_training += 1
         return None
 
@@ -134,23 +134,41 @@ class TrajectoryCollector(object):
         :return: the trajectory return
         :rtype: float
         """
-        self._lenght = len(self._actions)
-        self._compute_Q_values()
+        self.lenght = len(self.actions)
         self._trj_collected += 1
         return self._compute_trajectory_return()
 
     def _compute_trajectory_return(self) -> float:
-        trj_return = float(np.sum(self._rewards, axis=None))
-        self._theReturn = trj_return
+        trj_return = float(np.sum(self.rewards, axis=None))
+        self.theReturn = trj_return
         return trj_return
 
-    def _compute_Q_values(self) -> None:
-        if self.discounted:
-            self._q_values = discounted_reward_to_go(self._rewards, experiment_spec=self._exp_spec)
-        else:
-            self._q_values = reward_to_go(self._rewards)
-
+    def set_Qvalues(self, Qvalues: list) -> None:
+        """
+        Qvalues must be computed explicitely before pop_trajectory_and_reset
+        using eiter methode:
+                - set_Qvalues,
+                - or compute_Qvalues_as_rewardToGo
+        """
+        assert not self._q_values_computed
+        assert isinstance(Qvalues, list)
+        assert len(Qvalues) == len(self.rewards)
+        self.q_values = Qvalues
         self._q_values_computed = True
+        return None
+
+    def compute_Qvalues_as_rewardToGo(self) -> None:
+        """
+        Qvalues must be computed explicitely before pop_trajectory_and_reset
+        using eiter methode:
+                - set_Qvalues,
+                - or compute_Qvalues_as_rewardToGo
+        """
+        if self.discounted:
+            self.set_Qvalues(discounted_reward_to_go(self.rewards, experiment_spec=self._exp_spec))
+        else:
+            self.set_Qvalues(reward_to_go(self.rewards))
+
         return None
 
     def pop_trajectory_and_reset(self) -> TrajectoryContainer:
@@ -163,21 +181,24 @@ class TrajectoryCollector(object):
         """
         assert self._q_values_computed, ("The return and the Q-values are not computed yet!!! "
                                          "Call the method trajectory_ended() before pop_trajectory_and_reset()")
-        trajectory_container = TrajectoryContainer(self._observations.copy(), self._actions.copy(),
-                                                   self._rewards.copy(), self._q_values.copy(), self._theReturn,
-                                                   self._trj_collected)
+        trajectory_container = TrajectoryContainer(obs_t=self.observations.copy(),
+                                                   actions=self.actions.copy(),
+                                                   rewards=self.rewards.copy(),
+                                                   Q_values=self.q_values.copy(),
+                                                   trajectory_return=self.theReturn,
+                                                   trajectory_id=self._trj_collected)
 
         self._reset()
         return trajectory_container
 
     def _reset(self):
-        self._observations.clear()
-        self._actions.clear()
-        self._rewards.clear()
+        self.observations.clear()
+        self.actions.clear()
+        self.rewards.clear()
 
-        self._q_values = None
-        self._theReturn = None
-        self._lenght = None
+        self.q_values = None
+        self.theReturn = None
+        self.lenght = None
 
         self._q_values_computed = False
         return None

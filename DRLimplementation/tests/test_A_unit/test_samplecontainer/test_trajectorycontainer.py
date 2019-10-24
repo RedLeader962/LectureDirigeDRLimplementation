@@ -24,9 +24,10 @@ def test_TrajectoryContainer_INTERNAL(gym_discrete_setup):
 
         events, done = take_one_random_step(env)
 
-        trajectory_collector.collect(*events)
+        trajectory_collector.collect_OAR(*events)
         trajectory_collector.trajectory_ended()
 
+        trajectory_collector.compute_Qvalues_as_rewardToGo()
         trj_container = trajectory_collector.pop_trajectory_and_reset()
         assert trj_container.trajectory_id == trj + 1
         assert len(trj_container) == 1
@@ -48,9 +49,9 @@ def test_TrajectoryContainer_ONE_STEP_POP_DUMMY(gym_discrete_setup):
     rew = 1
     dummy_events = (obs, act, rew)
 
-    trajectory_collector.collect(*dummy_events)
+    trajectory_collector.collect_OAR(*dummy_events)
     trajectory_collector.trajectory_ended()
-
+    trajectory_collector.compute_Qvalues_as_rewardToGo()
     trj_container = trajectory_collector.pop_trajectory_and_reset()
     assert trj_container.trajectory_id == 1
     assert len(trj_container) == 1
@@ -82,10 +83,10 @@ def test_TrajectoryContainer_10_STEP_DUMMY(gym_discrete_setup):
         rew = 1
         dummy_events = (obs, act, rew)
 
-        trajectory_collector.collect(*dummy_events)
+        trajectory_collector.collect_OAR(*dummy_events)
 
     trajectory_collector.trajectory_ended()
-
+    trajectory_collector.compute_Qvalues_as_rewardToGo()
     trj_container = trajectory_collector.pop_trajectory_and_reset()
     assert trj_container.trajectory_id == 1
     assert len(trj_container) == 10
@@ -120,10 +121,10 @@ def test_TrajectoryContainer_10_STEP_ON_SECOND_TRJ_DUMMY(gym_discrete_setup):
             rew = 1
             dummy_events = (obs, act, rew)
 
-            trajectory_collector.collect(*dummy_events)
+            trajectory_collector.collect_OAR(*dummy_events)
 
         trajectory_collector.trajectory_ended()
-
+        trajectory_collector.compute_Qvalues_as_rewardToGo()
         trj_container = trajectory_collector.pop_trajectory_and_reset()
 
         assert trj_container.trajectory_id == trj + 1
@@ -160,9 +161,10 @@ def test_TrajectoryContainer_CUT(gym_discrete_setup):
         rew = 1
         dummy_events = (obs, act, rew)
 
-        trajectory_collector.collect(*dummy_events)
+        trajectory_collector.collect_OAR(*dummy_events)
 
     trajectory_collector.trajectory_ended()
+    trajectory_collector.compute_Qvalues_as_rewardToGo()
     trj_container = trajectory_collector.pop_trajectory_and_reset()
 
     # Inspect container

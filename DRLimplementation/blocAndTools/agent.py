@@ -107,7 +107,7 @@ class Agent(object, metaclass=ABCMeta):
 
         """ ---- Teardown ---- """
         if self.exp_spec.show_plot:
-            consol_print_learning_stats.print_experiment_stats(print_plot=not self.exp_spec.isTestRun)
+            consol_print_learning_stats.print_experiment_stats(print_plot=self.exp_spec.show_plot)
 
         self.writer.close()
         return None

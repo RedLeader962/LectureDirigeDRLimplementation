@@ -146,13 +146,13 @@ class REINFORCEagent(Agent):
 
                         """ ---- Agent: Collect current timestep events ---- """
                         # (Critical) |  Collecting the right observation S_t that trigered the action A_t is critical.
-                        #            |  If you collect the observe_reaction S_t+1 coupled to action A_t ...
+                        #            |  If you collect_OAR the observe_reaction S_t+1 coupled to action A_t ...
                         #            |  the agent is doomed!
 
                         # (Priority) todo:refactor --> the_TRAJECTORY_COLLECTOR.collect_S_t_A_t(): remove reward param
                         # (Priority) todo:implement --> the_TRAJECTORY_COLLECTOR.collect_reward():
                         #     |                                     add assertion that .collect_S_t_A_t() was executed
-                        the_TRAJECTORY_COLLECTOR.collect(current_observation, action, reward)
+                        the_TRAJECTORY_COLLECTOR.collect_OAR(current_observation, action, reward)
                         current_observation = observe_reaction  # <-- (!)
 
                         if done:
@@ -160,6 +160,7 @@ class REINFORCEagent(Agent):
                             trj_return = the_TRAJECTORY_COLLECTOR.trajectory_ended()
 
                             """ ---- Agent: Collect the sampled trajectory  ---- """
+                            the_TRAJECTORY_COLLECTOR.compute_Qvalues_as_rewardToGo()
                             trj_container = the_TRAJECTORY_COLLECTOR.pop_trajectory_and_reset()
                             the_UNI_BATCH_COLLECTOR.collect(trj_container)
 

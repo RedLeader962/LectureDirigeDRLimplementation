@@ -174,7 +174,7 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
 
                 # (Critical) | Append the observation S_t that trigered the action A_t is critical.  \\\\\\    My bloc    \\\\\\
                 #            | If the observation is the one at time S_{t+1}, the agent wont learn   \\\\\\    My bloc    \\\\\\
-                the_TRAJECTORY_COLLECTOR.collect(obs, act, rew)  # <-- (!) Silent error 2            \\\\\\    My bloc    \\\\\\
+                the_TRAJECTORY_COLLECTOR.collect_OAR(obs, act, rew)  # <-- (!) Silent error 2            \\\\\\    My bloc    \\\\\\
                 obs = obs_prime                                  # <-- (!) Solution to silent error 2 \\\\\\    My bloc    \\\\\\
 
                 if done:
@@ -185,6 +185,7 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
                     # batch_lens.append(ep_len)
 
                     trj_return = the_TRAJECTORY_COLLECTOR.trajectory_ended()              # \\\\\\    My bloc    \\\\\\
+                    the_TRAJECTORY_COLLECTOR.compute_Qvalues_as_rewardToGo()
                     trj_container = the_TRAJECTORY_COLLECTOR.pop_trajectory_and_reset()   # \\\\\\    My bloc    \\\\\\
                     the_UNI_BATCH_COLLECTOR.collect(trj_container)                        # \\\\\\    My bloc    \\\\\\
 

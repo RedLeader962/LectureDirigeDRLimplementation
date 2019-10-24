@@ -28,7 +28,6 @@ CARTPOLE_HPARAM = {
     'comment':                        'SpiningUp',
     'prefered_environment':           'CartPole-v0',
     'expected_reward_goal':           200,
-    'isTestRun': False,
     'batch_size_in_ts': 5000,
     'max_epoch': 50,
     'discounted_reward_to_go': True,
@@ -40,6 +39,8 @@ CARTPOLE_HPARAM = {
     'theta_output_layers_activation': None,
     'render_env_every_What_epoch': 100,
     'print_metric_every_what_epoch': 2,
+    'isTestRun':                      False,
+    'show_plot':                      False,
 }
 
 CARTPOLE_HPARAM_FAIL = CARTPOLE_HPARAM.copy()
@@ -75,7 +76,7 @@ def setup_REINFORCE_train_algo_generator_with_PASSING_spec():
     reinforce_agent.writer = writer
 
     yield epoch_generator, nb_of_try, env_max_return, exp_spec
-    consol_print_learning_stats.print_experiment_stats(print_plot=not exp_spec.isTestRun)
+    consol_print_learning_stats.print_experiment_stats(print_plot=exp_spec.show_plot)
     reinforce_agent.writer.close()
 
 
@@ -93,7 +94,7 @@ def setup_REINFORCE_train_algo_generator_with_FAILING_spec():
     reinforce_agent.writer = writer
 
     yield epoch_generator, nb_of_try, env_max_return, exp_spec
-    consol_print_learning_stats.print_experiment_stats(print_plot=not exp_spec.isTestRun)
+    consol_print_learning_stats.print_experiment_stats(print_plot= exp_spec.show_plot)
     reinforce_agent.writer.close()
 
 def training_loop(epoch_generator, env_max_return):

@@ -163,7 +163,7 @@ def train_REINFORCE_agent_discrete(exp_spec: ExperimentSpec, render_env=None):
                     # (Priority) todo:refactor --> the_TRAJECTORY_COLLECTOR.collect_S_t_A_t(): remove reward parammeter
                     # (Priority) todo:implement --> the_TRAJECTORY_COLLECTOR.collect_reward():
                     #     |                                        add assertion that .collect_S_t_A_t() was executed
-                    the_TRAJECTORY_COLLECTOR.collect(current_observation, action, reward)
+                    the_TRAJECTORY_COLLECTOR.collect_OAR(current_observation, action, reward)
                     current_observation = observe_reaction  # <-- (!)
 
                     if done:
@@ -171,6 +171,7 @@ def train_REINFORCE_agent_discrete(exp_spec: ExperimentSpec, render_env=None):
                         trj_return = the_TRAJECTORY_COLLECTOR.trajectory_ended()
 
                         """ ---- Agent: Collect the sampled trajectory  ---- """
+                        the_TRAJECTORY_COLLECTOR.compute_Qvalues_as_rewardToGo()
                         trj_container = the_TRAJECTORY_COLLECTOR.pop_trajectory_and_reset()
                         the_UNI_BATCH_COLLECTOR.collect(trj_container)
 
@@ -227,7 +228,7 @@ def train_REINFORCE_agent_discrete(exp_spec: ExperimentSpec, render_env=None):
             """ ---- Convert the function to a Generator for integration test ---- """
             yield (epoch, epoch_loss, batch_average_trjs_return, batch_average_trjs_lenght)
 
-    consol_print_learning_stats.print_experiment_stats(print_plot=not exp_spec.isTestRun)
+    consol_print_learning_stats.print_experiment_stats(print_plot=exp_spec.show_plot)
     writer.close()
     tf_cv1.reset_default_graph()
     playground.env.close()

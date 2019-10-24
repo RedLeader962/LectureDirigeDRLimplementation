@@ -10,25 +10,25 @@ from blocAndTools.container.samplecontainer import UniformeBatchContainer, Unifo
 from blocAndTools.temporal_difference_computation import computhe_the_Advantage, compute_TD_target
 
 
-class TrajectoryContainerBatchActorCritic(TrajectoryContainer):
+class TrajectoryContainerBatchOARV(TrajectoryContainer):
     """
     Container for storage & retrieval of events collected at every timestep of a trajectories
     for Batch Actor-Critic algorithm
     """
-    __slots__ = ['observations',
+    __slots__ = ['obs_t',
                  'actions',
                  'rewards',
                  'Q_values',
                  'trajectory_return',
                  '_trajectory_lenght',
                  'trajectory_id',
-                 'V_estimates']
+                 'V_estimates',]
 
-    def __init__(self, observations: list, actions: list, rewards: list, Q_values: list, trajectory_return: list,
-                 trajectory_id, V_estimates: list) -> None:
+    def __init__(self, obs_t: list, actions: list, rewards: list, Q_values: list, trajectory_return: list,
+                 trajectory_id, V_estimates: list = None) -> None:
 
         self.V_estimates = V_estimates
-        super().__init__(observations, actions, rewards, Q_values, trajectory_return, trajectory_id)
+        super().__init__(obs_t, actions, rewards, Q_values, trajectory_return, trajectory_id)
 
     def cut(self, max_lenght):
         """Down size the number of timestep stored in the container"""
@@ -39,7 +39,7 @@ class TrajectoryContainerBatchActorCritic(TrajectoryContainer):
         """
         Unpack the full trajectorie as a tuple of numpy array
 
-        :return: (observations, actions, rewards, Q_values, trajectory_return, _trajectory_lenght, V_estimate)
+        :return: (obs_t, actions, rewards, Q_values, trajectory_return, _trajectory_lenght, V_estimate)
         :rtype: (list, list, list, list, float, int, list)
         """
         # (nice to have) todo:refactor --> as a namedtuple
@@ -55,7 +55,7 @@ class TrajectoryContainerBatchActorCritic(TrajectoryContainer):
         return myRep
 
 
-class TrajectoryCollectorBatchActorCritic(TrajectoryCollector):
+class TrajectoryCollectorBatchOARV(TrajectoryCollector):
     """
     Collect timestep event of single trajectory for Batch Actor-Critic algorihm
 
@@ -65,66 +65,61 @@ class TrajectoryCollectorBatchActorCritic(TrajectoryCollector):
             b. Output a TrajectoryContainer feed with collected sample
             c. Reset ready for next trajectory
     """
-    _q_values: list
-
-    def __init__(self, experiment_spec: ExperimentSpec, playground: GymPlayground, discounted: bool = True,
-                 MonteCarloTarget=True):
-
-        self.MonteCarloTarget = MonteCarloTarget
-        self._V_estimates = []
+    def __init__(self, experiment_spec: ExperimentSpec, playground: GymPlayground, discounted: bool = True):
+        self.V_estimates = []
         super().__init__(experiment_spec, playground, discounted)
 
-    def collect(self, observation: np.ndarray, action, reward: float, V_estimate: float = None) -> None:
+    def collect_OARV(self, observation: np.ndarray, action, reward: float, V_estimate: float) -> None:
         """ Collect observation, action, reward and V estimate for one timestep
-
-        :type observation: np.ndarray
-        :type action: int or float
-        :type reward: float
-        :type V_estimate: float
         """
-        self._V_estimates.append(V_estimate)
-        super().collect(observation, action, reward)
+        self.V_estimates.append(V_estimate)
+        super().collect_OAR(observation, action, reward)
 
-    def _compute_Q_values(self) -> None:
-        if self.MonteCarloTarget:
-            super()._compute_Q_values()
-        else:
-            self._q_values = compute_TD_target(self._rewards, self._V_estimates).tolist()  # (Priority) todo:unit-test --> the stored result and cascading behavior:
-        self._q_values_computed = True
+    def compute_Qvalues_as_BootstrapEstimate(self) -> None:
+        """
+        Qvalues must be computed explicitely before pop_trajectory_and_reset
+        using eiter methode:
+                - set_Qvalues,
+                - compute_Qvalues_as_rewardToGo
+                - or compute_Qvalues_as_BootstrapEstimate
+        """
+        # (Priority) todo:unit-test --> the stored result and cascading behavior:
+        TD_target: list = compute_TD_target(self.rewards, self.V_estimates).tolist()
+        self.set_Qvalues(TD_target)
         return None
 
-    def pop_trajectory_and_reset(self) -> TrajectoryContainerBatchActorCritic:
+    def pop_trajectory_and_reset(self) -> TrajectoryContainerBatchOARV:
         """
-            1.  Return the last sampled trajectory in a TrajectoryContainer
+            1.  Return the last sampled trajectory in a TrajectoryContainerBatchOARV
             2.  Reset the container ready for the next trajectory sampling.
 
-        :return: A TrajectoryContainerBatchActorCritic with a full trajectory
-        :rtype: TrajectoryContainerBatchActorCritic
+        :return: A TrajectoryContainerBatchOARV with a full trajectory
+        :rtype: TrajectoryContainerBatchOARV
         """
         assert self._q_values_computed, ("The return and the Q-values are not computed yet!!! "
                                             "Call the method trajectory_ended() before pop_trajectory_and_reset()")
-        trajectory_containerBatchAC = TrajectoryContainerBatchActorCritic(self._observations.copy(),
-                                                                   self._actions.copy(),
-                                                                   self._rewards.copy(),
-                                                                   self._q_values.copy(),
-                                                                   self._theReturn,
-                                                                   self._trj_collected,
-                                                                   self._V_estimates.copy())
+        trajectory_containerBatchAC = TrajectoryContainerBatchOARV(obs_t=self.observations.copy(),
+                                                                   actions=self.actions.copy(),
+                                                                   rewards=self.rewards.copy(),
+                                                                   Q_values=self.q_values.copy(),
+                                                                   trajectory_return=self.theReturn,
+                                                                   trajectory_id=self._trj_collected,
+                                                                   V_estimates=self.V_estimates.copy())
 
         self._reset()
         return trajectory_containerBatchAC
 
     def _reset(self):
         super()._reset()
-        self._V_estimates.clear()
+        self.V_estimates.clear()
         return None
 
 
-class UniformeBatchContainerBatchActorCritic(UniformeBatchContainer):
-    def __init__(self, batch_container_list: List[TrajectoryContainerBatchActorCritic], batch_constraint: int):
+class UniformeBatchContainerBatchOARV(UniformeBatchContainer):
+    def __init__(self, batch_container_list: List[TrajectoryContainerBatchOARV], batch_constraint: int):
         """
         Container for storage & retrieval of sampled trajectories for Batch Actor-Critic algorihm
-        Is a component of the UniformBatchCollectorBatchActorCritic
+        Is a component of the UniformBatchCollectorBatchOARV
 
         (nice to have) todo:implement --> make the container immutable: convert each list to tupple once initialized
 
@@ -134,49 +129,28 @@ class UniformeBatchContainerBatchActorCritic(UniformeBatchContainer):
         :type batch_container_list: List[TrajectoryContainer]
         """
         self.batch_Values_estimate = []
-        self.batch_Advantages = []
-
         super().__init__(batch_container_list, batch_constraint)
 
-        # (CRITICAL) todo:validate --> mute temporarely for reference implementation:
-        # # normalize advantage
-        # tmp_Adv: np.ndarray = np.array(self.batch_Advantages)
-        # Adv_mean = tmp_Adv.mean()
-        # Adv_std = tmp_Adv.std()
-        #
-        # self.batch_Advantages = ((tmp_Adv - Adv_mean) / Adv_std).tolist()
-
-
-    def _container_feed_on_init_hook(self, aTrjContainer: TrajectoryContainerBatchActorCritic):
+    def _container_feed_on_init_hook(self, aTrjContainer: TrajectoryContainerBatchOARV):
         aTrj_obss, aTrj_acts, aTrj_rews, aTrj_Qs, aTrj_return, aTrj_lenght, aTrj_Values = aTrjContainer.unpack()
 
         self.batch_Values_estimate += aTrj_Values
 
-        # (Priority) todo:refactor --> pull the Advantage computation outside of the container:
-        #                                       - sepration of concern
-        #                                       - computation done on the last trajectory collected is bogus because it is most likely cut
-
-        # (CRITICAL) todo:validate --> mute temporarely for reference implementation:
-        # # compute the advantage
-        # aTrj_Advantages = computhe_the_Advantage(aTrj_rews, aTrj_Values).tolist()
-        # assert len(aTrj_Advantages) == len(aTrj_acts), "Problem with Advantage computation"
-        # self.batch_Advantages += aTrj_Advantages
-
         return aTrj_obss, aTrj_acts, aTrj_rews, aTrj_Qs, aTrj_return, aTrj_lenght
 
-    def unpack_all(self) -> Tuple[Any, list, list]:
+    def unpack_all(self) -> Tuple[Any, list]:
         """
         Unpack the full epoch batch of collected trajectories in lists of numpy ndarray
 
         :return: (batch_observations, batch_actions, batch_Qvalues,
                     batch_returns, batch_trjs_lenghts, total_timestep_collected, nb_of_collected_trjs,
-                     batch_Values_estimate, batch_Advantages)
-        :rtype: (list, list, list, list, list, int, int, list, list)
+                     batch_Values_estimate)
+        :rtype: (list, list, list, list, list, int, int, list)
         """
         unpack_super = super().unpack_all()
-        return (*unpack_super, self.batch_Values_estimate.copy(), self.batch_Advantages.copy())
+        return (*unpack_super, self.batch_Values_estimate.copy())
 
-class UniformBatchCollectorBatchActorCritic(UniformBatchCollector):
+class UniformBatchCollectorBatchOARV(UniformBatchCollector):
     """
     Collect sampled trajectories and agregate them in multiple batch container of uniforme dimension
     for batch Actor-Critic algorithm.
@@ -188,12 +162,12 @@ class UniformBatchCollectorBatchActorCritic(UniformBatchCollector):
 
     """
 
-    def pop_batch_and_reset(self) -> UniformeBatchContainerBatchActorCritic:
+    def pop_batch_and_reset(self) -> UniformeBatchContainerBatchOARV:
         """
         :return: A batch of concatenated trajectories component
-        :rtype: UniformeBatchContainerBatchActorCritic
+        :rtype: UniformeBatchContainerBatchOARV
         """
-        container = UniformeBatchContainerBatchActorCritic(self.trajectories_list, self.CAPACITY)
+        container = UniformeBatchContainerBatchOARV(self.trajectories_list, self.CAPACITY)
 
         # reset
         self._reset()

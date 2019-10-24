@@ -12,9 +12,9 @@ from blocAndTools.agent import Agent
 from blocAndTools.rl_vocabulary import rl_name
 from blocAndTools import buildingbloc as bloc, ConsolPrintLearningStats
 # from blocAndTools.container.samplecontainer import TrajectoryCollector, UniformBatchCollector
-from blocAndTools.container.samplecontainerbatchactorcritic import (TrajectoryCollectorBatchActorCritic,
-                                                                    UniformeBatchContainerBatchActorCritic,
-                                                                    UniformBatchCollectorBatchActorCritic, )
+from blocAndTools.container.samplecontainer_batch_oarv import (TrajectoryCollectorBatchOARV,
+                                                               UniformeBatchContainerBatchOARV,
+                                                               UniformBatchCollectorBatchOARV, )
 
 tf_cv1 = tf.compat.v1  # shortcut
 deprecation._PRINT_DEPRECATION_WARNINGS = False
@@ -36,7 +36,7 @@ class ActorCriticAgent(Agent):
         self.observation_ph, self.action_ph, self.target_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
             self.playground, obs_shape_constraint=None, action_shape_constraint=None, Q_name=vocab.target_ph)
 
-        # (CRITICAL) todo:refactor all module --> follow DRLimplementation/ActorCritic/integrationBatchAAC.py
+        raise NotImplementedError   # (CRITICAL) todo:refactor all module --> follow DRLimplementation/ActorCritic/integrationBatchAAC.py
 
         self.Advantage_ph = tf_cv1.placeholder(tf.float32, shape=self.target_ph.shape, name=vocab.advantage_ph)
 
@@ -71,16 +71,15 @@ class ActorCriticAgent(Agent):
         return None
 
     def _instantiate_data_collector(self) -> Tuple[
-        TrajectoryCollectorBatchActorCritic, UniformBatchCollectorBatchActorCritic]:
+        TrajectoryCollectorBatchOARV, UniformBatchCollectorBatchOARV]:
         """
         Data collector utility
 
         :return: Collertor utility
-        :rtype: (TrajectoryCollectorBatchActorCritic, UniformBatchCollectorBatchActorCritic)
+        :rtype: (TrajectoryCollectorBatchOARV, UniformBatchCollectorBatchOARV)
         """
-        the_TRAJECTORY_COLLECTOR = TrajectoryCollectorBatchActorCritic(
-            self.exp_spec, self.playground, MonteCarloTarget=self.exp_spec['MonteCarloTarget'])
-        the_UNI_BATCH_COLLECTOR = UniformBatchCollectorBatchActorCritic(self.exp_spec.batch_size_in_ts)
+        the_TRAJECTORY_COLLECTOR = TrajectoryCollectorBatchOARV(self.exp_spec, self.playground)
+        the_UNI_BATCH_COLLECTOR = UniformBatchCollectorBatchOARV(self.exp_spec.batch_size_in_ts)
         return the_TRAJECTORY_COLLECTOR, the_UNI_BATCH_COLLECTOR
 
     # todo:implement --> critic training variation: target y = Monte Carlo target
@@ -137,10 +136,10 @@ class ActorCriticAgent(Agent):
                         obs_tPrime, reward, done, _ = self.playground.env.step(action)
 
                         """ ---- Agent: Collect current timestep events ---- """
-                        the_TRAJECTORY_COLLECTOR.collect(observation=obs_t,
-                                                         action=action,
-                                                         reward=reward,
-                                                         V_estimate=bloc.to_scalar(V_estimate))
+                        the_TRAJECTORY_COLLECTOR.collect_OAR(observation=obs_t,
+                                                             action=action,
+                                                             reward=reward,
+                                                             V_estimate=bloc.to_scalar(V_estimate))
                         obs_t = obs_tPrime  # <-- (!)
 
                         if done:
@@ -171,7 +170,7 @@ class ActorCriticAgent(Agent):
                 # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
 
                 """ ---- Prepare data for backpropagation in the neural net ---- """
-                batch_container: UniformeBatchContainerBatchActorCritic = the_UNI_BATCH_COLLECTOR.pop_batch_and_reset()
+                batch_container: UniformeBatchContainerBatchOARV = the_UNI_BATCH_COLLECTOR.pop_batch_and_reset()
                 batch_average_trjs_return, batch_average_trjs_lenght = batch_container.compute_metric()
 
                 batch_observations = batch_container.batch_observations

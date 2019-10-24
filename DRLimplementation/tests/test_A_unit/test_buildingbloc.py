@@ -238,12 +238,13 @@ def test_SamplingContainer_CONTINUOUS_BASIC(gym_continuous_setup):
             print("\ninfo: {}\n".format(info))
 
             """ STEP-2: append sample to container"""
-            the_TRAJECTORY_COLLECTOR.collect(observation, action, reward)
+            the_TRAJECTORY_COLLECTOR.collect_OAR(observation, action, reward)
 
             if done:
                 """ STEP-3: acces container"""
                 _ = the_TRAJECTORY_COLLECTOR.trajectory_ended()
 
+                the_TRAJECTORY_COLLECTOR.compute_Qvalues_as_rewardToGo()
                 trj_container = the_TRAJECTORY_COLLECTOR.pop_trajectory_and_reset()
                 collected_timestep = len(trj_container)
                 assert step == collected_timestep, "Trajectory lenght do not match nb collected_timestep"
@@ -290,12 +291,13 @@ def test_SamplingContainer_DISCRETE_BASIC(gym_discrete_setup):
             print("\ninfo: {}\n".format(info))
 
             """ STEP-2: append sample to container"""
-            the_TRAJECTORY_COLLECTOR.collect(observation, action, reward)
+            the_TRAJECTORY_COLLECTOR.collect_OAR(observation, action, reward)
 
             if done:
                 """ STEP-3: acces container"""
                 _ = the_TRAJECTORY_COLLECTOR.trajectory_ended()
 
+                the_TRAJECTORY_COLLECTOR.compute_Qvalues_as_rewardToGo()
                 trj_container = the_TRAJECTORY_COLLECTOR.pop_trajectory_and_reset()
                 collected_timestep = len(trj_container)
                 assert step == collected_timestep, "Trajectory lenght do not match nb collected_timestep"

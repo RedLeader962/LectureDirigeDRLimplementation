@@ -44,6 +44,7 @@ cartpole_hparam = {
     'render_env_every_What_epoch':    100,
     'print_metric_every_what_epoch':  2,
     'isTestRun':                      False,
+    'show_plot':                      False,
     }
 
 test_hparam = {
@@ -64,6 +65,7 @@ test_hparam = {
     'render_env_every_What_epoch':    5,
     'print_metric_every_what_epoch':  2,
     'isTestRun':                      True,
+    'show_plot':                      False,
     }
 
 parser = argparse.ArgumentParser(description=(

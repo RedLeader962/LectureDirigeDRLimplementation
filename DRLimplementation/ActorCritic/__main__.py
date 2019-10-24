@@ -43,7 +43,6 @@ batch_AAC_hparam = {
     'MonteCarloTarget':               True,
     'prefered_environment':           'CartPole-v0',
     'expected_reward_goal':           200,
-    'isTestRun':                      False,
     'batch_size_in_ts':               3000,
     'max_epoch':                      100,
     'discounted_reward_to_go':        True,
@@ -57,7 +56,8 @@ batch_AAC_hparam = {
     'theta_output_layers_activation': None,
     'render_env_every_What_epoch':    100,
     'print_metric_every_what_epoch':  2,
-    'show_plot': False,
+    'isTestRun':                      False,
+    'show_plot':                      False,
     }
 
 lilLogBatch_AAC_hparam = {
@@ -67,7 +67,6 @@ lilLogBatch_AAC_hparam = {
     'MonteCarloTarget':               True,
     'prefered_environment':           'CartPole-v0',
     'expected_reward_goal':           200,
-    'isTestRun':                      False,
     'batch_size_in_ts':               4000,
     'max_epoch':                      30,
     'discounted_reward_to_go':        True,
@@ -81,12 +80,13 @@ lilLogBatch_AAC_hparam = {
     'theta_output_layers_activation': None,
     'render_env_every_What_epoch':    100,
     'print_metric_every_what_epoch':  2,
-    'show_plot': False,
+    'isTestRun':                      False,
+    'show_plot':                      False,
     }
 
 integrationBatch_AAC_hparm = lilLogBatch_AAC_hparam.copy()
 integrationBatch_AAC_hparm['paramameter_set_name'] = 'Integrate Batch AAC'
-integrationBatch_AAC_hparm['comment'] = 'myActorGraph'
+integrationBatch_AAC_hparm['comment'] = 'testImplementation'
 integrationBatch_AAC_hparm['MonteCarloTarget'] = True
 
 test_hparam = {
@@ -96,7 +96,6 @@ test_hparam = {
     'MonteCarloTarget':               True,
     'prefered_environment':           'CartPole-v0',
     'expected_reward_goal':           200,
-    'isTestRun':                      True,
     'batch_size_in_ts':               1000,
     'max_epoch':                      5,
     'discounted_reward_to_go':        True,
@@ -110,6 +109,8 @@ test_hparam = {
     'theta_output_layers_activation': None,
     'render_env_every_What_epoch':    5,
     'print_metric_every_what_epoch':  2,
+    'isTestRun':                      True,
+    'show_plot':                      False,
     }
 
 parser = argparse.ArgumentParser(description=(

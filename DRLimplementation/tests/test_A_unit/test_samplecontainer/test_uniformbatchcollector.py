@@ -41,8 +41,9 @@ def test_UniformBatchCollector_ONE_STEP(gym_discrete_setup):
     exp_spec, playground, trajectory_collector, uni_batch_collector, env, _ = gym_discrete_setup
 
     events, done = take_one_random_step(env)
-    trajectory_collector.collect(*events)
+    trajectory_collector.collect_OAR(*events)
     trajectory_collector.trajectory_ended()
+    trajectory_collector.compute_Qvalues_as_rewardToGo()
     aTrajectory = trajectory_collector.pop_trajectory_and_reset()
 
     uni_batch_collector.collect(aTrajectory)
@@ -69,9 +70,10 @@ def test_UniformBatchCollector_20_STEP_OVER_2_TRJ(gym_discrete_setup):
     for trj in range(2):
         for step in range(10):
             events, done = take_one_random_step(env)
-            trajectory_collector.collect(*events)
+            trajectory_collector.collect_OAR(*events)
 
         trajectory_collector.trajectory_ended()
+        trajectory_collector.compute_Qvalues_as_rewardToGo()
         aTrajectory = trajectory_collector.pop_trajectory_and_reset()
 
         uni_batch_collector.collect(aTrajectory)
@@ -104,9 +106,10 @@ def test_UniformBatchCollector_AT_BATCH_CAPACITY(gym_discrete_setup):
             rew = 1
             dummy_events = (obs, act, rew)
 
-            trajectory_collector.collect(*dummy_events)
+            trajectory_collector.collect_OAR(*dummy_events)
 
         trajectory_collector.trajectory_ended()
+        trajectory_collector.compute_Qvalues_as_rewardToGo()
         aTrajectory = trajectory_collector.pop_trajectory_and_reset()
 
         uni_batch_collector.collect(aTrajectory)
@@ -136,9 +139,10 @@ def test_UniformBatchCollector_AT_BATCH_CAPACITY_MINUS_ONE(gym_discrete_setup):
         act = 1
         rew = 1
         dummy_events = (obs, act, rew)
-        trajectory_collector.collect(*dummy_events)
+        trajectory_collector.collect_OAR(*dummy_events)
 
     trajectory_collector.trajectory_ended()
+    trajectory_collector.compute_Qvalues_as_rewardToGo()
     aTrajectory_1 = trajectory_collector.pop_trajectory_and_reset()
     uni_batch_collector.collect(aTrajectory_1)
 
@@ -147,9 +151,10 @@ def test_UniformBatchCollector_AT_BATCH_CAPACITY_MINUS_ONE(gym_discrete_setup):
         act = 1
         rew = 1
         dummy_events = (obs, act, rew)
-        trajectory_collector.collect(*dummy_events)
+        trajectory_collector.collect_OAR(*dummy_events)
 
     trajectory_collector.trajectory_ended()
+    trajectory_collector.compute_Qvalues_as_rewardToGo()
     aTrajectory_2 = trajectory_collector.pop_trajectory_and_reset()
 
     uni_batch_collector.collect(aTrajectory_2)
@@ -185,9 +190,10 @@ def test_UniformBatchCollector_OVER_CAPACITY(gym_discrete_setup):
                 rew = 1
                 dummy_events = (obs, act, rew)
 
-                trajectory_collector.collect(*dummy_events)
+                trajectory_collector.collect_OAR(*dummy_events)
 
             trajectory_collector.trajectory_ended()
+            trajectory_collector.compute_Qvalues_as_rewardToGo()
             aTrajectory = trajectory_collector.pop_trajectory_and_reset()
 
             uni_batch_collector.collect(aTrajectory)
@@ -214,9 +220,10 @@ def test_UniformBatchCollector_TWO_BATCHS(gym_discrete_setup):
             rew = 1
             dummy_events = (obs, act, rew)
 
-            trajectory_collector.collect(*dummy_events)
+            trajectory_collector.collect_OAR(*dummy_events)
 
         trajectory_collector.trajectory_ended()
+        trajectory_collector.compute_Qvalues_as_rewardToGo()
         aTrajectory = trajectory_collector.pop_trajectory_and_reset()
 
         if uni_batch_collector.is_not_full():
@@ -255,9 +262,10 @@ def test_UniformBatchCollector_CUT_TRAJECTORY(gym_discrete_setup):
             rew = 1
             dummy_events = (obs, act, rew)
 
-            trajectory_collector.collect(*dummy_events)
+            trajectory_collector.collect_OAR(*dummy_events)
 
         trajectory_collector.trajectory_ended()
+        trajectory_collector.compute_Qvalues_as_rewardToGo()
         aTrajectory = trajectory_collector.pop_trajectory_and_reset()
 
         uni_batch_collector.collect(aTrajectory)
