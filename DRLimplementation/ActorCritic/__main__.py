@@ -111,7 +111,9 @@ integrationBatchBootstrapAAC_hparm = {
     }
 
 integrationBatchBootstrapAAC_hparm = integrationBatchBootstrapAAC_hparm.copy()
-integrationBatchBootstrapAAC_hparm['comment'] = "myAdvantageFAST"
+integrationBatchBootstrapAAC_hparm['comment'] = "Advantage NO squeeze"
+integrationBatchBootstrapAAC_hparm['Target'] = TargetType.MonteCarlo
+integrationBatchBootstrapAAC_hparm['note'] = "Advantage computation with no squeeze ==> a lot SLOWER computation"
 
 
 test_hparam = {

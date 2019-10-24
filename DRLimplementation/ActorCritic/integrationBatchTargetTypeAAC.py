@@ -71,8 +71,11 @@ class IntegrationBatchTargetTypeActorCriticAgent(Agent):
         with tf_cv1.name_scope(vocab.Advantage):
             # (!) note: Advantage computation
             #       |       no squeeze      ==>     SLOWER computation
+            #       |               eg: Advantage = self.Qvalues_ph - self.V_phi_estimator
+            #       |
             #       |       with squeeze    ==>     RACING CAR FAST computation
-            # (Nice to have) todo:investigate?? --> why it's much faster
+            #
+            # (Nice to have) todo:investigate?? --> why it's much faster?: hypothese --> broadcasting slowdown computation
             Advantage = self.Qvalues_ph - tf_cv1.squeeze(self.V_phi_estimator)
 
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
