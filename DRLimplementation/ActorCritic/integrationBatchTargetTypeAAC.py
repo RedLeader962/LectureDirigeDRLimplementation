@@ -69,18 +69,19 @@ class IntegrationBatchTargetTypeActorCriticAgent(Agent):
         # self.Advantage_ph = tf_cv1.placeholder(tf.float32, shape=self.Qvalues_ph.shape, name=vocab.advantage_ph)
 
         with tf_cv1.name_scope(vocab.Advantage):
-            # (Priority) todo:investigate?? --> The original bloc (LilLog Advantage formulation) is much faster (!): why?
 
             # ////// Original bloc //////
             # FASTER computation
-            action_ohe = tf.one_hot(self.action_ph, self.playground.ACTION_CHOICES, 1.0, 0.0, name='action_one_hot')
-            V_estimate = tf.reduce_sum(self.V_phi_estimator * action_ohe, reduction_indices=-1, name='q_acted')
-            flatten_V_estimate = tf.reshape(V_estimate, [-1])
-            Advantage = self.Qvalues_ph - flatten_V_estimate
+            # action_ohe = tf.one_hot(self.action_ph, self.playground.ACTION_CHOICES, 1.0, 0.0, name='action_one_hot')
+            # V_estimate = tf.reduce_sum(self.V_phi_estimator * action_ohe, reduction_indices=-1, name='q_acted')
+            # flatten_V_estimate = tf.reshape(V_estimate, [-1])
+            # Advantage = self.Qvalues_ph - flatten_V_estimate
 
-            # # \\\\\\    My bloc    \\\\\\
-            # # SLOWER computation
-            # Advantage = self.Qvalues_ph - self.V_phi_estimator
+            # (!) note: Advantage computation
+            #       |       no squeeze      ==>     SLOWER computation
+            #       |       with squeeze    ==>     RACING CAR FAST computation
+            # (Nice to have) todo:investigate?? --> why it's much faster
+            Advantage = self.Qvalues_ph - tf_cv1.squeeze(self.V_phi_estimator)
 
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
         # *                                                                                                           *
@@ -264,15 +265,15 @@ class IntegrationBatchTargetTypeActorCriticAgent(Agent):
 
                 # # \\\\\\    My bloc    \\\\\\
                 # # Use with MY Advantage formulation
-                # critic_feed_dictionary = bloc.build_feed_dictionary(
-                #     [self.observation_ph, self.Qvalues_ph],
-                #     [batch_observations, batch_Qvalues])
+                critic_feed_dictionary = bloc.build_feed_dictionary(
+                    [self.observation_ph, self.Qvalues_ph],
+                    [batch_observations, batch_Qvalues])
 
                 # # ////// Original bloc //////
                 # # Use with LilLog Advantage formulation
-                critic_feed_dictionary = bloc.build_feed_dictionary(
-                    [self.observation_ph, self.action_ph, self.Qvalues_ph],
-                    [batch_observations, batch_actions, batch_Qvalues])
+                # critic_feed_dictionary = bloc.build_feed_dictionary(
+                #     [self.observation_ph, self.action_ph, self.Qvalues_ph],
+                #     [batch_observations, batch_actions, batch_Qvalues])
 
                 """ ---- Train critic ---- """
                 for c_loop in range(self.exp_spec['critique_loop_len']):

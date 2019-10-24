@@ -110,8 +110,8 @@ integrationBatchBootstrapAAC_hparm = {
     'note':                           "Both loss have a lot less variance. The algo take more time to converge"
     }
 
-# integrationBatchBootstrapAAC_hparm = integrationBatchBootstrapAAC_hparm.copy()
-# integrationBatchBootstrapAAC_hparm['comment'] = ""
+integrationBatchBootstrapAAC_hparm = integrationBatchBootstrapAAC_hparm.copy()
+integrationBatchBootstrapAAC_hparm['comment'] = "myAdvantageFAST"
 
 
 test_hparam = {
