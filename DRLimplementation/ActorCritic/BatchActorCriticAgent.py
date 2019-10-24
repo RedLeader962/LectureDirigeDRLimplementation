@@ -171,7 +171,7 @@ class ActorCriticAgent(Agent):
 
                 """ ---- Prepare data for backpropagation in the neural net ---- """
                 batch_container: UniformeBatchContainerBatchOARV = the_UNI_BATCH_COLLECTOR.pop_batch_and_reset()
-                batch_average_trjs_return, batch_average_trjs_lenght = batch_container.compute_metric()
+                batch_average_trjs_return, batch_average_trjs_lenght = batch_container.get_basic_metric()
 
                 batch_observations = batch_container.batch_observations
                 batch_actions = batch_container.batch_actions

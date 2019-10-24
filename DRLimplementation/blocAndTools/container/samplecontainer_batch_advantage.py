@@ -162,23 +162,25 @@ class TrajectoryCollectorBatchAdvantage(TrajectoryCollector):
 
 
 class UniformeBatchContainerBatchAdvantage(UniformeBatchContainer):
-    def __init__(self, batch_container_list: List[TrajectoryContainerBatchAdvantage], batch_constraint: int):
+    def __init__(self, trj_container_batch: List[TrajectoryContainerBatchAdvantage], batch_constraint: int, id):
         """
         Container for storage & retrieval of sampled trajectories for Batch Actor-Critic algorihm
         Is a component of the UniformBatchCollectorBatchOARV
 
         (nice to have) todo:implement --> make the container immutable: convert each list to tupple once initialized
 
+        :param id:
+        :type id:
         :param batch_constraint: max capacity measured in timestep
         :type batch_constraint: int
-        :param batch_container_list: Take a list of TrajectoryContainer instance fulled with collected timestep events.
-        :type batch_container_list: List[TrajectoryContainer]
+        :param trj_container_batch: Take a list of TrajectoryContainer instance fulled with collected timestep events.
+        :type trj_container_batch: List[TrajectoryContainer]
         """
         self.batch_obs_tPrime = []
         self.batch_Values_estimate = []
         self.batch_Advantages = []
 
-        super().__init__(batch_container_list, batch_constraint)
+        super().__init__(trj_container_batch, batch_constraint, self.batch_idx)
 
         # (CRITICAL) todo:validate --> mute temporarely for reference implementation:
         # # normalize advantage
@@ -226,7 +228,7 @@ class UniformBatchCollectorBatchAdvantage(UniformBatchCollector):
         :return: A batch of concatenated trajectories component
         :rtype: UniformeBatchContainerBatchOARV
         """
-        container = UniformeBatchContainerBatchAdvantage(self.trajectories_list, self.CAPACITY)
+        container = UniformeBatchContainerBatchAdvantage(self.trajectories_list, self.CAPACITY, self.batch_idx)
 
         # reset
         self._reset()

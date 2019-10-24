@@ -116,20 +116,22 @@ class TrajectoryCollectorBatchOARV(TrajectoryCollector):
 
 
 class UniformeBatchContainerBatchOARV(UniformeBatchContainer):
-    def __init__(self, batch_container_list: List[TrajectoryContainerBatchOARV], batch_constraint: int):
+    def __init__(self, trj_container_batch: List[TrajectoryContainerBatchOARV], batch_constraint: int, id):
         """
         Container for storage & retrieval of sampled trajectories for Batch Actor-Critic algorihm
         Is a component of the UniformBatchCollectorBatchOARV
 
         (nice to have) todo:implement --> make the container immutable: convert each list to tupple once initialized
 
+        :param id:
+        :type id:
         :param batch_constraint: max capacity measured in timestep
         :type batch_constraint: int
-        :param batch_container_list: Take a list of TrajectoryContainer instance fulled with collected timestep events.
-        :type batch_container_list: List[TrajectoryContainer]
+        :param trj_container_batch: Take a list of TrajectoryContainer instance fulled with collected timestep events.
+        :type trj_container_batch: List[TrajectoryContainer]
         """
         self.batch_Values_estimate = []
-        super().__init__(batch_container_list, batch_constraint)
+        super().__init__(trj_container_batch, batch_constraint, self.batch_idx)
 
     def _container_feed_on_init_hook(self, aTrjContainer: TrajectoryContainerBatchOARV):
         aTrj_obss, aTrj_acts, aTrj_rews, aTrj_Qs, aTrj_return, aTrj_lenght, aTrj_Values = aTrjContainer.unpack()
@@ -167,7 +169,7 @@ class UniformBatchCollectorBatchOARV(UniformBatchCollector):
         :return: A batch of concatenated trajectories component
         :rtype: UniformeBatchContainerBatchOARV
         """
-        container = UniformeBatchContainerBatchOARV(self.trajectories_list, self.CAPACITY)
+        container = UniformeBatchContainerBatchOARV(self.trajectories_list, self.CAPACITY, self.batch_idx)
 
         # reset
         self._reset()

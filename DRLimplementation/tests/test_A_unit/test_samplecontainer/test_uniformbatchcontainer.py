@@ -23,7 +23,7 @@ def test_UniformBatchContainer_INIT(gym_discrete_setup):
     assert len(state.trajectories_list) == 0
     assert state.timestep_count == 0
     assert state.trajectory_count == 0
-    assert state.remaining_space == uni_batch_collector.CAPACITY
+    assert state.remaining_batch_space == uni_batch_collector.CAPACITY
 
 
 
@@ -93,6 +93,6 @@ def test_UniformBatchContainer_METRIC(gym_discrete_setup):
 
     aBatch_contaner = uni_batch_collector.pop_batch_and_reset()
 
-    batch_average_trjs_return, batch_average_trjs_lenght = aBatch_contaner.compute_metric()
+    batch_average_trjs_return, batch_average_trjs_lenght = aBatch_contaner.get_basic_metric()
     assert batch_average_trjs_return == 100
     assert batch_average_trjs_lenght == 100

@@ -26,7 +26,7 @@ def test_UniformBatchCollector_INIT(gym_discrete_setup):
     assert len(state.trajectories_list) == 0
     assert state.timestep_count == 0
     assert state.trajectory_count == 0
-    assert state.remaining_space == uni_batch_collector.CAPACITY
+    assert state.remaining_batch_space == uni_batch_collector.CAPACITY
 
 
 def test_UniformBatchCollector_ONE_STEP(gym_discrete_setup):
@@ -52,7 +52,7 @@ def test_UniformBatchCollector_ONE_STEP(gym_discrete_setup):
     assert len(state.trajectories_list) == 1
     assert state.timestep_count == 1
     assert state.trajectory_count == 1
-    assert state.remaining_space == uni_batch_collector.CAPACITY - 1
+    assert state.remaining_batch_space == uni_batch_collector.CAPACITY - 1
     assert uni_batch_collector.is_not_full()
 
 
@@ -82,7 +82,7 @@ def test_UniformBatchCollector_20_STEP_OVER_2_TRJ(gym_discrete_setup):
     assert len(state.trajectories_list) == 2
     assert state.timestep_count == 20
     assert state.trajectory_count == 2
-    assert state.remaining_space == uni_batch_collector.CAPACITY - 20
+    assert state.remaining_batch_space == uni_batch_collector.CAPACITY - 20
 
     assert uni_batch_collector.is_not_full()
 
@@ -118,7 +118,7 @@ def test_UniformBatchCollector_AT_BATCH_CAPACITY(gym_discrete_setup):
     assert len(state.trajectories_list) == 2
     assert state.timestep_count == 200
     assert state.trajectory_count == 2
-    assert state.remaining_space == uni_batch_collector.CAPACITY - 200
+    assert state.remaining_batch_space == uni_batch_collector.CAPACITY - 200
 
     assert not uni_batch_collector.is_not_full()
 
@@ -163,7 +163,7 @@ def test_UniformBatchCollector_AT_BATCH_CAPACITY_MINUS_ONE(gym_discrete_setup):
     assert len(state.trajectories_list) == 2
     assert state.timestep_count == 199
     assert state.trajectory_count == 2
-    assert state.remaining_space == uni_batch_collector.CAPACITY - 199
+    assert state.remaining_batch_space == uni_batch_collector.CAPACITY - 199
 
     assert uni_batch_collector.is_not_full()
 
@@ -236,7 +236,7 @@ def test_UniformBatchCollector_TWO_BATCHS(gym_discrete_setup):
     assert len(state.trajectories_list) == 1
     assert state.timestep_count == 10
     assert state.trajectory_count == 1
-    assert state.remaining_space == uni_batch_collector.CAPACITY - 10
+    assert state.remaining_batch_space == uni_batch_collector.CAPACITY - 10
 
     assert uni_batch_collector.is_not_full()
 
@@ -275,7 +275,7 @@ def test_UniformBatchCollector_CUT_TRAJECTORY(gym_discrete_setup):
     assert len(state.trajectories_list) == 2
     assert state.timestep_count == 200
     assert state.trajectory_count == 2
-    assert state.remaining_space == uni_batch_collector.CAPACITY - 200
+    assert state.remaining_batch_space == uni_batch_collector.CAPACITY - 200
 
     assert not uni_batch_collector.is_not_full()
 

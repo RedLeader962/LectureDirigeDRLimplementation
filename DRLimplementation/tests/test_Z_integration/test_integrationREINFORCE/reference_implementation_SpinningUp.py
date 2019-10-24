@@ -222,7 +222,7 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
             #                          })
 
             batch_container = the_UNI_BATCH_COLLECTOR.pop_batch_and_reset()              # \\\\\\    My bloc    \\\\\\
-            (batch_rets, batch_lens) = batch_container.compute_metric()                  # \\\\\\    My bloc    \\\\\\
+            (batch_rets, batch_lens) = batch_container.get_basic_metric()                  # \\\\\\    My bloc    \\\\\\
             batch_obs = batch_container.batch_observations                               # \\\\\\    My bloc    \\\\\\
             batch_acts = batch_container.batch_actions                                   # \\\\\\    My bloc    \\\\\\
             batch_weights = batch_container.batch_Qvalues                                # \\\\\\    My bloc    \\\\\\

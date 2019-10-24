@@ -5,6 +5,7 @@ from typing import List, Tuple
 
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 from blocAndTools.rewardtogo import reward_to_go, discounted_reward_to_go
+from blocAndTools.container.batchstats import BatchStats
 
 
 class TrajectoryContainer(object):
@@ -20,7 +21,7 @@ class TrajectoryContainer(object):
                  'trajectory_id',
                  ]
 
-    def __init__(self, obs_t: list, actions: list, rewards: list, Q_values: list, trajectory_return: list,
+    def __init__(self, obs_t: list, actions: list, rewards: list, Q_values: list, trajectory_return: float,
                  trajectory_id) -> None:
         assert isinstance(obs_t, list) and isinstance(actions, list) and isinstance(rewards, list), "wrong argument type"
         assert len(obs_t) == len(actions) == len(rewards), "{} vs {} vs {} !!!".format(obs_t, actions, rewards)
@@ -48,7 +49,7 @@ class TrajectoryContainer(object):
         # update trajectory lenght
         self._trajectory_lenght = len(self.actions)
 
-    def unpack(self) -> Tuple[list, list, list, list, float, int, list]:
+    def unpack(self) -> Tuple[list, list, list, list, float, int]:
         """
         Unpack the full trajectorie as a tuple of numpy array
 
@@ -208,17 +209,19 @@ class TrajectoryCollector(object):
 
 
 class UniformeBatchContainer(object):
-    def __init__(self, batch_container_list: List[TrajectoryContainer], batch_constraint: int):
+    def __init__(self, trj_container_batch: List[TrajectoryContainer], batch_constraint: int, batch_id: int):
         """
         Container for storage & retrieval of sampled trajectories
         Is a component of the UniformBatchCollector
 
         (nice to have) todo:implement --> make the container immutable: convert each list to tupple once initialized
 
+        :param trj_container_batch: Take a list of TrajectoryContainer instance fulled of collected timestep events.
+        :type trj_container_batch: List[TrajectoryContainer]
         :param batch_constraint: max capacity measured in timestep
         :type batch_constraint: int
-        :param batch_container_list: Take a list of TrajectoryContainer instance fulled with collected timestep events.
-        :type batch_container_list: List[TrajectoryContainer]
+        :param batch_id:
+        :type batch_id:
         """
         self.batch_observations = []
         self.batch_actions = []
@@ -227,9 +230,10 @@ class UniformeBatchContainer(object):
         self.batch_returns = []
         self.batch_trjs_lenghts = []
         self._timestep_count = 0
-        self._trjs_count = len(batch_container_list)
+        self._trjs_count = len(trj_container_batch)
+        self.batch_id = batch_id
 
-        for aTrjContainer in batch_container_list:
+        for aTrjContainer in trj_container_batch:
             assert isinstance(aTrjContainer, TrajectoryContainer), "The list must contain object of type TrajectoryContainer"
 
             aTrj_obss, aTrj_acts, aTrj_rews, aTrj_Qs, aTrj_return, aTrj_lenght = self._container_feed_on_init_hook(
@@ -248,6 +252,12 @@ class UniformeBatchContainer(object):
 
         assert self._timestep_count == batch_constraint, ("The sum of each TrajectoryContainer lenght does not respect the size contraint: "
                                                           "Exepcted {}, got {} !!! ").format(batch_constraint, self._timestep_count)
+
+        # quick fix since data collected in batch stat are use in 2 separate methode already widely use over the code base
+        self.batch_stats = self._compute_batch_stats()
+
+    def get_batch_stats(self) -> BatchStats:
+        return self.batch_stats
 
     def _container_feed_on_init_hook(self, aTrjContainer: TrajectoryContainer):
         """Utility fct: Expose the init process for subclassing"""
@@ -278,22 +288,41 @@ class UniformeBatchContainer(object):
 
         return trajectories_copy
 
-    def compute_metric(self) -> (float, float):
+    def get_basic_metric(self) -> (float, float):
         """
         Compute batch relevant metric over this container stored sample
 
         :return: (batch_average_trjs_return, batch_average_trjs_lenght)
         :rtype: (float, float)
         """
-        # (nice to have) todo:refactor --> PULL implementation of the method out of class: separation of concern
-        returns = np.array(self.batch_returns)
-        lenghts = np.array(self.batch_trjs_lenghts)
-        assert len(
-            returns) == self.trajectories_count(), "Nb of trajectories_returns collected differ from the container trj_count"
-        batch_average_trjs_return = float(np.mean(returns))
-        batch_average_trjs_lenght = float(np.mean(lenghts))
+
+        # batch_average_trjs_return = float(np.mean(returns))
+        batch_average_trjs_return = self.batch_stats.mean_return
+
+        # batch_average_trjs_lenght = float(np.mean(lenghts))
+        batch_average_trjs_lenght = self.batch_stats.mean_trj_lenght
 
         return batch_average_trjs_return, batch_average_trjs_lenght
+
+    def _compute_batch_stats(self):
+        _trj_returns = np.array(self.batch_returns)
+        _trj_lenghts = np.array(self.batch_trjs_lenghts)
+
+        assert _trj_returns.ndim == 1, "The returns array is not of dimension 1"
+        assert len(_trj_returns) == self.trajectories_count(), "Nb of trajectories_returns collected differ from the container trj_count"
+
+        stats = BatchStats(mean_return=_trj_returns.mean(),
+                           max_return=_trj_returns.max(),
+                           min_return=_trj_returns.min(),
+                           std_return=_trj_returns.std(),
+                           mean_trj_lenght=_trj_lenghts.mean(),
+                           max_trj_lenght=_trj_lenghts.max(),
+                           min_trj_lenght=_trj_lenghts.min(),
+                           std_trj_lenght=_trj_lenghts.std(),
+                           batch_id=self.batch_id,
+                           step_collected=self.__len__(),
+                           trajectory_collected=self.trajectories_count())
+        return stats
 
 
 class UniformBatchCollector(object):
@@ -309,30 +338,31 @@ class UniformBatchCollector(object):
     def __init__(self, capacity: int):
         self.CAPACITY = capacity
         self._reset()
+        self.batch_stats = []
+        self.batch_idx = 0
 
     def internal_state(self) -> namedtuple:
         """Testing utility"""
         UniformBatchCollectorInternalState = namedtuple('UniformBatchCollectorInternalState',
                                                         ['trajectories_list', 'timestep_count',
-                                                         'trajectory_count', 'remaining_space'])
+                                                         'trajectory_count', 'remaining_batch_space'])
 
         return UniformBatchCollectorInternalState(self.trajectories_list, self._timestep_count,
-                                                  self._trajectory_count, self.remaining_space)
+                                                  self._trajectory_count, self.remaining_batch_space)
 
     def __call__(self, trajectory: TrajectoryContainer, *args, **kwargs) -> None:
         assert self.is_not_full(), "The batch is full: {} timesteps collected! Execute pop_batch_and_reset()".format(self._timestep_count)
 
-        if self.remaining_space < len(trajectory):
+        if self.remaining_batch_space < len(trajectory):
             """ Cut the trajectory and append to batch """
-            trajectory.cut(max_lenght=self.remaining_space)
-            assert len(trajectory) - self.remaining_space == 0, ("The trajectory to collect should be downsized but it's not. "
-                                                                 "Actual downsized len: {} Expected: {}").format(len(trajectory),
-                                                                                                                 self.remaining_space)
+            trajectory.cut(max_lenght=self.remaining_batch_space)
+            assert len(trajectory) - self.remaining_batch_space == 0, ("The trajectory to collect should be downsized but it's not. "
+                                                                       "Actual downsized len: {} Expected: {}").format(len(trajectory), self.remaining_batch_space)
 
         self.trajectories_list.append(trajectory)
         self._trajectory_count += 1
         self._timestep_count += trajectory.__len__()
-        self.remaining_space -= trajectory.__len__()
+        self.remaining_batch_space -= trajectory.__len__()
         return None
 
     def collect(self, trajectory: TrajectoryContainer) -> None:
@@ -353,9 +383,11 @@ class UniformBatchCollector(object):
         :return: A batch of concatenated trajectories component
         :rtype: UniformeBatchContainer
         """
-        container = UniformeBatchContainer(self.trajectories_list, self.CAPACITY)
+        container = UniformeBatchContainer(self.trajectories_list, self.CAPACITY, self.batch_idx)
 
-        # reset
+
+
+        self.batch_idx += 1
         self._reset()
         return container
 
@@ -363,4 +395,4 @@ class UniformBatchCollector(object):
         self.trajectories_list = []
         self._timestep_count = 0
         self._trajectory_count = 0
-        self.remaining_space = self.CAPACITY
+        self.remaining_batch_space = self.CAPACITY
