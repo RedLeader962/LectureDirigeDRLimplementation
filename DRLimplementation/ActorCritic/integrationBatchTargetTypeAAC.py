@@ -19,7 +19,7 @@ from typing import List, Tuple, Any
 
 from ActorCritic.ActorCriticBrain import build_actor_policy_graph, build_critic_graph, critic_train, actor_train
 from blocAndTools.agent import Agent
-from blocAndTools.rl_vocabulary import rl_name
+from blocAndTools.rl_vocabulary import rl_name, TargetType
 from blocAndTools import buildingbloc as bloc, ConsolPrintLearningStats
 # from blocAndTools.container.samplecontainer import TrajectoryCollector, UniformBatchCollector
 from blocAndTools.container.samplecontainer_batch_oarv import (TrajectoryContainerBatchOARV,
@@ -34,7 +34,7 @@ deprecation._PRINT_DEPRECATION_WARNINGS = False
 vocab = rl_name()
 # endregion
 
-class IntegrationActorCriticAgent(Agent):
+class IntegrationBatchTargetTypeActorCriticAgent(Agent):
     def _use_hardcoded_agent_root_directory(self):
         self.agent_root_dir = 'ActorCritic'
         return None
@@ -43,6 +43,7 @@ class IntegrationActorCriticAgent(Agent):
         """
         Build the Policy_theta & V_phi computation graph with theta and phi as multi-layer perceptron
         """
+        assert isinstance(self.exp_spec['Target'], TargetType), "exp_spec['Target'] must be explicitely defined with a TargetType enum"
 
         """ ---- Placeholder ---- """
         self.observation_ph, self.action_ph, self.Qvalues_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
@@ -129,9 +130,9 @@ class IntegrationActorCriticAgent(Agent):
         :return: Collertor utility
         :rtype: (TrajectoryCollectorBatchOARV, UniformBatchCollectorBatchOARV)
         """
-        the_TRAJECTORY_COLLECTOR = TrajectoryCollectorBatchOARV(self.exp_spec, self.playground)
-        the_UNI_BATCH_COLLECTOR = UniformBatchCollectorBatchOARV(self.exp_spec.batch_size_in_ts)
-        return the_TRAJECTORY_COLLECTOR, the_UNI_BATCH_COLLECTOR
+        trjCOLLECTOR = TrajectoryCollectorBatchOARV(self.exp_spec, self.playground)
+        batchCOLLECTOR = UniformBatchCollectorBatchOARV(self.exp_spec.batch_size_in_ts)
+        return trjCOLLECTOR, batchCOLLECTOR
 
     # todo:implement --> critic training variation: target y = Monte Carlo target
     # todo:implement --> critic training variation: target y = Bootstrap estimate target
@@ -146,7 +147,7 @@ class IntegrationActorCriticAgent(Agent):
         :yield: (epoch, epoch_loss, batch_average_trjs_return, batch_average_trjs_lenght)
         """
 
-        the_TRAJECTORY_COLLECTOR, the_UNI_BATCH_COLLECTOR = self._instantiate_data_collector()
+        trjCOLLECTOR, batchCOLLECTOR = self._instantiate_data_collector()
 
         """ ---- Warm-up the computation graph and start learning! ---- """
         tf_cv1.set_random_seed(self.exp_spec.random_seed)
@@ -167,7 +168,7 @@ class IntegrationActorCriticAgent(Agent):
                 consol_print_learning_stats.next_glorious_epoch()
 
                 """ ---- Simulator: trajectories ---- """
-                while the_UNI_BATCH_COLLECTOR.is_not_full():
+                while batchCOLLECTOR.is_not_full():
                     obs_t = self.playground.env.reset()                                  # <-- fetch initial observation
                     consol_print_learning_stats.next_glorious_trajectory()
 
@@ -175,43 +176,62 @@ class IntegrationActorCriticAgent(Agent):
                     while True:
                         global_step_i += 1
                         self._render_trajectory_on_condition(epoch, render_env,
-                                                             the_UNI_BATCH_COLLECTOR.trj_collected_so_far())
+                                                             batchCOLLECTOR.trj_collected_so_far())
 
                         """ ---- Agent: act in the environment ---- """
                         obs_t_flat = bloc.format_single_step_observation(obs_t)
-                        action_array = sess.run(self.policy_action_sampler,
-                                                feed_dict={self.observation_ph: obs_t_flat})
 
-                        action = bloc.to_scalar(action_array)
+                        """ ---- Run Graph computation ---- """
+                        if self.exp_spec['Target'] is TargetType.MonteCarlo:
+                            action = sess.run(self.policy_action_sampler,
+                                              feed_dict={self.observation_ph: obs_t_flat})
+                        elif self.exp_spec['Target'] is TargetType.Bootstrap:
+                            action, V_t = sess.run([self.policy_action_sampler, self.V_phi_estimator],
+                                                   feed_dict={self.observation_ph: obs_t_flat})
 
+                        """ ---- act in the environment ---- """
+                        action = bloc.to_scalar(action)
                         obs_tPrime, reward, done, _ = self.playground.env.step(action)
 
                         """ ---- Agent: Collect current timestep events ---- """
-                        the_TRAJECTORY_COLLECTOR.collect_OAR(observation=obs_t,
-                                                             action=action,
-                                                             reward=reward,
-                                                             # V_estimate=bloc.to_scalar(V_estimate)
-                                                             )
+                        if self.exp_spec['Target'] is TargetType.MonteCarlo:
+                            trjCOLLECTOR.collect_OAR(observation=obs_t,
+                                                     action=action,
+                                                     reward=reward)
+                        elif self.exp_spec['Target'] is TargetType.Bootstrap:
+                            V_t = bloc.to_scalar(V_t)
+                            trjCOLLECTOR.collect_OARV(observation=obs_t,
+                                                      action=action,
+                                                      reward=reward,
+                                                      V_estimate=V_t)
+
                         obs_t = obs_tPrime                                                                      # <-- (!)
 
                         if done:
                             """ ---- Simulator: trajectory as ended ---- """
-                            trj_return = the_TRAJECTORY_COLLECTOR.trajectory_ended()
+                            trj_return = trjCOLLECTOR.trajectory_ended()
+
+                            if self.exp_spec['Target'] is TargetType.MonteCarlo:
+                                trjCOLLECTOR.compute_Qvalues_as_rewardToGo()
+                            elif self.exp_spec['Target'] is TargetType.Bootstrap:
+                                """ ---- Element wise computed Bootstrap estimate ---- """
+                                TD_target = compute_TD_target(trjCOLLECTOR.rewards, trjCOLLECTOR.V_estimates)
+                                trjCOLLECTOR.set_Qvalues(TD_target.tolist())
 
                             trj_summary = sess.run(self.summary_trj_op, {self.Summary_trj_return_ph: trj_return})
                             self.writer.add_summary(trj_summary, global_step=global_step_i)
 
                             """ ---- Agent: Collect the sampled trajectory  ---- """
-                            trj_container = the_TRAJECTORY_COLLECTOR.pop_trajectory_and_reset()
-                            the_UNI_BATCH_COLLECTOR.collect(trj_container)
+                            trj_container = trjCOLLECTOR.pop_trajectory_and_reset()
+                            batchCOLLECTOR.collect(trj_container)
 
                             consol_print_learning_stats.trajectory_training_stat(
                                 the_trajectory_return=trj_return, timestep=len(trj_container))
                             break
 
                 """ ---- Simulator: epoch as ended, it's time to learn! ---- """
-                batch_trj_collected = the_UNI_BATCH_COLLECTOR.trj_collected_so_far()
-                batch_timestep_collected = the_UNI_BATCH_COLLECTOR.timestep_collected_so_far()
+                batch_trj_collected = batchCOLLECTOR.trj_collected_so_far()
+                batch_timestep_collected = batchCOLLECTOR.timestep_collected_so_far()
 
                 # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
                 # *                                                                                                  *
@@ -220,28 +240,27 @@ class IntegrationActorCriticAgent(Agent):
                 # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
 
                 """ ---- Prepare data for backpropagation in the neural net ---- """
-                batch_container: UniformeBatchContainerBatchOARV = the_UNI_BATCH_COLLECTOR.pop_batch_and_reset()
+                batch_container: UniformeBatchContainerBatchOARV = batchCOLLECTOR.pop_batch_and_reset()
                 batch_average_trjs_return, batch_average_trjs_lenght = batch_container.compute_metric()
 
                 batch_observations = batch_container.batch_observations
                 batch_actions = batch_container.batch_actions
                 batch_Qvalues = batch_container.batch_Qvalues                                                  # <-- (!)
-                # batch_Advantages = batch_container.batch_Advantages                                         # =Muted=
 
                 # self._data_shape_is_compatibility_with_graph(batch_Qvalues, batch_actions, batch_observations) # =Muted=
 
                 """ ---- Agent: Compute gradient & update policy ---- """
-                feed_dictionary = bloc.build_feed_dictionary(
+                epoch_feed_dictionary = bloc.build_feed_dictionary(
                     [self.observation_ph, self.action_ph, self.Qvalues_ph, self.Summary_batch_avg_trjs_return_ph],
                     [batch_observations, batch_actions, batch_Qvalues, batch_average_trjs_return])
 
-                e_actor_loss, e_V_phi_loss, summary = sess.run([self.actor_loss, self.V_phi_loss, self.summary_epoch_op],
-                                                               feed_dict=feed_dictionary)
+                e_actor_loss, e_V_phi_loss, epoch_summary = sess.run([self.actor_loss, self.V_phi_loss, self.summary_epoch_op],
+                                                               feed_dict=epoch_feed_dictionary)
 
-                self.writer.add_summary(summary, global_step=global_step_i)
+                self.writer.add_summary(epoch_summary, global_step=global_step_i)
 
                 """ ---- Train actor ---- """
-                sess.run(self.actor_policy_optimizer, feed_dict=feed_dictionary)
+                sess.run(self.actor_policy_optimizer, feed_dict=epoch_feed_dictionary)
 
                 # # \\\\\\    My bloc    \\\\\\
                 # # Use with MY Advantage formulation

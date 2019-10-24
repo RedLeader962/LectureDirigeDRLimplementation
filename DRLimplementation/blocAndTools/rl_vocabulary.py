@@ -2,6 +2,7 @@
 
 from collections import namedtuple
 from typing import Type
+from enum import Enum
 
 _rl_vocab_list = [
     'REINFORCE', 'ActorCritic', 'DQN',
@@ -46,5 +47,9 @@ A standardize vocabulary to use when refering node in a computation graph
 """
 rl_name: namedtuple = namedtuple('RLvocabulary', _rl_vocab_list, defaults=_rl_vocab_list)
 
+
+class TargetType(Enum):
+    MonteCarlo = 1
+    Bootstrap = 2
 
 

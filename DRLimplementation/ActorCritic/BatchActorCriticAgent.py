@@ -36,7 +36,7 @@ class ActorCriticAgent(Agent):
         self.observation_ph, self.action_ph, self.target_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
             self.playground, obs_shape_constraint=None, action_shape_constraint=None, Q_name=vocab.target_ph)
 
-        raise NotImplementedError   # (CRITICAL) todo:refactor all module --> follow DRLimplementation/ActorCritic/integrationBatchAAC.py
+        raise NotImplementedError   # (CRITICAL) todo:refactor all module --> follow DRLimplementation/ActorCritic/integrationBatchTargetTypeAAC.py
 
         self.Advantage_ph = tf_cv1.placeholder(tf.float32, shape=self.target_ph.shape, name=vocab.advantage_ph)
 

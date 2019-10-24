@@ -32,7 +32,7 @@ def computhe_the_Advantage(rewards: List, v_estimates: List) -> np.ndarray:
     return advantage
 
 
-def compute_TD_target(rewards: List, v_estimates: List) -> np.ndarray:
+def compute_TD_target(rewards: list, v_estimates: list) -> np.ndarray:
     """Compute the Temporal Difference target for the full trajectory in one shot using element wise operation"""
     rew_t = np.array(rewards)
     _, V_tPrime = get_t_and_tPrime_array_view_for_element_wise_op(v_estimates)
