@@ -69,14 +69,6 @@ class IntegrationBatchTargetTypeActorCriticAgent(Agent):
         # self.Advantage_ph = tf_cv1.placeholder(tf.float32, shape=self.Qvalues_ph.shape, name=vocab.advantage_ph)
 
         with tf_cv1.name_scope(vocab.Advantage):
-
-            # ////// Original bloc //////
-            # FASTER computation
-            # action_ohe = tf.one_hot(self.action_ph, self.playground.ACTION_CHOICES, 1.0, 0.0, name='action_one_hot')
-            # V_estimate = tf.reduce_sum(self.V_phi_estimator * action_ohe, reduction_indices=-1, name='q_acted')
-            # flatten_V_estimate = tf.reshape(V_estimate, [-1])
-            # Advantage = self.Qvalues_ph - flatten_V_estimate
-
             # (!) note: Advantage computation
             #       |       no squeeze      ==>     SLOWER computation
             #       |       with squeeze    ==>     RACING CAR FAST computation
@@ -179,10 +171,8 @@ class IntegrationBatchTargetTypeActorCriticAgent(Agent):
                         self._render_trajectory_on_condition(epoch, render_env,
                                                              batchCOLLECTOR.trj_collected_so_far())
 
-                        """ ---- Agent: act in the environment ---- """
-                        obs_t_flat = bloc.format_single_step_observation(obs_t)
-
                         """ ---- Run Graph computation ---- """
+                        obs_t_flat = bloc.format_single_step_observation(obs_t)
                         if self.exp_spec['Target'] is TargetType.MonteCarlo:
                             action = sess.run(self.policy_action_sampler,
                                               feed_dict={self.observation_ph: obs_t_flat})
@@ -190,21 +180,16 @@ class IntegrationBatchTargetTypeActorCriticAgent(Agent):
                             action, V_t = sess.run([self.policy_action_sampler, self.V_phi_estimator],
                                                    feed_dict={self.observation_ph: obs_t_flat})
 
-                        """ ---- act in the environment ---- """
+                        """ ---- Agent: act in the environment ---- """
                         action = bloc.to_scalar(action)
                         obs_tPrime, reward, done, _ = self.playground.env.step(action)
 
                         """ ---- Agent: Collect current timestep events ---- """
                         if self.exp_spec['Target'] is TargetType.MonteCarlo:
-                            trjCOLLECTOR.collect_OAR(observation=obs_t,
-                                                     action=action,
-                                                     reward=reward)
+                            trjCOLLECTOR.collect_OAR(observation=obs_t, action=action, reward=reward)
                         elif self.exp_spec['Target'] is TargetType.Bootstrap:
                             V_t = bloc.to_scalar(V_t)
-                            trjCOLLECTOR.collect_OARV(observation=obs_t,
-                                                      action=action,
-                                                      reward=reward,
-                                                      V_estimate=V_t)
+                            trjCOLLECTOR.collect_OARV(observation=obs_t, action=action, reward=reward, V_estimate=V_t)
 
                         obs_t = obs_tPrime                                                                      # <-- (!)
 
@@ -213,9 +198,10 @@ class IntegrationBatchTargetTypeActorCriticAgent(Agent):
                             trj_return = trjCOLLECTOR.trajectory_ended()
 
                             if self.exp_spec['Target'] is TargetType.MonteCarlo:
+                                """ ---- Iterative cumulated sum computed Monte Carlo target  ---- """
                                 trjCOLLECTOR.compute_Qvalues_as_rewardToGo()
                             elif self.exp_spec['Target'] is TargetType.Bootstrap:
-                                """ ---- Element wise computed Bootstrap estimate ---- """
+                                """ ---- Element wise computed Bootstrap estimate target ---- """
                                 TD_target = compute_TD_target(trjCOLLECTOR.rewards, trjCOLLECTOR.V_estimates)
                                 trjCOLLECTOR.set_Qvalues(TD_target.tolist())
 
@@ -263,17 +249,9 @@ class IntegrationBatchTargetTypeActorCriticAgent(Agent):
                 """ ---- Train actor ---- """
                 sess.run(self.actor_policy_optimizer, feed_dict=epoch_feed_dictionary)
 
-                # # \\\\\\    My bloc    \\\\\\
-                # # Use with MY Advantage formulation
                 critic_feed_dictionary = bloc.build_feed_dictionary(
                     [self.observation_ph, self.Qvalues_ph],
                     [batch_observations, batch_Qvalues])
-
-                # # ////// Original bloc //////
-                # # Use with LilLog Advantage formulation
-                # critic_feed_dictionary = bloc.build_feed_dictionary(
-                #     [self.observation_ph, self.action_ph, self.Qvalues_ph],
-                #     [batch_observations, batch_actions, batch_Qvalues])
 
                 """ ---- Train critic ---- """
                 for c_loop in range(self.exp_spec['critique_loop_len']):
