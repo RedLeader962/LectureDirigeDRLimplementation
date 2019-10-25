@@ -9,8 +9,9 @@ import numpy as np
 from typing import List, Tuple, Any
 
 from ActorCritic.ActorCriticBrain import build_actor_policy_graph, build_critic_graph, critic_train, actor_train
+from ActorCritic.ActorCriticBrainSharedNetwork import build_actor_critic_shared_graph
 from blocAndTools.agent import Agent
-from blocAndTools.rl_vocabulary import rl_name, TargetType
+from blocAndTools.rl_vocabulary import rl_name, TargetType, NetworkType
 from blocAndTools import buildingbloc as bloc, ConsolPrintLearningStats
 # from blocAndTools.container.samplecontainer import TrajectoryCollector, UniformBatchCollector
 from blocAndTools.container.samplecontainer_batch_oarv import (TrajectoryContainerBatchOARV,
@@ -34,20 +35,47 @@ class BatchActorCriticAgent(Agent):
         """
         Build the Policy_theta & V_phi computation graph with theta and phi as multi-layer perceptron
         """
-        assert isinstance(self.exp_spec['Target'], TargetType), "exp_spec['Target'] must be explicitely defined with a TargetType enum"
+        assert isinstance(self.exp_spec['Target'], TargetType), ("exp_spec['Target'] must be explicitely defined "
+                                                                 "with a TargetType enum")
+        assert isinstance(self.exp_spec['Network'], NetworkType), ("exp_spec['Network'] must be explicitely defined "
+                                                                   "with a NetworkType enum")
 
         """ ---- Placeholder ---- """
         self.observation_ph, self.action_ph, self.Qvalues_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
             self.playground, obs_shape_constraint=None, action_shape_constraint=None, Q_name=vocab.Qvalues_ph)
 
-        # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-        # *                                                                                                           *
-        # *                                         Critic computation graph                                          *
-        # *                                      (The value function estimator)                                       *
-        # *                                                                                                           *
-        # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-        """ ----  ---- """
-        self.V_phi_estimator = build_critic_graph(self.observation_ph, self.exp_spec)
+        if self.exp_spec['Network'] is NetworkType.Split:
+            # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+            # *                                                                                                       *
+            # *                                         Critic computation graph                                      *
+            # *                                              (Split network)                                          *
+            # *                                                                                                       *
+            # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+            self.V_phi_estimator = build_critic_graph(self.observation_ph, self.exp_spec)
+
+            # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+            # *                                                                                                       *
+            # *                                         Actor computation graph                                       *
+            # *                                             (Split network)                                           *
+            # *                                                                                                       *
+            # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+            self.policy_action_sampler, log_pi, _ = build_actor_policy_graph(self.observation_ph, self.exp_spec,
+                                                                             self.playground)
+
+            print(":: SPLIT network constructed")
+
+        elif self.exp_spec['Network'] is NetworkType.Shared:
+            # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+            # *                                                                                                       *
+            # *                                   Shared Actor-Critic computation graph                               *
+            # *                                                                                                       *
+            # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+            self.policy_action_sampler, log_pi, _, self.V_phi_estimator = build_actor_critic_shared_graph(
+                self.observation_ph, self.exp_spec, self.playground)
+
+            print(":: SHARED network constructed")
+
+
 
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
         # *                                                                                                           *
@@ -68,13 +96,6 @@ class BatchActorCriticAgent(Agent):
             #
             # (Nice to have) todo:investigate?? --> why it's much faster?: hypothese --> broadcasting slowdown computation
             Advantage = self.Qvalues_ph - tf_cv1.squeeze(self.V_phi_estimator)
-
-        # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-        # *                                                                                                           *
-        # *                                         Actor computation graph                                           *
-        # *                                                                                                           *
-        # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-        self.policy_action_sampler, log_pi, theta_mlp = build_actor_policy_graph(self.observation_ph, self.exp_spec, self.playground)
 
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
         # *                                                                                                           *
@@ -136,7 +157,7 @@ class BatchActorCriticAgent(Agent):
         trjCOLLECTOR, batchCOLLECTOR = self._instantiate_data_collector()
 
         """ ---- Warm-up the computation graph and start learning! ---- """
-        tf_cv1.set_random_seed(self.exp_spec.random_seed)
+        tf_cv1.random.set_random_seed(self.exp_spec.random_seed)
         np.random.seed(self.exp_spec.random_seed)
         with tf_cv1.Session() as sess:
             sess.run(tf_cv1.global_variables_initializer())  # initialize random variable in the computation graph

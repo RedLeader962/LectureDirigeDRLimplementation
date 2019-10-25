@@ -85,11 +85,6 @@ def build_critic_graph(observation_placeholder: tf.Tensor, experiment_spec: Expe
     :return: critic
     """
 
-    # """ Tensor first dimension shape compatibility assessment """
-    # assert observation_placeholder.shape.as_list()[0] == target_placeholder.shape.as_list()[0], \
-    #     "Qvalues_ph shape {} first dimension is NOT compatible with Obs_ph shape first dimension {} ".format(
-    #         target_placeholder.shape.as_list()[0], observation_placeholder.shape.as_list()[0])
-
     with tf.name_scope(vocab.critic_network) as scope:
         """ ---- Build parameter PHI as a multilayer perceptron ---- """
         critic = build_MLP_computation_graph(observation_placeholder, 1,
