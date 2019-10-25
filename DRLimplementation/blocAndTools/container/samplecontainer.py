@@ -1,7 +1,8 @@
 # coding=utf-8
 import numpy as np
+import pandas as pd
 from collections import namedtuple
-from typing import List, Tuple
+from typing import List, Tuple, Any
 
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 from blocAndTools.rewardtogo import reward_to_go, discounted_reward_to_go
@@ -220,8 +221,8 @@ class UniformeBatchContainer(object):
         :type trj_container_batch: List[TrajectoryContainer]
         :param batch_constraint: max capacity measured in timestep
         :type batch_constraint: int
-        :param batch_id:
-        :type batch_id:
+        :param batch_id: the batch idx number
+        :type batch_id: int
         """
         self.batch_observations = []
         self.batch_actions = []
@@ -234,7 +235,8 @@ class UniformeBatchContainer(object):
         self.batch_id = batch_id
 
         for aTrjContainer in trj_container_batch:
-            assert isinstance(aTrjContainer, TrajectoryContainer), "The list must contain object of type TrajectoryContainer"
+            assert isinstance(aTrjContainer, TrajectoryContainer), ("The trj_container_batch list must contain object "
+                                                                    "of type TrajectoryContainer")
 
             aTrj_obss, aTrj_acts, aTrj_rews, aTrj_Qs, aTrj_return, aTrj_lenght = self._container_feed_on_init_hook(
                 aTrjContainer)
@@ -250,20 +252,44 @@ class UniformeBatchContainer(object):
 
             self._timestep_count += len(aTrjContainer)
 
-        assert self._timestep_count == batch_constraint, ("The sum of each TrajectoryContainer lenght does not respect the size contraint: "
-                                                          "Exepcted {}, got {} !!! ").format(batch_constraint, self._timestep_count)
+        assert self._timestep_count == batch_constraint, ("The sum of each TrajectoryContainer lenght does not"
+                                                          " respect the size contraint: "
+                                                          "Expected {}, got {} !!! "
+                                                          ).format(batch_constraint, self._timestep_count)
 
-        # quick fix since data collected in batch stat are use in 2 separate methode already widely use over the code base
-        self.batch_stats = self._compute_batch_stats()
+        # Note: Quick fix since data collected in batch stats are used in 2 separate methode
+        #   |     already widely use over the code base
+        self._batch_stats = self._compute_batch_stats()
+
+    def _compute_batch_stats(self):
+        stats = BatchStats(batch_id=self.batch_id, step_collected=self.__len__(),
+                           trajectory_collected=self.trajectories_count(), batch_trjs_returns=self.batch_returns,
+                           batch_trjs_lenghts=self.batch_trjs_lenghts)
+        return stats
 
     def get_batch_stats(self) -> BatchStats:
-        return self.batch_stats
+        """
+        Get statistic about the collected trajectories return and lenght such as mean, max, min and standard deviation
+
+        :return: A BatchStats dataclass with computed batch statistic
+        :rtype: BatchStats
+        """
+        return self._batch_stats
+
+    def get_basic_metric(self) -> (float, float):
+        """
+        Compute batch relevant metric over this container stored sample
+
+        :return: (batch_average_trjs_return, batch_average_trjs_lenght)
+        :rtype: (float, float)
+        """
+        return self._batch_stats.mean_return, self._batch_stats.mean_trj_lenght
 
     def _container_feed_on_init_hook(self, aTrjContainer: TrajectoryContainer):
         """Utility fct: Expose the init process for subclassing"""
         aTrj_obss, aTrj_acts, aTrj_rews, aTrj_Qs, aTrj_return, aTrj_lenght = aTrjContainer.unpack()
 
-        # Note: add computation here
+        # Note: add computation here in subclass methode >>>
 
         return aTrj_obss, aTrj_acts, aTrj_rews, aTrj_Qs, aTrj_return, aTrj_lenght
 
@@ -285,56 +311,20 @@ class UniformeBatchContainer(object):
         # (icebox) todo:assessment --> if the copy method still required?: it does only if the list content are numpy ndarray
         trajectories_copy = (self.batch_observations.copy(), self.batch_actions.copy(), self.batch_Qvalues.copy(),
                              self.batch_returns.copy(), self.batch_trjs_lenghts, self._timestep_count, self.__len__())
-
         return trajectories_copy
-
-    def get_basic_metric(self) -> (float, float):
-        """
-        Compute batch relevant metric over this container stored sample
-
-        :return: (batch_average_trjs_return, batch_average_trjs_lenght)
-        :rtype: (float, float)
-        """
-
-        # batch_average_trjs_return = float(np.mean(returns))
-        batch_average_trjs_return = self.batch_stats.mean_return
-
-        # batch_average_trjs_lenght = float(np.mean(lenghts))
-        batch_average_trjs_lenght = self.batch_stats.mean_trj_lenght
-
-        return batch_average_trjs_return, batch_average_trjs_lenght
-
-    def _compute_batch_stats(self):
-        _trj_returns = np.array(self.batch_returns)
-        _trj_lenghts = np.array(self.batch_trjs_lenghts)
-
-        assert _trj_returns.ndim == 1, "The returns array is not of dimension 1"
-        assert len(_trj_returns) == self.trajectories_count(), "Nb of trajectories_returns collected differ from the container trj_count"
-
-        stats = BatchStats(mean_return=_trj_returns.mean(),
-                           max_return=_trj_returns.max(),
-                           min_return=_trj_returns.min(),
-                           std_return=_trj_returns.std(),
-                           mean_trj_lenght=_trj_lenghts.mean(),
-                           max_trj_lenght=_trj_lenghts.max(),
-                           min_trj_lenght=_trj_lenghts.min(),
-                           std_trj_lenght=_trj_lenghts.std(),
-                           batch_id=self.batch_id,
-                           step_collected=self.__len__(),
-                           trajectory_collected=self.trajectories_count())
-        return stats
-
 
 class UniformBatchCollector(object):
     """
     Collect sampled trajectories and agregate them in multiple batch container of uniforme dimension.
-    (!) Is responsible of batch dimension uniformity across the experiement.
+    Is also responsible of batch dimension uniformity across the experiement.
 
-    note: Optimization consideration --> why collect numpy ndarray in python list?
-      |   It's a order of magnitude faster to collect ndarray in a list and then convert the list
-      |       to a long ndarray than it is to append ndarray to each other
+    (!) Note: Optimization consideration --> why collect sample in python list instead of numpy ndarray?
+          |   It's a order of magnitude faster to collect ndarray in a list and then convert the list
+          |   to a long ndarray than it is to append ndarray to each other
 
     """
+    batch_stats: List[BatchStats]
+
     def __init__(self, capacity: int):
         self.CAPACITY = capacity
         self._reset()
@@ -385,11 +375,40 @@ class UniformBatchCollector(object):
         """
         container = UniformeBatchContainer(self.trajectories_list, self.CAPACITY, self.batch_idx)
 
-
-
+        self.batch_stats.append(container.get_batch_stats())
         self.batch_idx += 1
         self._reset()
         return container
+
+    def compute_experiment_stats(self):
+
+        # batch_id: int
+        # step_collected: int
+        # trajectory_collected: int
+        _mean_return = np.zeros(self.batch_idx)
+        _max_return = np.zeros(self.batch_idx)
+        _min_return = np.zeros(self.batch_idx)
+        _std_return = np.zeros(self.batch_idx)
+        _mean_trj_lenght = np.zeros(self.batch_idx)
+        _max_trj_lenght = np.zeros(self.batch_idx)
+        _min_trj_lenght = np.zeros(self.batch_idx)
+        _std_trj_lenght = np.zeros(self.batch_idx)
+
+        for i, each in enumerate(self.batch_stats):
+            _mean_return[i] = each.mean_return
+            _max_return[i] = each.max_return
+            _min_return[i] = each.min_return
+            _std_return[i] = each.std_return
+            _mean_trj_lenght[i] = each.mean_trj_lenght
+            _max_trj_lenght[i] = each.max_trj_lenght
+            _min_trj_lenght[i] = each.min_trj_lenght
+            _std_trj_lenght[i] = each.std_trj_lenght
+
+        # (Priority) todo:unit-test --> validate stats computation:
+        # (Priority) todo:implement --> build CSV or panda dataframe:
+        # (Priority) todo:implement --> log to file:
+
+
 
     def _reset(self):
         self.trajectories_list = []
