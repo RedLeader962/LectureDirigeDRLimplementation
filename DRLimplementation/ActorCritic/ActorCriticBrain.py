@@ -87,8 +87,7 @@ def build_critic_graph(observation_placeholder: tf.Tensor, experiment_spec: Expe
 
     with tf.name_scope(vocab.critic_network) as scope:
         """ ---- Build parameter PHI as a multilayer perceptron ---- """
-        critic = build_MLP_computation_graph(observation_placeholder, 1,
-                                             experiment_spec.theta_nn_h_layer_topo,
+        critic = build_MLP_computation_graph(observation_placeholder, 1, experiment_spec.theta_nn_h_layer_topo,
                                              hidden_layers_activation=experiment_spec.theta_hidden_layers_activation,
                                              output_layers_activation=experiment_spec.theta_output_layers_activation,
                                              name=vocab.phi_NeuralNet)

@@ -226,7 +226,9 @@ class GymPlayground(object):
 
 def build_MLP_computation_graph(input_placeholder: tf.Tensor, output_dim, hidden_layer_topology: tuple = (32, 32),
                                 hidden_layers_activation: tf.Tensor = tf.nn.tanh,
-                                output_layers_activation: tf.Tensor = None, name=vocab.Multi_Layer_Perceptron) -> tf.Tensor:
+                                output_layers_activation: tf.Tensor = None,
+                                reuse=None,
+                                name=vocab.Multi_Layer_Perceptron) -> tf.Tensor:
     """
     Builder function for Low Level TensorFlow API.
     Return a Multi Layer Perceptron computatin graph with topology:
@@ -244,7 +246,7 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, output_dim, hidden
     assert isinstance(input_placeholder, tf.Tensor)
     assert isinstance(hidden_layer_topology, tuple)
 
-    with tf_cv1.variable_scope(name_or_scope=name):
+    with tf_cv1.variable_scope(name_or_scope=name, reuse=reuse):
         h_layer = input_placeholder
 
         # create & connect all hidden layer

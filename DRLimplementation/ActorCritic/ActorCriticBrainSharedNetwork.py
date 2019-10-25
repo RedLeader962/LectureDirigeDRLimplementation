@@ -59,8 +59,7 @@ def build_actor_critic_shared_graph(observation_placeholder: tf.Tensor, experime
         raise NotImplementedError
 
     """ ---- Build the Critic ---- """
-    critic = build_MLP_computation_graph(shared_network, 1,
-                                         (),
+    critic = build_MLP_computation_graph(shared_network, 1, (),
                                          hidden_layers_activation=experiment_spec.theta_hidden_layers_activation,
                                          output_layers_activation=experiment_spec.theta_output_layers_activation,
                                          name=vocab.V_estimate)

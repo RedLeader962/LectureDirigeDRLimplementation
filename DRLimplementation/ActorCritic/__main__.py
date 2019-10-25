@@ -38,7 +38,7 @@ from blocAndTools.rl_vocabulary import TargetType, NetworkType
 
 batch_AAC_MonteCarlo_target_hparam = {
     'paramameter_set_name':           'Batch AAC MonteCarlo target',
-    'algo_name':                      'ActorCritic',
+    'algo_name':                      'Batch ActorCritic',
     'comment':                        '',
     'Target':                         TargetType.MonteCarlo,
     'Network':                        NetworkType.Split,
@@ -64,7 +64,7 @@ batch_AAC_MonteCarlo_target_hparam = {
 
 batch_AAC_Bootstrap_target_hparam = {
     'paramameter_set_name':           'Batch AAC Element wise Bootstrap target',
-    'algo_name':                      'ActorCritic',
+    'algo_name':                      'Batch ActorCritic',
     'comment':                        '',
     'Target':                         TargetType.Bootstrap,
     'Network':                        NetworkType.Split,
@@ -90,7 +90,7 @@ batch_AAC_Bootstrap_target_hparam = {
 
 batch_AAC_Bootstrap_SHARED_net_hparam = {
     'paramameter_set_name':           'AAC shared network',
-    'algo_name':                      'ActorCritic',
+    'algo_name':                      'Batch ActorCritic',
     'comment':                        'Bootstrap Tiny Batch WORKING',
     'Target':                         TargetType.Bootstrap,
     'Network':                        NetworkType.Shared,
@@ -111,13 +111,14 @@ batch_AAC_Bootstrap_SHARED_net_hparam = {
     'print_metric_every_what_epoch':  8,
     'isTestRun':                      False,
     'show_plot':                      False,
-    'note':                           ("Does not learn on large batch! "
+    'note':                           ("Converge aparently faster."
+                                       "Does not learn on large batch! "
                                        "Work only on tiny batch (more or less 1 trajectory)"
-                                       "Use small hlayer topo"
-                                       "small learning rate"
-                                       "Extremely sensible to hyper param tuning"
+                                       "Use small hlayer topo."
+                                       "Require small learning rate."
+                                       "Extremely sensible to hyper param tuning."
                                        "Can possibly not learn at all on different run with same hparam "
-                                       "probably because of unlucky initialisation")
+                                       "probably because of unlucky grpah initialisation or unlucky initial state")
     }
 
 # batch_AAC_Bootstrap_SHARED_net_hparam = batch_AAC_Bootstrap_target_hparam.copy()

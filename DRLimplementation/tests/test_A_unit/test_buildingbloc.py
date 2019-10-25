@@ -330,7 +330,8 @@ def test_policy_theta_discrete_space_ENV_NOT_DISCRETE(gym_and_tf_continuous_setu
     obs_p, act_p, exp_spec, continuous_playground = gym_and_tf_continuous_setup
 
     out_p_wrong_shape = tf_cv1.placeholder(tf.float32, shape=(None, 43))
-    theta_mlp = bloc.build_MLP_computation_graph(obs_p, continuous_playground.ACTION_CHOICES, exp_spec.theta_nn_h_layer_topo)
+    theta_mlp = bloc.build_MLP_computation_graph(obs_p, continuous_playground.ACTION_CHOICES,
+                                                 exp_spec.theta_nn_h_layer_topo)
 
     with pytest.raises(AssertionError):
         bloc.policy_theta_discrete_space(theta_mlp, continuous_playground)
@@ -363,7 +364,8 @@ def test_policy_theta_continuous_space_ENV_NOT_DISCRETE(gym_and_tf_discrete_setu
 
     obs_p, act_p, exp_spec, discrete_playground = gym_and_tf_discrete_setup
     obs_p_wrong_shape = tf_cv1.placeholder(tf.float32, shape=(None, 43))
-    theta_mlp = bloc.build_MLP_computation_graph(obs_p, discrete_playground.ACTION_CHOICES, exp_spec.theta_nn_h_layer_topo)
+    theta_mlp = bloc.build_MLP_computation_graph(obs_p, discrete_playground.ACTION_CHOICES,
+                                                 exp_spec.theta_nn_h_layer_topo)
 
     with pytest.raises(AssertionError):
         bloc.policy_theta_continuous_space(theta_mlp, discrete_playground)
