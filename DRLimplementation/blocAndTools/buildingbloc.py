@@ -253,10 +253,13 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, output_dim, hidden
         for id in range(len(hidden_layer_topology)):
             h_layer = tf_cv1.layers.dense(h_layer, hidden_layer_topology[id],
                                           activation=hidden_layers_activation,
+                                          reuse=reuse,
                                           name='{}{}'.format(vocab.hidden_, id + 1))
 
         logits = tf_cv1.layers.dense(h_layer, output_dim,
-                                     activation=output_layers_activation, name=vocab.logits)
+                                     activation=output_layers_activation,
+                                     reuse=reuse,
+                                     name=vocab.logits)
 
     return logits
 

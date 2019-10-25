@@ -10,8 +10,7 @@ tf_cv1 = tf.compat.v1  # shortcut
 vocab = rl_name()
 
 
-def build_actor_critic_shared_graph(observation_placeholder: tf.Tensor, experiment_spec: ExperimentSpec,
-                                    playground: GymPlayground) -> (tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor):
+def build_actor_critic_shared_graph(obs_ph: tf.Tensor, exp_spec: ExperimentSpec, playground: GymPlayground) -> (tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor):
     """
     The ACTOR-CRITIC shared network variant architecture
 
@@ -27,26 +26,27 @@ def build_actor_critic_shared_graph(observation_placeholder: tf.Tensor, experime
             input: the observations collected
             output: the logits of each action in the action space
 
-    :return: sampled_action, log_pi_all, shared_network, critic
+    :return: sampled_action, log_pi_all, theta_shared_MLP, critic
     """
     """ ---- Assess the input shape compatibility ---- """
-    are_compatible = observation_placeholder.shape.as_list()[-1] == playground.OBSERVATION_SPACE.shape[0]
+    are_compatible = obs_ph.shape.as_list()[-1] == playground.OBSERVATION_SPACE.shape[0]
     assert are_compatible, ("the observation_placeholder is incompatible with environment, "
-                            "{} != {}").format(observation_placeholder.shape.as_list()[-1],
+                            "{} != {}").format(obs_ph.shape.as_list()[-1],
                                                playground.OBSERVATION_SPACE.shape[0])
 
-    """ ---- Build parameter THETA as a multilayer perceptron ---- """
-    shared_network = build_MLP_computation_graph(observation_placeholder, playground.ACTION_CHOICES,
-                                                 experiment_spec.theta_nn_h_layer_topo,
-                                                 hidden_layers_activation=experiment_spec.theta_hidden_layers_activation,
-                                                 output_layers_activation=experiment_spec.theta_output_layers_activation,
-                                                 name=vocab.shared_network)
 
     # ::Discrete case
     if isinstance(playground.env.action_space, gym.spaces.Discrete):
 
+        """ ---- Build parameter THETA as a multilayer perceptron ---- """
+        theta_shared_MLP = build_MLP_computation_graph(obs_ph, playground.ACTION_CHOICES,
+                                                       exp_spec.theta_nn_h_layer_topo,
+                                                       hidden_layers_activation=exp_spec.theta_hidden_layers_activation,
+                                                       output_layers_activation=exp_spec.theta_output_layers_activation,
+                                                       reuse=None,          # <-- (!)
+                                                       name=vocab.shared_network)
         """ ---- Build the policy for discrete space ---- """
-        sampled_action, log_pi_all = policy_theta_discrete_space(shared_network, playground)
+        sampled_action, log_pi_all = policy_theta_discrete_space(theta_shared_MLP, playground)
 
     # ::Continuous case
     elif isinstance(playground.env.action_space, gym.spaces.Box):
@@ -59,10 +59,17 @@ def build_actor_critic_shared_graph(observation_placeholder: tf.Tensor, experime
         raise NotImplementedError
 
     """ ---- Build the Critic ---- """
-    critic = build_MLP_computation_graph(shared_network, 1, (),
-                                         hidden_layers_activation=experiment_spec.theta_hidden_layers_activation,
-                                         output_layers_activation=experiment_spec.theta_output_layers_activation,
+    phi_shared_MLP = build_MLP_computation_graph(obs_ph, playground.ACTION_CHOICES,
+                                                 exp_spec.theta_nn_h_layer_topo,
+                                                 hidden_layers_activation=exp_spec.theta_hidden_layers_activation,
+                                                 output_layers_activation=exp_spec.theta_output_layers_activation,
+                                                 reuse=True,  # <-- (!)
+                                                 name=vocab.shared_network)
+
+    critic = build_MLP_computation_graph(phi_shared_MLP, 1, (),
+                                         hidden_layers_activation=exp_spec.theta_hidden_layers_activation,
+                                         output_layers_activation=exp_spec.theta_output_layers_activation,
                                          name=vocab.V_estimate)
 
-    return sampled_action, log_pi_all, shared_network, critic
+    return sampled_action, log_pi_all, theta_shared_MLP, critic
 
