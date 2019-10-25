@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="BatchActorCritic trainingloop --train" type="PythonConfigurationType" factoryName="Python">
+  <configuration default="false" name="BatchActorCritic Bootstrap target --trainBootstap" type="PythonConfigurationType" factoryName="Python">
     <module name="LectureDirigeDRLimplementation" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
@@ -13,7 +13,7 @@
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
     <option name="SCRIPT_NAME" value="$PROJECT_DIR$/DRLimplementation/ActorCritic/" />
-    <option name="PARAMETERS" value="--train" />
+    <option name="PARAMETERS" value="--trainBootstap" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="false" />

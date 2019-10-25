@@ -48,7 +48,7 @@ def set_up_PWD_to_project_root():
 def test_ActorCritic_agent_discrete_TRAIN_command_line_invocation(set_up_PWD_to_project_root):
     from os import system
 
-    out = system("python -m ActorCritic --train"
+    out = system("python -m ActorCritic --trainMC"
                  " --test_run")
 
     # Note: exit(0) <==> clean exit without any errors/problems

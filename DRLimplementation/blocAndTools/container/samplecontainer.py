@@ -341,13 +341,15 @@ class UniformBatchCollector(object):
                                                   self._trajectory_count, self.remaining_batch_space)
 
     def __call__(self, trajectory: TrajectoryContainer, *args, **kwargs) -> None:
-        assert self.is_not_full(), "The batch is full: {} timesteps collected! Execute pop_batch_and_reset()".format(self._timestep_count)
+        assert self.is_not_full(), ("The batch is full: {} timesteps collected! "
+                                    "Execute pop_batch_and_reset()").format(self._timestep_count)
 
         if self.remaining_batch_space < len(trajectory):
             """ Cut the trajectory and append to batch """
             trajectory.cut(max_lenght=self.remaining_batch_space)
-            assert len(trajectory) - self.remaining_batch_space == 0, ("The trajectory to collect should be downsized but it's not. "
-                                                                       "Actual downsized len: {} Expected: {}").format(len(trajectory), self.remaining_batch_space)
+            error_str = ("The trajectory to collect should be downsized but it's not. "
+                         "Actual downsized len: {} Expected: {}").format(len(trajectory), self.remaining_batch_space)
+            assert len(trajectory) - self.remaining_batch_space == 0, error_str
 
         self.trajectories_list.append(trajectory)
         self._trajectory_count += 1

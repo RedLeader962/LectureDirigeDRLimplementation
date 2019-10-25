@@ -116,7 +116,7 @@ class TrajectoryCollectorBatchOARV(TrajectoryCollector):
 
 
 class UniformeBatchContainerBatchOARV(UniformeBatchContainer):
-    def __init__(self, trj_container_batch: List[TrajectoryContainerBatchOARV], batch_constraint: int, id):
+    def __init__(self, trj_container_batch: List[TrajectoryContainerBatchOARV], batch_constraint: int, batch_id: int):
         """
         Container for storage & retrieval of sampled trajectories for Batch Actor-Critic algorihm
         Is a component of the UniformBatchCollectorBatchOARV
@@ -131,7 +131,7 @@ class UniformeBatchContainerBatchOARV(UniformeBatchContainer):
         :type trj_container_batch: List[TrajectoryContainer]
         """
         self.batch_Values_estimate = []
-        super().__init__(trj_container_batch, batch_constraint, self.batch_idx)
+        super().__init__(trj_container_batch, batch_constraint, batch_id)
 
     def _container_feed_on_init_hook(self, aTrjContainer: TrajectoryContainerBatchOARV):
         aTrj_obss, aTrj_acts, aTrj_rews, aTrj_Qs, aTrj_return, aTrj_lenght, aTrj_Values = aTrjContainer.unpack()

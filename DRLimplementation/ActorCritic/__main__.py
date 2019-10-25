@@ -7,8 +7,8 @@ Invoke Actor-Critic agent using
 
 Note on TensorBoard usage:
     Start TensorBoard in terminal:
-        cd DRLimplementation    <-- (!)
-        tensorboard --logdir=ActorCritic/graph/runs
+        cd DRLimplementation   (!)
+        tensorboard --logdir=ActorCritic/graph
 
     In browser, go to:
         http://0.0.0.0:6006/
@@ -18,9 +18,8 @@ Note on TensorBoard usage:
 import argparse
 import tensorflow as tf
 
-from ActorCritic.integrationBatchTargetTypeAAC import IntegrationBatchTargetTypeActorCriticAgent
+from ActorCritic.BatchActorCriticAgent import BatchActorCriticAgent
 from ActorCritic.reference_LilLog_BatchAAC import ReferenceActorCriticAgent
-from ActorCritic.BatchActorCriticAgent import ActorCriticAgent
 from blocAndTools.buildingbloc import ExperimentSpec
 from blocAndTools.rl_vocabulary import TargetType
 
@@ -37,29 +36,60 @@ from blocAndTools.rl_vocabulary import TargetType
 #           Example with experiment average step of 100:
 #              0.9^100 = 0.000026 vs 0.99^100 = 0.366003 vs 0.999^100 = 0.904792
 
-batch_AAC_hparam = {
+batch_AAC_MonteCarlo_target_hparam = {
     'paramameter_set_name':           'Batch AAC',
     'algo_name':                      'ActorCritic',
-    'comment':                        None,
+    'comment':                        'MonteCarlo target',
     'Target':                         TargetType.MonteCarlo,
     'prefered_environment':           'CartPole-v0',
     'expected_reward_goal':           200,
-    'batch_size_in_ts':               3000,
-    'max_epoch':                      100,
+    'batch_size_in_ts':               4000,
+    'max_epoch':                      30,
     'discounted_reward_to_go':        True,
-    'discout_factor':                 0.999,
-    'learning_rate':                  2e-3,
-    'critic_learning_rate':           1e-3,
-    'critique_loop_len':              40,
-    'theta_nn_h_layer_topo':          (82,),
+    'discout_factor':                 0.99,
+    'learning_rate':                  1e-2,
+    'critic_learning_rate':           1e-2,
+    'critique_loop_len':              80,
+    'theta_nn_h_layer_topo':          (32, 32),
     'random_seed':                    0,
-    'theta_hidden_layers_activation': tf.nn.tanh,  # tf.nn.relu,
+    'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh,
     'theta_output_layers_activation': None,
     'render_env_every_What_epoch':    100,
     'print_metric_every_what_epoch':  2,
     'isTestRun':                      False,
     'show_plot':                      False,
+    'note':                           ''
     }
+
+batch_AAC_Bootstrap_target_hparam = {
+    'paramameter_set_name':           'Integrate Batch AAC',
+    'algo_name':                      'ActorCritic',
+    'comment':                        'Element wise Bootstrap target',
+    'Target':                         TargetType.Bootstrap,
+    'prefered_environment':           'CartPole-v0',
+    'expected_reward_goal':           200,
+    'batch_size_in_ts':               4000,
+    'max_epoch':                      30,
+    'discounted_reward_to_go':        True,
+    'discout_factor':                 0.99,
+    'learning_rate':                  1e-2,
+    'critic_learning_rate':           1e-2,
+    'critique_loop_len':              80,
+    'theta_nn_h_layer_topo':          (32, 32),
+    'random_seed':                    0,
+    'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh,
+    'theta_output_layers_activation': None,
+    'render_env_every_What_epoch':    100,
+    'print_metric_every_what_epoch':  2,
+    'isTestRun':                      False,
+    'show_plot':                      False,
+    'note':                           "Both loss have a lot less variance. The algo take more time to converge"
+    }
+
+batch_AAC_Bootstrap_target_hparam = batch_AAC_Bootstrap_target_hparam.copy()
+batch_AAC_Bootstrap_target_hparam['comment'] = "Advantage NO squeeze"
+batch_AAC_Bootstrap_target_hparam['Target'] = TargetType.MonteCarlo
+batch_AAC_Bootstrap_target_hparam['note'] = "Advantage computation with no squeeze ==> a lot SLOWER computation"
 
 lilLogBatch_AAC_hparam = {
     'paramameter_set_name':           'Batch AAC',
@@ -84,37 +114,6 @@ lilLogBatch_AAC_hparam = {
     'isTestRun':                      False,
     'show_plot':                      False,
     }
-
-integrationBatchBootstrapAAC_hparm = {
-    'paramameter_set_name':           'Integrate Batch AAC',
-    'algo_name':                      'ActorCritic',
-    'comment':                        'Element wise Bootstrap',
-    'Target':                         TargetType.Bootstrap,
-    'prefered_environment':           'CartPole-v0',
-    'expected_reward_goal':           200,
-    'batch_size_in_ts':               4000,
-    'max_epoch':                      30,
-    'discounted_reward_to_go':        True,
-    'discout_factor':                 0.99,
-    'learning_rate':                  1e-2,
-    'critic_learning_rate':           1e-2,
-    'critique_loop_len':              80,
-    'theta_nn_h_layer_topo':          (32, 32),
-    'random_seed':                    0,
-    'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh,
-    'theta_output_layers_activation': None,
-    'render_env_every_What_epoch':    100,
-    'print_metric_every_what_epoch':  2,
-    'isTestRun':                      False,
-    'show_plot':                      False,
-    'note':                           "Both loss have a lot less variance. The algo take more time to converge"
-    }
-
-integrationBatchBootstrapAAC_hparm = integrationBatchBootstrapAAC_hparm.copy()
-integrationBatchBootstrapAAC_hparm['comment'] = "Advantage NO squeeze"
-integrationBatchBootstrapAAC_hparm['Target'] = TargetType.MonteCarlo
-integrationBatchBootstrapAAC_hparm['note'] = "Advantage computation with no squeeze ==> a lot SLOWER computation"
-
 
 test_hparam = {
     'paramameter_set_name':           'Batch AAC',
@@ -148,12 +147,13 @@ parser = argparse.ArgumentParser(description=(
     epilog="=============================================================================\n")
 
 # parser.add_argument('--env', type=str, default='CartPole-v0')
-parser.add_argument('--train', action='store_true', help='Execute training of Actor-Critic agent')
-parser.add_argument('--reference', action='store_true', help='Execute training of Reference Actor-Critic agent')
-parser.add_argument('--integration', action='store_true', help='Execute training of Integration Actor-Critic agent')
+parser.add_argument('--trainMC', action='store_true', help='Train a Actor-Critic agent with Monte Carlo TD target')
+parser.add_argument('--trainBootstap', action='store_true', help='Train a Actor-Critic agent with bootstrap estimate TD target')
+parser.add_argument('--reference', action='store_true', help='Execute training of reference Actor-Critic implementation by Lilian Weng')
 
 parser.add_argument('-r', '--render_training', action='store_true',
                     help='(Training option) Watch the agent execute trajectories while he is on traning duty')
+
 parser.add_argument('-d', '--discounted', default=None, type=bool,
                     help='(Training option) Force training execution with discounted reward-to-go')
 
@@ -166,17 +166,31 @@ args = parser.parse_args()
 
 exp_spec = ExperimentSpec()
 
-if args.train:
+if args.trainMC:
+    """ ---- Monte Carlo TD target ---- """
     # Configure experiment hyper-parameter
     if args.test_run:
         exp_spec.set_experiment_spec(test_hparam)
     else:
-        exp_spec.set_experiment_spec(batch_AAC_hparam)
+        exp_spec.set_experiment_spec(batch_AAC_Bootstrap_target_hparam)
 
     if args.discounted is not None:
         exp_spec.set_experiment_spec({'discounted_reward_to_go': args.discounted})
 
-    ac_agent = ActorCriticAgent(exp_spec)
+    ac_agent = BatchActorCriticAgent(exp_spec)
+    ac_agent.train(render_env=args.render_training)
+elif args.trainBootstap:
+    """ ---- Bootstrap estimate TD target run ---- """
+    # Configure experiment hyper-parameter
+    if args.test_run:
+        exp_spec.set_experiment_spec(test_hparam)
+    else:
+        exp_spec.set_experiment_spec(batch_AAC_Bootstrap_target_hparam)
+
+    if args.discounted is not None:
+        exp_spec.set_experiment_spec({'discounted_reward_to_go': args.discounted})
+
+    ac_agent = BatchActorCriticAgent(exp_spec)
     ac_agent.train(render_env=args.render_training)
 elif args.reference:
     """ ---- Lil-Log reference run ---- """
@@ -191,25 +205,13 @@ elif args.reference:
 
     ac_agent = ReferenceActorCriticAgent(exp_spec)
     ac_agent.train(render_env=args.render_training)
-elif args.integration:
-    """ ---- Integration run ---- """
-    # Configure experiment hyper-parameter
-    if args.test_run:
-        exp_spec.set_experiment_spec(test_hparam)
-    else:
-        exp_spec.set_experiment_spec(integrationBatchBootstrapAAC_hparm)
-
-    if args.discounted is not None:
-        exp_spec.set_experiment_spec({'discounted_reward_to_go': args.discounted})
-
-    ac_agent = IntegrationBatchTargetTypeActorCriticAgent(exp_spec)
-    ac_agent.train(render_env=args.render_training)
 else:
-    exp_spec.set_experiment_spec(batch_AAC_hparam)
+    """ ---- Play run ---- """
+    exp_spec.set_experiment_spec(batch_AAC_MonteCarlo_target_hparam)
     if args.test_run:
         exp_spec.set_experiment_spec({'isTestRun': True})
 
-    ac_agent = ActorCriticAgent(exp_spec)
+    ac_agent = BatchActorCriticAgent(exp_spec)
     raise NotImplementedError  # todo: implement train and select a agent
     ac_agent.play(run_name='todo --> CHANGE_TO_My_TrainedAgent', max_trajectories=args.play_for)
 

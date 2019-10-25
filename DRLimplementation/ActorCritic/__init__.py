@@ -2,15 +2,14 @@
 """
 Invoke Actor-Critic agent using
 
-    python -m ActorCritic [--help] [--train] [--render_training] [--discounted] [--play_for] [--test_run]
+    python -m ActorCritic [--help] [--trainMC] [trainBootstap] [--render_training] [--discounted] [--play_for] [--test_run]
 
 """
 import sys
 import os
 
-from ActorCritic.integrationBatchTargetTypeAAC import IntegrationBatchTargetTypeActorCriticAgent
+from ActorCritic.BatchActorCriticAgent import BatchActorCriticAgent
 from ActorCritic.reference_LilLog_BatchAAC import ReferenceActorCriticAgent
-from ActorCritic.BatchActorCriticAgent import ActorCriticAgent
 from ActorCritic.ActorCriticBrain import build_actor_policy_graph, build_critic_graph
 
 name = "ActorCritic"

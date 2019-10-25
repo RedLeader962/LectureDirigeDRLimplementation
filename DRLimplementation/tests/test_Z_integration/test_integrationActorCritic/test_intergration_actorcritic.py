@@ -4,8 +4,9 @@ import tensorflow as tf
 import tensorflow.python.util.deprecation as deprecation
 from datetime import datetime
 
-from DRLimplementation.ActorCritic import ActorCriticAgent
+from DRLimplementation.ActorCritic import BatchActorCriticAgent
 from blocAndTools.buildingbloc import ExperimentSpec, setup_commented_run_dir_str
+from blocAndTools.rl_vocabulary import TargetType
 from blocAndTools.visualisationtools import ConsolPrintLearningStats
 
 tf_cv1 = tf.compat.v1   # shortcut
@@ -14,7 +15,7 @@ deprecation._PRINT_DEPRECATION_WARNINGS = False
 """
 Start TensorBoard in terminal:
     cd DRLimplementation
-    tensorboard --logdir=DRLimplementation/tests/test_Z_integration/test_integrationActorCritic/graph/runs
+    tensorboard --logdir=DRLimplementation/tests/test_Z_integration/test_integrationActorCritic/graph
     
 In browser, go to:
     http://0.0.0.0:6006/ 
@@ -25,25 +26,26 @@ AGENT_ROOT_DIR = "test_Z_integration/test_integrationActorCritic"
 CARTPOLE_HPARAM = {
     'paramameter_set_name':           'Batch AAC',
     'algo_name':                      'ActorCritic',
-    'comment':                        'Integrate',
-    'MonteCarloTarget':               True,
+    'comment':                        'MonteCarlo target',
+    'Target':                         TargetType.MonteCarlo,
     'prefered_environment':           'CartPole-v0',
     'expected_reward_goal':           200,
-    'batch_size_in_ts': 4000,
-    'max_epoch': 50,
-    'discounted_reward_to_go': False,
-    'discout_factor': 0.99,
-    'learning_rate': 3e-4,
-    'critic_learning_rate': 1e-3,
-    'critique_loop_len': 80,
-    'theta_nn_h_layer_topo': (62, 62),
-    'random_seed': 82,
-    'theta_hidden_layers_activation': tf.nn.tanh,        # tf.nn.relu,
+    'batch_size_in_ts':               4000,
+    'max_epoch':                      30,
+    'discounted_reward_to_go':        True,
+    'discout_factor':                 0.99,
+    'learning_rate':                  1e-2,
+    'critic_learning_rate':           1e-2,
+    'critique_loop_len':              80,
+    'theta_nn_h_layer_topo':          (32, 32),
+    'random_seed':                    0,
+    'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh,
     'theta_output_layers_activation': None,
-    'render_env_every_What_epoch': 100,
-    'print_metric_every_what_epoch': 2,
+    'render_env_every_What_epoch':    100,
+    'print_metric_every_what_epoch':  2,
     'isTestRun':                      False,
     'show_plot':                      False,
+    'note':                           ''
 }
 
 CARTPOLE_HPARAM_FAIL = CARTPOLE_HPARAM.copy()
@@ -55,7 +57,7 @@ def init_spec_and_ActorCriticAgent(hparam):
 
     exp_spec = ExperimentSpec()
     exp_spec.set_experiment_spec(hparam)
-    actorcritic_agent = ActorCriticAgent(exp_spec, agent_root_dir=AGENT_ROOT_DIR)
+    actorcritic_agent = BatchActorCriticAgent(exp_spec, agent_root_dir=AGENT_ROOT_DIR)
 
     consol_print_learning_stats = ConsolPrintLearningStats(exp_spec, exp_spec.print_metric_every_what_epoch)
 
@@ -79,7 +81,7 @@ def setup_ActorCritic_train_algo_generator_with_PASSING_spec():
     actorcritic_agent.writer = writer
 
     yield epoch_generator, nb_of_try, env_max_return, exp_spec
-    consol_print_learning_stats.print_experiment_stats(print_plot=not exp_spec.show_plot)
+    consol_print_learning_stats.print_experiment_stats(print_plot=exp_spec.show_plot)
     actorcritic_agent.writer.close()
 
 
