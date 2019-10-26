@@ -136,7 +136,8 @@ class BatchActorCriticAgent(Agent):
         :return: Collertor utility
         :rtype: (TrajectoryCollectorBatchOARV, UniformBatchCollectorBatchOARV)
         """
-        trjCOLLECTOR = TrajectoryCollectorBatchOARV(self.exp_spec, self.playground)
+        trjCOLLECTOR = TrajectoryCollectorBatchOARV(self.exp_spec, self.playground,
+                                                    discounted=self.exp_spec.discounted_reward_to_go)
         batchCOLLECTOR = UniformBatchCollectorBatchOARV(self.exp_spec.batch_size_in_ts)
         return trjCOLLECTOR, batchCOLLECTOR
 

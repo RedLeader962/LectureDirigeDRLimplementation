@@ -19,6 +19,7 @@ import argparse
 import tensorflow as tf
 
 from ActorCritic.BatchActorCriticAgent import BatchActorCriticAgent
+from ActorCritic.OnlineActorCriticAgent import OnlineActorCriticAgent
 from ActorCritic.reference_LilLog_BatchAAC import ReferenceActorCriticAgent
 from blocAndTools.buildingbloc import ExperimentSpec
 from blocAndTools.rl_vocabulary import TargetType, NetworkType
@@ -121,6 +122,32 @@ batch_AAC_Bootstrap_SHARED_net_hparam = {
                                        "probably because of unlucky grpah initialisation or unlucky initial state")
     }
 
+ONLINE_AAC_Bootstrap_SHARED_net_hparam = {
+    'paramameter_set_name':           'Online AAC shared network',
+    'algo_name':                      'Online ActorCritic',
+    'comment':                        '',
+    'Network':                        NetworkType.Shared,
+    'prefered_environment':           'CartPole-v0',
+    'expected_reward_goal':           200,
+    'batch_size_in_ts':               5,
+    'stage_size_in_trj':              20,
+    'max_epoch':                      400,
+    'discounted_reward_to_go':        True,
+    'discout_factor':                 0.999,
+    'learning_rate':                  1e-3,
+    'critic_learning_rate':           1e-4,
+    'critique_loop_len':              1,
+    'theta_nn_h_layer_topo':          (60, 60),
+    'random_seed':                    13,
+    'theta_hidden_layers_activation': tf.nn.leaky_relu,  # tf.nn.tanh, tf.nn.leaky_relu
+    'theta_output_layers_activation': None,
+    'render_env_every_What_epoch':    100,
+    'print_metric_every_what_epoch':  8,
+    'isTestRun':                      False,
+    'show_plot':                      False,
+    'note':                           ""
+    }
+
 # batch_AAC_Bootstrap_SHARED_net_hparam = batch_AAC_Bootstrap_target_hparam.copy()
 # batch_AAC_Bootstrap_SHARED_net_hparam['comment'] = "Bootstrap SHARED network"
 # batch_AAC_Bootstrap_SHARED_net_hparam['Target'] = TargetType.Bootstrap
@@ -184,9 +211,11 @@ parser = argparse.ArgumentParser(description=(
     epilog="=============================================================================\n")
 
 # parser.add_argument('--env', type=str, default='CartPole-v0')
-parser.add_argument('--trainMC', action='store_true', help='Train a Actor-Critic agent with Monte Carlo TD target')
-parser.add_argument('--trainBootstap', action='store_true', help='Train a Actor-Critic agent with bootstrap estimate TD target')
-parser.add_argument('--trainShared', action='store_true', help='Train a Actor-Critic agent with shared network')
+parser.add_argument('--trainMC', action='store_true', help='Train a Batch Actor-Critic agent with Monte Carlo TD target')
+parser.add_argument('--trainBootstap', action='store_true', help='Train a Batch Actor-Critic agent with bootstrap estimate TD target')
+parser.add_argument('--trainShared', action='store_true', help='Train a Batch Actor-Critic agent with shared network')
+parser.add_argument('--trainOnlineShared', action='store_true', help='Train a Online Actor-Critic agent with shared network')
+
 parser.add_argument('--reference', action='store_true', help='Execute training of reference Actor-Critic implementation by Lilian Weng')
 
 parser.add_argument('-r', '--render_training', action='store_true',
@@ -204,55 +233,64 @@ args = parser.parse_args()
 
 exp_spec = ExperimentSpec()
 
+
+def discounted_arg_check(spec):
+    if args.discounted is not None:
+        spec.set_experiment_spec({'discounted_reward_to_go': args.discounted})
+
+
 if args.trainMC:
-    """ ---- Monte Carlo TD target ---- """
-    # Configure experiment hyper-parameter
+    """ ---- Batch Split network architecture with Monte Carlo TD target ---- """
     if args.test_run:
         exp_spec.set_experiment_spec(test_hparam)
     else:
         exp_spec.set_experiment_spec(batch_AAC_MonteCarlo_target_hparam)
 
-    if args.discounted is not None:
-        exp_spec.set_experiment_spec({'discounted_reward_to_go': args.discounted})
+    discounted_arg_check(exp_spec)
 
     ac_agent = BatchActorCriticAgent(exp_spec)
     ac_agent.train(render_env=args.render_training)
 elif args.trainBootstap:
-    """ ---- Bootstrap estimate TD target run ---- """
-    # Configure experiment hyper-parameter
+    """ ---- Batch Split network architecture with Bootstrap estimate TD target run ---- """
     if args.test_run:
         exp_spec.set_experiment_spec(test_hparam)
     else:
         exp_spec.set_experiment_spec(batch_AAC_Bootstrap_target_hparam)
 
-    if args.discounted is not None:
-        exp_spec.set_experiment_spec({'discounted_reward_to_go': args.discounted})
+    discounted_arg_check(exp_spec)
 
     ac_agent = BatchActorCriticAgent(exp_spec)
     ac_agent.train(render_env=args.render_training)
 elif args.trainShared:
-    """ ---- Bootstrap estimate TD target run ---- """
-    # Configure experiment hyper-parameter
+    """ ---- Batch Shared network architecture with Bootstrap estimate TD target run ---- """
     if args.test_run:
         exp_spec.set_experiment_spec(test_hparam)
     else:
         exp_spec.set_experiment_spec(batch_AAC_Bootstrap_SHARED_net_hparam)
 
-    if args.discounted is not None:
-        exp_spec.set_experiment_spec({'discounted_reward_to_go': args.discounted})
+    discounted_arg_check(exp_spec)
 
     ac_agent = BatchActorCriticAgent(exp_spec)
     ac_agent.train(render_env=args.render_training)
+elif args.trainOnlineShared:
+    """ ---- ONLINE Shared network architecture with Bootstrap estimate TD target run ---- """
+    if args.test_run:
+        exp_spec.set_experiment_spec(test_hparam)
+    else:
+        exp_spec.set_experiment_spec(ONLINE_AAC_Bootstrap_SHARED_net_hparam)
+
+    discounted_arg_check(exp_spec)
+
+    ac_agent = OnlineActorCriticAgent(exp_spec)
+    ac_agent.train(render_env=args.render_training)
 elif args.reference:
     """ ---- Lil-Log reference run ---- """
-    # Configure experiment hyper-parameter
     if args.test_run:
         exp_spec.set_experiment_spec(test_hparam)
     else:
         exp_spec.set_experiment_spec(lilLogBatch_AAC_hparam)
 
-    if args.discounted is not None:
-        exp_spec.set_experiment_spec({'discounted_reward_to_go': args.discounted})
+    discounted_arg_check(exp_spec)
 
     ac_agent = ReferenceActorCriticAgent(exp_spec)
     ac_agent.train(render_env=args.render_training)

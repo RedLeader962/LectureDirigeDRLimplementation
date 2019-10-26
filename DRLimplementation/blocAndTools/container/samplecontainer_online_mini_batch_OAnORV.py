@@ -227,6 +227,7 @@ class ExperimentStageCollectorOnlineAAC(UniformBatchCollector):
     for online Actor-Critic algorithm
 
     Purpose: statistic book-keeping.
+    capacity: is on a trajectory count scale
 
     (!) Keep in mind that the size of containers produced on a timestep scale will be UNEVEN )
 
@@ -234,7 +235,6 @@ class ExperimentStageCollectorOnlineAAC(UniformBatchCollector):
       |   It's a order of magnitude faster to collect ndarray in a list and then convert the list
       |       to a long ndarray than it is to append ndarray to each other
 
-    :param capacity: is on a trajectory count scale
     """
 
     def is_not_full(self) -> bool:

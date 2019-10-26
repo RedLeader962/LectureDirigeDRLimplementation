@@ -116,8 +116,8 @@ class OnlineActorCriticAgent(Agent):
         tf_cv1.summary.scalar('Actor_loss', self.actor_loss, family=vocab.loss)
         tf_cv1.summary.scalar('Critic_loss', self.V_phi_loss, family=vocab.loss)
 
-        self.Summary_batch_avg_trjs_return_ph = tf_cv1.placeholder(tf.float32, name='Summary_batch_avg_trjs_return_ph')
-        tf_cv1.summary.scalar('Batch average return', self.Summary_batch_avg_trjs_return_ph, family=vocab.G)
+        self.summary_stage_avg_trjs_return_ph = tf_cv1.placeholder(tf.float32, name='summary_stage_avg_trjs_return_ph')
+        tf_cv1.summary.scalar('Batch average return', self.summary_stage_avg_trjs_return_ph, family=vocab.G)
 
         self.summary_epoch_op = tf_cv1.summary.merge_all()
 
@@ -135,8 +135,10 @@ class OnlineActorCriticAgent(Agent):
         :return: Collertor utility
         :rtype: (TrajectoryCollectorBatchOARV, UniformBatchCollectorBatchOARV)
         """
-        trjCOLLECTOR = TrajectoryCollectorMiniBatchOnlineOAnORV(self.exp_spec, self.playground)
-        experimentCOLLECTOR = ExperimentStageCollectorOnlineAAC(self.exp_spec.batch_size_in_ts)
+        trjCOLLECTOR = TrajectoryCollectorMiniBatchOnlineOAnORV(self.exp_spec, self.playground,
+                                                                discounted=self.exp_spec.discounted_reward_to_go,
+                                                                mini_batch_capacity=self.exp_spec.batch_size_in_ts)
+        experimentCOLLECTOR = ExperimentStageCollectorOnlineAAC(self.exp_spec['stage_size_in_trj'])
         return trjCOLLECTOR, experimentCOLLECTOR
 
     def _training_epoch_generator(self, consol_print_learning_stats: ConsolPrintLearningStats, render_env: bool):
@@ -147,7 +149,7 @@ class OnlineActorCriticAgent(Agent):
         :type consol_print_learning_stats:
         :param render_env:
         :type render_env: bool
-        :yield: (epoch, epoch_loss, batch_average_trjs_return, batch_average_trjs_lenght)
+        :yield: (epoch, epoch_loss, stage_average_trjs_return, stage_average_trjs_lenght)
         """
 
         trjCOLLECTOR, experimentCOLLECTOR = self._instantiate_data_collector()
@@ -169,6 +171,8 @@ class OnlineActorCriticAgent(Agent):
             global_step_i = 0
             for epoch in range(self.exp_spec.max_epoch):
                 consol_print_learning_stats.next_glorious_epoch()
+
+                e_actor_loss, e_V_phi_loss = [], []
 
                 """ ---- Simulator: trajectories ---- """
                 while experimentCOLLECTOR.is_not_full():                         # <-- (!) BATCH collector control over sampling from batch capacity
@@ -198,10 +202,20 @@ class OnlineActorCriticAgent(Agent):
 
                         # (CRITICAL) todo:finish --> minibatch TRAINING & UPDATE V_phi
                         if trjCOLLECTOR.minibatch_is_full():
-                            self.train_on_minibatch(trjCOLLECTOR, sess, global_step_i, consol_print_learning_stats)
+                            mb_actor_loss, mb_V_loss = self.train_on_minibatch(trjCOLLECTOR,
+                                                                               sess, global_step_i,
+                                                                               consol_print_learning_stats)
+                            e_actor_loss.append(mb_actor_loss)
+                            e_V_phi_loss.append(mb_V_loss)
 
                         if done:
                             """ ---- Simulator: trajectory as ended ---- """
+                            mb_actor_loss, mb_V_loss = self.train_on_minibatch(trjCOLLECTOR,
+                                                                               sess, global_step_i,
+                                                                               consol_print_learning_stats)
+                            e_actor_loss.append(mb_actor_loss)
+                            e_V_phi_loss.append(mb_V_loss)
+
                             trj_return = trjCOLLECTOR.trajectory_ended()
 
                             trj_summary = sess.run(self.summary_trj_op, {self.Summary_trj_return_ph: trj_return})
@@ -218,8 +232,8 @@ class OnlineActorCriticAgent(Agent):
                             break
 
                 """ ---- Simulator: epoch as ended, it's time to learn! ---- """
-                batch_trj_collected = experimentCOLLECTOR.trj_collected_so_far()
-                batch_timestep_collected = experimentCOLLECTOR.timestep_collected_so_far()
+                stage_trj_collected = experimentCOLLECTOR.trj_collected_so_far()
+                stage_timestep_collected = experimentCOLLECTOR.timestep_collected_so_far()
 
                 # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
                 # *                                                                                                  *
@@ -229,7 +243,7 @@ class OnlineActorCriticAgent(Agent):
 
                 """ ---- Prepare data for backpropagation in the neural net ---- """
                 experiment_container = experimentCOLLECTOR.pop_batch_and_reset()                                     # <-- (!) BATCH collector control
-                batch_average_trjs_return, batch_average_trjs_lenght = experiment_container.get_basic_metric()       # <-- (!) BATCH container ACCESS
+                stage_average_trjs_return, stage_average_trjs_lenght = experiment_container.get_basic_metric()       # <-- (!) BATCH container ACCESS
 
                 # batch_observations = experiment_container.batch_observations                                 # BATCH container ACCESS  # =Muted=
                 # batch_actions = experiment_container.batch_actions                                           # BATCH container ACCESS  # =Muted=
@@ -238,35 +252,44 @@ class OnlineActorCriticAgent(Agent):
                 # self._data_shape_is_compatibility_with_graph(batch_Qvalues, batch_actions, batch_observations) # =Muted=
 
                 epoch_summary = sess.run(self.summary_epoch_op,
-                                         feed_dict={self.Summary_batch_avg_trjs_return_ph: batch_average_trjs_return})
+                                         feed_dict={self.summary_stage_avg_trjs_return_ph: stage_average_trjs_return})
 
                 self.writer.add_summary(epoch_summary, global_step=global_step_i)
 
                 # todo:refactor --> move :
                 consol_print_learning_stats.epoch_training_stat(
-                    epoch_loss=0,                                                                    # <-- (!)epoch stats
-                    epoch_average_trjs_return=batch_average_trjs_return,
-                    epoch_average_trjs_lenght=batch_average_trjs_lenght,
-                    number_of_trj_collected=batch_trj_collected,
-                    total_timestep_collected=batch_timestep_collected
+                    epoch_loss=0,                                                                                    # <-- (!)epoch stats
+                    epoch_average_trjs_return=stage_average_trjs_return,
+                    epoch_average_trjs_lenght=stage_average_trjs_lenght,
+                    number_of_trj_collected=stage_trj_collected,
+                    total_timestep_collected=stage_timestep_collected
                     )
 
-                self._save_learned_model(batch_average_trjs_return, epoch, sess)
+                self._save_learned_model(stage_average_trjs_return, epoch, sess)
 
                 """ ---- Expose current epoch computed information for integration test ---- """
-                yield (epoch, e_actor_loss, batch_average_trjs_return, batch_average_trjs_lenght)
+                yield (epoch, None, stage_average_trjs_return, stage_average_trjs_lenght)
 
         return None
 
     def train_on_minibatch(self, trjCOLLECTOR, sess, global_step_i, consol_print_learning_stats):
-        trjCOLLECTOR.compute_Qvalues_as_BootstrapEstimate()  # <-- (!) TRJ collector COMPUTE
+        trjCOLLECTOR.compute_Qvalues_as_BootstrapEstimate()                                                          # <-- (!) TRJ collector COMPUTE
         minibatch = trjCOLLECTOR.get_minibatch()
+
+        """ ---- Train critic ---- """
+        critic_feed_dictionary = bloc.build_feed_dictionary(
+            [self.observation_ph, self.Qvalues_ph],
+            [minibatch.obs_t, minibatch.q_values_t])
+
+        for c_loop in range(self.exp_spec['critique_loop_len']):                                                     # <-- (!) propably 1 iteration
+            consol_print_learning_stats.track_progress(progress=c_loop, message="Critic training")
+            sess.run(self.V_phi_optimizer, feed_dict=critic_feed_dictionary)
 
         """ ---- Agent: Compute gradient & update policy ---- """
         epoch_feed_dictionary = bloc.build_feed_dictionary([self.observation_ph, self.action_ph, self.Qvalues_ph],
                                                            [minibatch.obs_t, minibatch.act_t, minibatch.q_values_t])
 
-        e_actor_loss, e_V_phi_loss, epoch_summary = sess.run([self.actor_loss, self.V_phi_loss, self.summary_epoch_op],
+        minibatch_actor_loss, minibatch_V_loss, epoch_summary = sess.run([self.actor_loss, self.V_phi_loss, self.summary_epoch_op],
                                                              feed_dict=epoch_feed_dictionary)
 
         self.writer.add_summary(epoch_summary, global_step=global_step_i)
@@ -274,11 +297,5 @@ class OnlineActorCriticAgent(Agent):
         """ ---- Train actor ---- """
         sess.run(self.actor_policy_optimizer, feed_dict=epoch_feed_dictionary)
 
-        critic_feed_dictionary = bloc.build_feed_dictionary(
-            [self.observation_ph, self.Qvalues_ph],
-            [minibatch.obs_t, minibatch.q_values_t])
+        return minibatch_actor_loss, minibatch_V_loss
 
-        """ ---- Train critic ---- """
-        for c_loop in range(self.exp_spec['critique_loop_len']):
-            consol_print_learning_stats.track_progress(progress=c_loop, message="Critic training")
-            sess.run(self.V_phi_optimizer, feed_dict=critic_feed_dictionary)
