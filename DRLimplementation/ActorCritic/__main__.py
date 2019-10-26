@@ -15,9 +15,11 @@ Note on TensorBoard usage:
 
 
 """
+from typing import List, Tuple, Any, Iterable, Union, Type
 import argparse
 import tensorflow as tf
 
+from blocAndTools.agent import Agent
 from ActorCritic.BatchActorCriticAgent import BatchActorCriticAgent
 from ActorCritic.OnlineActorCriticAgent import OnlineActorCriticAgent
 from ActorCritic.reference_LilLog_BatchAAC import ReferenceActorCriticAgent
@@ -234,74 +236,59 @@ args = parser.parse_args()
 exp_spec = ExperimentSpec()
 
 
-def discounted_arg_check(spec):
+def configure_exp_spec(hparam: dict) -> ExperimentSpec:
+    if args.test_run:
+        exp_spec.set_experiment_spec(test_hparam)
+    else:
+        exp_spec.set_experiment_spec(hparam)
     if args.discounted is not None:
-        spec.set_experiment_spec({'discounted_reward_to_go': args.discounted})
+        exp_spec.set_experiment_spec({'discounted_reward_to_go': args.discounted})
+    return exp_spec
+
+def warmup_agent_for_training(agent: Type[Agent], spec: ExperimentSpec):
+    # global ac_agent
+    ac_agent = agent(spec)
+    ac_agent.train(render_env=args.render_training)
+
+def warmup_agent_for_playing(agent: Type[Agent], spec: ExperimentSpec):
+    raise NotImplementedError   # todo: implement select and PLAY agent
+    ac_agent = agent(spec)
+    ac_agent.play(run_name='todo --> CHANGE_TO_My_TrainedAgent', max_trajectories=args.play_for)
 
 
+
+
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * * *
+# *                                                                                                                    *
+# *                             Configure selected experiment specification & warmup agent                             *
+# *                                                                                                                    *
+# * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * * *
 if args.trainMC:
     """ ---- Batch Split network architecture with Monte Carlo TD target ---- """
-    if args.test_run:
-        exp_spec.set_experiment_spec(test_hparam)
-    else:
-        exp_spec.set_experiment_spec(batch_AAC_MonteCarlo_target_hparam)
-
-    discounted_arg_check(exp_spec)
-
-    ac_agent = BatchActorCriticAgent(exp_spec)
-    ac_agent.train(render_env=args.render_training)
+    exp_spec = configure_exp_spec(batch_AAC_MonteCarlo_target_hparam)
+    warmup_agent_for_training(BatchActorCriticAgent, exp_spec)
 elif args.trainBootstap:
     """ ---- Batch Split network architecture with Bootstrap estimate TD target run ---- """
-    if args.test_run:
-        exp_spec.set_experiment_spec(test_hparam)
-    else:
-        exp_spec.set_experiment_spec(batch_AAC_Bootstrap_target_hparam)
-
-    discounted_arg_check(exp_spec)
-
-    ac_agent = BatchActorCriticAgent(exp_spec)
-    ac_agent.train(render_env=args.render_training)
+    exp_spec = configure_exp_spec(batch_AAC_Bootstrap_target_hparam)
+    warmup_agent_for_training(BatchActorCriticAgent, exp_spec)
 elif args.trainShared:
     """ ---- Batch Shared network architecture with Bootstrap estimate TD target run ---- """
-    if args.test_run:
-        exp_spec.set_experiment_spec(test_hparam)
-    else:
-        exp_spec.set_experiment_spec(batch_AAC_Bootstrap_SHARED_net_hparam)
-
-    discounted_arg_check(exp_spec)
-
-    ac_agent = BatchActorCriticAgent(exp_spec)
-    ac_agent.train(render_env=args.render_training)
+    exp_spec = configure_exp_spec(batch_AAC_Bootstrap_SHARED_net_hparam)
+    warmup_agent_for_training(BatchActorCriticAgent, exp_spec)
 elif args.trainOnlineShared:
     """ ---- ONLINE Shared network architecture with Bootstrap estimate TD target run ---- """
-    if args.test_run:
-        exp_spec.set_experiment_spec(test_hparam)
-    else:
-        exp_spec.set_experiment_spec(ONLINE_AAC_Bootstrap_SHARED_net_hparam)
-
-    discounted_arg_check(exp_spec)
-
-    ac_agent = OnlineActorCriticAgent(exp_spec)
-    ac_agent.train(render_env=args.render_training)
+    exp_spec = configure_exp_spec(ONLINE_AAC_Bootstrap_SHARED_net_hparam)
+    warmup_agent_for_training(OnlineActorCriticAgent, exp_spec)
 elif args.reference:
     """ ---- Lil-Log reference run ---- """
-    if args.test_run:
-        exp_spec.set_experiment_spec(test_hparam)
-    else:
-        exp_spec.set_experiment_spec(lilLogBatch_AAC_hparam)
-
-    discounted_arg_check(exp_spec)
-
-    ac_agent = ReferenceActorCriticAgent(exp_spec)
-    ac_agent.train(render_env=args.render_training)
+    exp_spec = configure_exp_spec(lilLogBatch_AAC_hparam)
+    warmup_agent_for_training(ReferenceActorCriticAgent, exp_spec)
 else:
-    """ ---- Play run ---- """
-    exp_spec.set_experiment_spec(batch_AAC_MonteCarlo_target_hparam)
-    if args.test_run:
-        exp_spec.set_experiment_spec({'isTestRun': True})
 
-    ac_agent = BatchActorCriticAgent(exp_spec)
-    raise NotImplementedError  # todo: implement train and select a agent
-    ac_agent.play(run_name='todo --> CHANGE_TO_My_TrainedAgent', max_trajectories=args.play_for)
+    """ ---- Play run ---- """
+    exp_spec = configure_exp_spec(batch_AAC_MonteCarlo_target_hparam)
+    warmup_agent_for_playing(BatchActorCriticAgent, exp_spec)
+    BatchActorCriticAgent(exp_spec)
+
 
 exit(0)
