@@ -216,7 +216,7 @@ class TrajectoryCollector(object):
 
 
 class UniformeBatchContainer(object):
-    def __init__(self, trj_container_batch: List[TrajectoryContainer], batch_constraint: int, batch_id: int):
+    def __init__(self, trj_container_batch: List[TrajectoryContainer], batch_constraint: Any, batch_id: int):
         """
         Container for storage & retrieval of sampled trajectories
         Is a component of the UniformBatchCollector
@@ -226,7 +226,7 @@ class UniformeBatchContainer(object):
         :param trj_container_batch: Take a list of TrajectoryContainer instance fulled of collected timestep events.
         :type trj_container_batch: List[TrajectoryContainer]
         :param batch_constraint: max capacity measured in timestep
-        :type batch_constraint: int
+        :type batch_constraint: Any
         :param batch_id: the batch idx number
         :type batch_id: int
         """
@@ -258,14 +258,18 @@ class UniformeBatchContainer(object):
 
             self._timestep_count += len(aTrjContainer)
 
-        assert self._timestep_count == batch_constraint, ("The sum of each TrajectoryContainer lenght does not"
-                                                          " respect the size contraint: "
-                                                          "Expected {}, got {} !!! "
-                                                          ).format(batch_constraint, self._timestep_count)
+        self._check_uniformity_constraint(batch_constraint)
 
         # Note: Quick fix since data collected in batch stats are used in 2 separate methode
         #   |     already widely use over the code base
         self._batch_stats = self._compute_batch_stats()
+
+    def _check_uniformity_constraint(self, batch_constraint: Any) -> None:
+        assert self._timestep_count == batch_constraint, ("The sum of each TrajectoryContainer lenght does not"
+                                                          " respect the size contraint: "
+                                                          "Expected {}, got {} !!! "
+                                                          ).format(batch_constraint, self._timestep_count)
+        return None
 
     def _compute_batch_stats(self):
         stats = BatchStats(batch_id=self.batch_id, step_collected=self.__len__(),

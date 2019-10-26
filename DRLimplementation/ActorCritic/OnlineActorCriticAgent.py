@@ -203,10 +203,6 @@ class OnlineActorCriticAgent(Agent):
 
                         obs_t = obs_tPrime
 
-                        # (CRITICAL) todo:finish --> minibatch TRAINING & UPDATE V_phi
-                        if self.trjCOLLECTOR.minibatch_is_full():
-                            self._train_on_minibatch(consol_print_learning_stats)
-
                         if done:
                             """ ---- Simulator: trajectory as ended ---- """
                             trj_return = self.trjCOLLECTOR.trajectory_ended()
@@ -222,6 +218,9 @@ class OnlineActorCriticAgent(Agent):
                             consol_print_learning_stats.trajectory_training_stat(
                                 the_trajectory_return=trj_return, timestep=len(trj_container))                     # <-- (!) TRJ container ACCESS
                             break
+
+                        elif self.trjCOLLECTOR.minibatch_is_full():
+                            self._train_on_minibatch(consol_print_learning_stats)
 
                 """ ---- Simulator: epoch as ended, it's time to learn! ---- """
                 stage_trj_collected = experimentCOLLECTOR.trj_collected_so_far()

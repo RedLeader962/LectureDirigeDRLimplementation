@@ -87,11 +87,11 @@ class TrajectoryCollectorMiniBatchOnlineOAnORV(TrajectoryCollector):
     """
     def __init__(self, experiment_spec: ExperimentSpec, playground: GymPlayground, discounted: bool = True,
                  mini_batch_capacity: int = 10):
+        self.mini_batch_capacity = mini_batch_capacity
         self.obs_tPrime = []
         self.V_estimates = []
 
-        self._minibatch_runing_idx = 0
-        self.mini_batch_capacity = mini_batch_capacity
+        self._trjCollector_minibatch_runing_idx = 0
         self._current_minibatch_size = 0
         super().__init__(experiment_spec, playground, discounted)
         self.q_values = []
@@ -132,11 +132,12 @@ class TrajectoryCollectorMiniBatchOnlineOAnORV(TrajectoryCollector):
 
     def get_minibatch(self):
         # (!) Dont assert if minibatch is full. The last minibatch of the trajectory will be smaller than the other
+
         assert self._q_values_computed, ("The Q-values are not computed yet!!! "
                                          "Call the method set_Qvalues() or compute_Qvalues_as_BootstrapEstimate()"
                                          " before get_minibatch()")
 
-        mb_idx = self._minibatch_runing_idx
+        mb_idx = self._trjCollector_minibatch_runing_idx
 
         mini_batch = MiniBatch(obs_t=self.observations[mb_idx:], act_t=self.actions[mb_idx:],
                                obs_tPrime=self.obs_tPrime[mb_idx:], rew_t=self.rewards[mb_idx:],
@@ -148,7 +149,7 @@ class TrajectoryCollectorMiniBatchOnlineOAnORV(TrajectoryCollector):
     def _reset_minibatch_internal_state(self):
         self._q_values_computed = False
         self._current_minibatch_size = 0
-        self._minibatch_runing_idx = len(self.actions)
+        self._trjCollector_minibatch_runing_idx = len(self.actions)
         return None
 
     def compute_Qvalues_as_BootstrapEstimate(self) -> None:
@@ -158,7 +159,7 @@ class TrajectoryCollectorMiniBatchOnlineOAnORV(TrajectoryCollector):
                 - or compute_Qvalues_as_BootstrapEstimate
         """
 
-        mb_idx = self._minibatch_runing_idx
+        mb_idx = self._trjCollector_minibatch_runing_idx
         TD_target: list = compute_TD_target(self.rewards[mb_idx:], self.V_estimates[mb_idx:]).tolist()
         self.set_Qvalues(TD_target)
         return None
@@ -193,8 +194,14 @@ class TrajectoryCollectorMiniBatchOnlineOAnORV(TrajectoryCollector):
 
     def _reset(self):
         super()._reset()
-        self.q_values = []
+
+        self.obs_tPrime.clear()
         self.V_estimates.clear()
+
+        self._trjCollector_minibatch_runing_idx = 0
+        self._current_minibatch_size = 0
+
+        self.q_values = []  # is required since q_values are not handle the same way as in the parent class
         self.actor_losses.clear()
         self.critic_losses.clear()
         return None
@@ -225,11 +232,19 @@ class UnconstrainedExperimentStageContainerOnlineAAC(UniformeBatchContainer):
         super().__init__(trj_container_batch, batch_constraint, batch_id)
 
     def _container_feed_on_init_hook(self, aTrjContainer: TrajectoryContainerMiniBatchOnlineOAnORV):
-        aTrj_obss, aTrj_acts, aTrj_rews, aTrj_Qs, aTrj_return, aTrj_lenght, aTrj_Values = aTrjContainer.unpack()
+        aTrj_obss, aTrj_acts, aTrj_rews, aTrj_Qs, aTrj_return, aTrj_lenght, aTrj_Values, aTrj_actor_losses, aTrj_critic_losses = aTrjContainer.unpack()
 
         self.stage_Values_estimate += aTrj_Values
+        self.actor_losses += aTrj_actor_losses
+        self.critic_losses += aTrj_critic_losses
 
         return aTrj_obss, aTrj_acts, aTrj_rews, aTrj_Qs, aTrj_return, aTrj_lenght
+
+    def _check_uniformity_constraint(self, batch_constraint: Any) -> None:
+        """
+        The function muted since this subclass does not inforce uniformity across stages
+        """
+        pass
 
     def unpack_all(self) -> Tuple[Any, list, list, list]:
         """
