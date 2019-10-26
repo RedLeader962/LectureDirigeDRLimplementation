@@ -100,6 +100,7 @@ class TrajectoryCollector(object):
         self._step_count_since_begining_of_training = 0
         self._trj_collected = 0
         self._q_values_computed = False
+        self._trj_pending_pop = False
 
     def internal_state(self) -> namedtuple:
         """Testing utility"""
@@ -138,7 +139,9 @@ class TrajectoryCollector(object):
         """
         self.lenght = len(self.actions)
         self._trj_collected += 1
-        return self._compute_trajectory_return()
+        trajectory_return = self._compute_trajectory_return()
+        self._trj_pending_pop = True
+        return trajectory_return
 
     def _compute_trajectory_return(self) -> float:
         trj_return = float(np.sum(self.rewards, axis=None))
@@ -181,8 +184,10 @@ class TrajectoryCollector(object):
         :return: A TrajectoryContainer with a full trajectory
         :rtype: TrajectoryContainer
         """
+        assert self._trj_pending_pop, "Trajectory is not done!!! "
         assert self._q_values_computed, ("The return and the Q-values are not computed yet!!! "
                                          "Call the method trajectory_ended() before pop_trajectory_and_reset()")
+
         trajectory_container = TrajectoryContainer(obs_t=self.observations.copy(),
                                                    actions=self.actions.copy(),
                                                    rewards=self.rewards.copy(),
@@ -203,6 +208,7 @@ class TrajectoryCollector(object):
         self.lenght = None
 
         self._q_values_computed = False
+        self._trj_pending_pop = False
         return None
 
     def __del__(self):
@@ -414,8 +420,6 @@ class UniformBatchCollector(object):
         # (Priority) todo:unit-test --> validate stats computation:
         # (Priority) todo:implement --> build CSV or panda dataframe:
         # (Priority) todo:implement --> log to file:
-
-
 
     def _reset(self):
         self.trajectories_list = []

@@ -11,6 +11,16 @@ from blocAndTools.container.samplecontainer import TrajectoryContainer, Trajecto
 from blocAndTools.container.samplecontainer import UniformeBatchContainer, UniformBatchCollector
 from blocAndTools.temporal_difference_computation import computhe_the_Advantage, compute_TD_target
 
+@dataclass()
+class MiniBatch:
+    __slots__ = ['obs_t', 'act_t', 'obs_tPrime', 'rew_t', 'q_values_t']
+
+    obs_t: list
+    act_t: list
+    obs_tPrime: list
+    rew_t: list
+    q_values_t: list
+
 
 class TrajectoryContainerMiniBatchOnlineOAnORV(TrajectoryContainer):
     """
@@ -24,47 +34,45 @@ class TrajectoryContainerMiniBatchOnlineOAnORV(TrajectoryContainer):
                  'trajectory_return',
                  '_trajectory_lenght',
                  'trajectory_id',
-                 'V_estimates',]
+                 'V_estimates',
+                 'actor_losses',
+                 'critic_losses']
 
-    def __init__(self, obs_t: list, actions: list, rewards: list, Q_values: list, trajectory_return: list,
-                 trajectory_id, V_estimates: list = None) -> None:
+    def __init__(self, obs_t: list, actions: list, rewards: list, Q_values: list, trajectory_return: float,
+                 trajectory_id, V_estimates: list = None, actor_losses: list = None, critic_losses: list = None) -> None:
 
         self.V_estimates = V_estimates
+        self.actor_losses = actor_losses
+        self.critic_losses = critic_losses
         super().__init__(obs_t, actions, rewards, Q_values, trajectory_return, trajectory_id)
 
     def cut(self, max_lenght):
         """Down size the number of timestep stored in the container"""
-        self.V_estimates = self.V_estimates[:max_lenght]
-        super().cut(max_lenght)
+        raise UserWarning("This method is not supose to be used with this TrajectoryContainer subclass")
+        # self.V_estimates = self.V_estimates[:max_lenght]
+        # super().cut(max_lenght)
 
-    def unpack(self) -> Tuple[list, list, list, list, float, int, list]:
+    def unpack(self) -> Tuple[list, list, list, list, float, int, list, list, list]:
         """
         Unpack the full trajectorie as a tuple of numpy array
 
-        :return: (obs_t, actions, rewards, Q_values, trajectory_return, _trajectory_lenght, V_estimate)
-        :rtype: (list, list, list, list, float, int, list)
+        :return: (obs_t, actions, rewards, Q_values, trajectory_return, _trajectory_lenght, V_estimate, actor_losses, critic_losses)
+        :rtype: (list, list, list, list, float, int, list, list, list)
         """
         # (nice to have) todo:refactor --> as a namedtuple
         unpacked_super = super().unpack()
 
         observations, actions, rewards, Q_values, trajectory_return, _trajectory_lenght = unpacked_super
 
-        return observations, actions, rewards, Q_values, trajectory_return, _trajectory_lenght, self.V_estimates
+        return (observations, actions, rewards, Q_values, trajectory_return, _trajectory_lenght,
+                self.V_estimates, self.actor_losses, self.critic_losses)
 
     def __repr__(self):
         myRep = super().__repr__()
         myRep += ".V_estimates=\n{}\n\n".format(self.V_estimates)
+        myRep += ".actor_losses=\n{}\n\n".format(self.actor_losses)
+        myRep += ".critic_losses=\n{}\n\n".format(self.critic_losses)
         return myRep
-
-@dataclass()
-class MiniBatch:
-    __slots__ = ['obs_t', 'act_t', 'obs_tPrime', 'rew_t', 'q_values_t']
-
-    obs_t: list
-    act_t: list
-    obs_tPrime: list
-    rew_t: list
-    q_values_t: list
 
 
 class TrajectoryCollectorMiniBatchOnlineOAnORV(TrajectoryCollector):
@@ -86,6 +94,9 @@ class TrajectoryCollectorMiniBatchOnlineOAnORV(TrajectoryCollector):
         self.mini_batch_capacity = mini_batch_capacity
         self._current_minibatch_size = 0
         super().__init__(experiment_spec, playground, discounted)
+        self.q_values = []
+        self.actor_losses = []
+        self.critic_losses = []
 
     def minibatch_is_full(self) -> bool:
         return self._current_minibatch_size >= self.mini_batch_capacity
@@ -102,7 +113,6 @@ class TrajectoryCollectorMiniBatchOnlineOAnORV(TrajectoryCollector):
         self.V_estimates.append(V_estimate)
         super().collect_OAR(obs_t, act_t, rew_t)
         self._current_minibatch_size += 1
-
         return None
 
     def set_Qvalues(self, Qvalues: list) -> None:
@@ -132,7 +142,6 @@ class TrajectoryCollectorMiniBatchOnlineOAnORV(TrajectoryCollector):
                                obs_tPrime=self.obs_tPrime[mb_idx:], rew_t=self.rewards[mb_idx:],
                                q_values_t=self.q_values[mb_idx:])
 
-        """ ---- reset minibatch internal state ---- """
         self._reset_minibatch_internal_state()
         return mini_batch
 
@@ -140,6 +149,7 @@ class TrajectoryCollectorMiniBatchOnlineOAnORV(TrajectoryCollector):
         self._q_values_computed = False
         self._current_minibatch_size = 0
         self._minibatch_runing_idx = len(self.actions)
+        return None
 
     def compute_Qvalues_as_BootstrapEstimate(self) -> None:
         """
@@ -153,6 +163,11 @@ class TrajectoryCollectorMiniBatchOnlineOAnORV(TrajectoryCollector):
         self.set_Qvalues(TD_target)
         return None
 
+    def collect_loss(self, actor_loss, critic_loss):
+        self.actor_losses.append(actor_loss)
+        self.critic_losses.append(critic_loss)
+        return None
+
     def pop_trajectory_and_reset(self) -> TrajectoryContainerMiniBatchOnlineOAnORV:
         """
             1.  Return the last sampled trajectory in a TrajectoryContainerMiniBatchOnlineOAnORV
@@ -161,22 +176,27 @@ class TrajectoryCollectorMiniBatchOnlineOAnORV(TrajectoryCollector):
         :return: A TrajectoryContainerMiniBatchOnlineOAnORV with a full trajectory
         :rtype: TrajectoryContainerMiniBatchOnlineOAnORV
         """
-        assert self._q_values_computed, ("The return and the Q-values are not computed yet!!! "
-                                            "Call the method trajectory_ended() before pop_trajectory_and_reset()")
+        assert not self._q_values_computed, ("The return and the Q-values are not computed yet!!! "
+                                             "Call the method trajectory_ended() before pop_trajectory_and_reset()")
         trajectory_containerBatchAC = TrajectoryContainerMiniBatchOnlineOAnORV(obs_t=self.observations.copy(),
                                                                                actions=self.actions.copy(),
                                                                                rewards=self.rewards.copy(),
                                                                                Q_values=self.q_values.copy(),
                                                                                trajectory_return=self.theReturn,
                                                                                trajectory_id=self._trj_collected,
-                                                                               V_estimates=self.V_estimates.copy())
+                                                                               V_estimates=self.V_estimates.copy(),
+                                                                               actor_losses=self.actor_losses.copy(),
+                                                                               critic_losses=self.critic_losses.copy())
 
         self._reset()
         return trajectory_containerBatchAC
 
     def _reset(self):
         super()._reset()
+        self.q_values = []
         self.V_estimates.clear()
+        self.actor_losses.clear()
+        self.critic_losses.clear()
         return None
 
 
@@ -199,27 +219,40 @@ class UnconstrainedExperimentStageContainerOnlineAAC(UniformeBatchContainer):
         :param batch_id: the batch idx number
         :type batch_id: int
         """
-        self.batch_Values_estimate = []
+        self.stage_Values_estimate = []
+        self.actor_losses = []
+        self.critic_losses = []
         super().__init__(trj_container_batch, batch_constraint, batch_id)
 
     def _container_feed_on_init_hook(self, aTrjContainer: TrajectoryContainerMiniBatchOnlineOAnORV):
         aTrj_obss, aTrj_acts, aTrj_rews, aTrj_Qs, aTrj_return, aTrj_lenght, aTrj_Values = aTrjContainer.unpack()
 
-        self.batch_Values_estimate += aTrj_Values
+        self.stage_Values_estimate += aTrj_Values
 
         return aTrj_obss, aTrj_acts, aTrj_rews, aTrj_Qs, aTrj_return, aTrj_lenght
 
-    def unpack_all(self) -> Tuple[Any, list]:
+    def unpack_all(self) -> Tuple[Any, list, list, list]:
         """
         Unpack the full epoch batch of collected trajectories in lists of numpy ndarray
 
         :return: (batch_observations, batch_actions, batch_Qvalues,
                     batch_returns, batch_trjs_lenghts, total_timestep_collected, nb_of_collected_trjs,
-                     batch_Values_estimate)
-        :rtype: (list, list, list, list, list, int, int, list)
+                     stage_Values_estimate, actor_losses, critic_losses)
+        :rtype: (list, list, list, list, list, int, int, list, list, list)
         """
         unpack_super = super().unpack_all()
-        return (*unpack_super, self.batch_Values_estimate.copy())
+        return (*unpack_super, self.stage_Values_estimate.copy(), self.actor_losses.copy(), self.critic_losses.copy())
+
+    def get_stage_mean_loss(self) -> (float, float):
+        """
+        Compute mean loss over stage for actor and critic
+
+        :return: (actor_mean_loss, critic_mean_loss)
+        :rtype: (float, float)
+        """
+        actor_mean_loss = float(np.array(self.actor_losses).mean())
+        critic_mean_loss = float(np.array(self.critic_losses).mean())
+        return actor_mean_loss, critic_mean_loss
 
 class ExperimentStageCollectorOnlineAAC(UniformBatchCollector):
     """

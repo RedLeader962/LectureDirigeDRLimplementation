@@ -113,8 +113,10 @@ class OnlineActorCriticAgent(Agent):
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
 
         """ ---- Episode summary ---- """
-        tf_cv1.summary.scalar('Actor_loss', self.actor_loss, family=vocab.loss)
-        tf_cv1.summary.scalar('Critic_loss', self.V_phi_loss, family=vocab.loss)
+        self.summary_stage_avg_trjs_actor_loss_ph = tf_cv1.placeholder(tf.float32, name='Actor_loss_ph')
+        self.summary_stage_avg_trjs_critic_loss_ph = tf_cv1.placeholder(tf.float32, name='Critic_loss_ph')
+        tf_cv1.summary.scalar('Actor_loss', self.summary_stage_avg_trjs_actor_loss_ph, family=vocab.loss)
+        tf_cv1.summary.scalar('Critic_loss', self.summary_stage_avg_trjs_critic_loss_ph, family=vocab.loss)
 
         self.summary_stage_avg_trjs_return_ph = tf_cv1.placeholder(tf.float32, name='summary_stage_avg_trjs_return_ph')
         tf_cv1.summary.scalar('Batch average return', self.summary_stage_avg_trjs_return_ph, family=vocab.G)
@@ -152,13 +154,14 @@ class OnlineActorCriticAgent(Agent):
         :yield: (epoch, epoch_loss, stage_average_trjs_return, stage_average_trjs_lenght)
         """
 
-        trjCOLLECTOR, experimentCOLLECTOR = self._instantiate_data_collector()
+        self.trjCOLLECTOR, experimentCOLLECTOR = self._instantiate_data_collector()
 
         """ ---- Warm-up the computation graph and start learning! ---- """
         tf_cv1.random.set_random_seed(self.exp_spec.random_seed)
         np.random.seed(self.exp_spec.random_seed)
         with tf_cv1.Session() as sess:
-            sess.run(tf_cv1.global_variables_initializer())  # initialize random variable in the computation graph
+            self.sess = sess
+            self.sess.run(tf_cv1.global_variables_initializer())  # initialize random variable in the computation graph
 
             consol_print_learning_stats.start_the_crazy_experiment()
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -171,8 +174,6 @@ class OnlineActorCriticAgent(Agent):
             global_step_i = 0
             for epoch in range(self.exp_spec.max_epoch):
                 consol_print_learning_stats.next_glorious_epoch()
-
-                e_actor_loss, e_V_phi_loss = [], []
 
                 """ ---- Simulator: trajectories ---- """
                 while experimentCOLLECTOR.is_not_full():                         # <-- (!) BATCH collector control over sampling from batch capacity
@@ -187,44 +188,35 @@ class OnlineActorCriticAgent(Agent):
 
                         """ ---- Run Graph computation ---- """
                         obs_t_flat = bloc.format_single_step_observation(obs_t)
-                        action, V_t = sess.run([self.policy_action_sampler, self.V_phi_estimator],
-                                               feed_dict={self.observation_ph: obs_t_flat})
+                        action, V_t = self.sess.run([self.policy_action_sampler, self.V_phi_estimator],
+                                                    feed_dict={self.observation_ph: obs_t_flat})
+
+                        action = bloc.to_scalar(action)
+                        V_t = bloc.to_scalar(V_t)
 
                         """ ---- Agent: act in the environment ---- """
-                        action = bloc.to_scalar(action)
                         obs_tPrime, reward, done, _ = self.playground.env.step(action)
 
                         """ ---- Agent: Collect current timestep events ---- """
-                        trjCOLLECTOR.collect_OAnORV(obs_t=obs_t, act_t=action, obs_tPrime=obs_tPrime,
+                        self.trjCOLLECTOR.collect_OAnORV(obs_t=obs_t, act_t=action, obs_tPrime=obs_tPrime,
                                                     rew_t=reward, V_estimate=V_t)                                    # <-- (!) TRJ collector control
 
                         obs_t = obs_tPrime
 
                         # (CRITICAL) todo:finish --> minibatch TRAINING & UPDATE V_phi
-                        if trjCOLLECTOR.minibatch_is_full():
-                            mb_actor_loss, mb_V_loss = self.train_on_minibatch(trjCOLLECTOR,
-                                                                               sess, global_step_i,
-                                                                               consol_print_learning_stats)
-                            e_actor_loss.append(mb_actor_loss)
-                            e_V_phi_loss.append(mb_V_loss)
+                        if self.trjCOLLECTOR.minibatch_is_full():
+                            self._train_on_minibatch(consol_print_learning_stats)
 
                         if done:
                             """ ---- Simulator: trajectory as ended ---- """
-                            mb_actor_loss, mb_V_loss = self.train_on_minibatch(trjCOLLECTOR,
-                                                                               sess, global_step_i,
-                                                                               consol_print_learning_stats)
-                            e_actor_loss.append(mb_actor_loss)
-                            e_V_phi_loss.append(mb_V_loss)
+                            trj_return = self.trjCOLLECTOR.trajectory_ended()
+                            self._train_on_minibatch(consol_print_learning_stats)
 
-                            trj_return = trjCOLLECTOR.trajectory_ended()
-
-                            trj_summary = sess.run(self.summary_trj_op, {self.Summary_trj_return_ph: trj_return})
+                            trj_summary = self.sess.run(self.summary_trj_op, {self.Summary_trj_return_ph: trj_return})
                             self.writer.add_summary(trj_summary, global_step=global_step_i)
 
-                            self.train_on_minibatch(trjCOLLECTOR, sess, global_step_i, consol_print_learning_stats)
-
                             """ ---- Agent: Collect the sampled trajectory  ---- """
-                            trj_container = trjCOLLECTOR.pop_trajectory_and_reset()
+                            trj_container = self.trjCOLLECTOR.pop_trajectory_and_reset()                # <-- (!) TRJ container control
                             experimentCOLLECTOR.collect(trj_container)                                             # <-- (!) BATCH collector control
 
                             consol_print_learning_stats.trajectory_training_stat(
@@ -235,15 +227,12 @@ class OnlineActorCriticAgent(Agent):
                 stage_trj_collected = experimentCOLLECTOR.trj_collected_so_far()
                 stage_timestep_collected = experimentCOLLECTOR.timestep_collected_so_far()
 
-                # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
-                # *                                                                                                  *
-                # *                                    Update policy_theta                                           *
-                # *                                                                                                  *
-                # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
+
 
                 """ ---- Prepare data for backpropagation in the neural net ---- """
                 experiment_container = experimentCOLLECTOR.pop_batch_and_reset()                                     # <-- (!) BATCH collector control
                 stage_average_trjs_return, stage_average_trjs_lenght = experiment_container.get_basic_metric()       # <-- (!) BATCH container ACCESS
+                stage_actor_mean_loss, stage_critic_mean_loss = experiment_container.get_stage_mean_loss()           # <-- (!) BATCH container ACCESS
 
                 # batch_observations = experiment_container.batch_observations                                 # BATCH container ACCESS  # =Muted=
                 # batch_actions = experiment_container.batch_actions                                           # BATCH container ACCESS  # =Muted=
@@ -251,30 +240,50 @@ class OnlineActorCriticAgent(Agent):
 
                 # self._data_shape_is_compatibility_with_graph(batch_Qvalues, batch_actions, batch_observations) # =Muted=
 
-                epoch_summary = sess.run(self.summary_epoch_op,
-                                         feed_dict={self.summary_stage_avg_trjs_return_ph: stage_average_trjs_return})
+                epoch_feed_dictionary = bloc.build_feed_dictionary(
+                    [self.summary_stage_avg_trjs_actor_loss_ph, self.summary_stage_avg_trjs_critic_loss_ph, self.summary_stage_avg_trjs_return_ph],
+                    [stage_actor_mean_loss, stage_critic_mean_loss, stage_average_trjs_return])
+
+                epoch_summary = self.sess.run(self.summary_epoch_op, feed_dict=epoch_feed_dictionary)
 
                 self.writer.add_summary(epoch_summary, global_step=global_step_i)
 
-                # todo:refactor --> move :
                 consol_print_learning_stats.epoch_training_stat(
-                    epoch_loss=0,                                                                                    # <-- (!)epoch stats
+                    epoch_loss=stage_actor_mean_loss,
                     epoch_average_trjs_return=stage_average_trjs_return,
                     epoch_average_trjs_lenght=stage_average_trjs_lenght,
                     number_of_trj_collected=stage_trj_collected,
                     total_timestep_collected=stage_timestep_collected
                     )
 
-                self._save_learned_model(stage_average_trjs_return, epoch, sess)
+                self._save_learned_model(stage_average_trjs_return, epoch, self.sess)
 
                 """ ---- Expose current epoch computed information for integration test ---- """
-                yield (epoch, None, stage_average_trjs_return, stage_average_trjs_lenght)
+                yield (epoch, stage_actor_mean_loss, stage_average_trjs_return, stage_average_trjs_lenght)
 
         return None
 
-    def train_on_minibatch(self, trjCOLLECTOR, sess, global_step_i, consol_print_learning_stats):
-        trjCOLLECTOR.compute_Qvalues_as_BootstrapEstimate()                                                          # <-- (!) TRJ collector COMPUTE
-        minibatch = trjCOLLECTOR.get_minibatch()
+    def _train_on_minibatch(self, consol_print_learning_stats):
+        self.trjCOLLECTOR.compute_Qvalues_as_BootstrapEstimate()                                       # <-- (!) TRJ collector COMPUTE
+        minibatch = self.trjCOLLECTOR.get_minibatch()
+
+        minibatch_feed_dictionary = bloc.build_feed_dictionary([self.observation_ph, self.action_ph, self.Qvalues_ph],
+                                                               [minibatch.obs_t, minibatch.act_t, minibatch.q_values_t])
+
+        """ ---- Compute metric and collect ---- """
+        minibatch_actor_loss, minibatch_V_loss = self.sess.run([self.actor_loss, self.V_phi_loss],
+                                                               feed_dict=minibatch_feed_dictionary)
+
+        self.trjCOLLECTOR.collect_loss(actor_loss=minibatch_actor_loss, critic_loss=minibatch_V_loss)
+
+        # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
+        # *                                                                                                  *
+        # *                    Update policy_theta & critic V_phi over the minibatch                         *
+        # *                                                                                                  *
+        # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
+
+        """ ---- Train actor ---- """
+        self.sess.run(self.actor_policy_optimizer, feed_dict=minibatch_feed_dictionary)
 
         """ ---- Train critic ---- """
         critic_feed_dictionary = bloc.build_feed_dictionary(
@@ -283,19 +292,7 @@ class OnlineActorCriticAgent(Agent):
 
         for c_loop in range(self.exp_spec['critique_loop_len']):                                                     # <-- (!) propably 1 iteration
             consol_print_learning_stats.track_progress(progress=c_loop, message="Critic training")
-            sess.run(self.V_phi_optimizer, feed_dict=critic_feed_dictionary)
+            self.sess.run(self.V_phi_optimizer, feed_dict=critic_feed_dictionary)
 
-        """ ---- Agent: Compute gradient & update policy ---- """
-        epoch_feed_dictionary = bloc.build_feed_dictionary([self.observation_ph, self.action_ph, self.Qvalues_ph],
-                                                           [minibatch.obs_t, minibatch.act_t, minibatch.q_values_t])
-
-        minibatch_actor_loss, minibatch_V_loss, epoch_summary = sess.run([self.actor_loss, self.V_phi_loss, self.summary_epoch_op],
-                                                             feed_dict=epoch_feed_dictionary)
-
-        self.writer.add_summary(epoch_summary, global_step=global_step_i)
-
-        """ ---- Train actor ---- """
-        sess.run(self.actor_policy_optimizer, feed_dict=epoch_feed_dictionary)
-
-        return minibatch_actor_loss, minibatch_V_loss
+        return None
 

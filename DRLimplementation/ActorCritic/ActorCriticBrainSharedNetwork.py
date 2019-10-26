@@ -34,7 +34,6 @@ def build_actor_critic_shared_graph(obs_ph: tf.Tensor, exp_spec: ExperimentSpec,
                             "{} != {}").format(obs_ph.shape.as_list()[-1],
                                                playground.OBSERVATION_SPACE.shape[0])
 
-
     # ::Discrete case
     if isinstance(playground.env.action_space, gym.spaces.Discrete):
 

@@ -188,19 +188,20 @@ class BatchActorCriticAgent(Agent):
                         if self.exp_spec['Target'] is TargetType.MonteCarlo:
                             action = sess.run(self.policy_action_sampler,
                                               feed_dict={self.observation_ph: obs_t_flat})
+                            action = bloc.to_scalar(action)
                         elif self.exp_spec['Target'] is TargetType.Bootstrap:
                             action, V_t = sess.run([self.policy_action_sampler, self.V_phi_estimator],
                                                    feed_dict={self.observation_ph: obs_t_flat})
+                            action = bloc.to_scalar(action)
+                            V_t = bloc.to_scalar(V_t)
 
                         """ ---- Agent: act in the environment ---- """
-                        action = bloc.to_scalar(action)
                         obs_tPrime, reward, done, _ = self.playground.env.step(action)
 
                         """ ---- Agent: Collect current timestep events ---- """
                         if self.exp_spec['Target'] is TargetType.MonteCarlo:
                             trjCOLLECTOR.collect_OAR(observation=obs_t, action=action, reward=reward)
                         elif self.exp_spec['Target'] is TargetType.Bootstrap:
-                            V_t = bloc.to_scalar(V_t)
                             trjCOLLECTOR.collect_OARV(observation=obs_t, action=action, reward=reward, V_estimate=V_t)
 
                         obs_t = obs_tPrime
