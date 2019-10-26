@@ -326,6 +326,11 @@ class UniformBatchCollector(object):
     batch_stats: List[BatchStats]
 
     def __init__(self, capacity: int):
+        """
+
+        :param capacity: is on a timestep count scale
+        :type capacity: int
+        """
         self.CAPACITY = capacity
         self._reset()
         self.batch_stats = []

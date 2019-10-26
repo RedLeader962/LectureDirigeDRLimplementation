@@ -6,7 +6,7 @@ from datetime import datetime
 
 from DRLimplementation.ActorCritic import BatchActorCriticAgent
 from blocAndTools.buildingbloc import ExperimentSpec, setup_commented_run_dir_str
-from blocAndTools.rl_vocabulary import TargetType
+from blocAndTools.rl_vocabulary import TargetType, NetworkType
 from blocAndTools.visualisationtools import ConsolPrintLearningStats
 
 tf_cv1 = tf.compat.v1   # shortcut
@@ -28,6 +28,7 @@ CARTPOLE_HPARAM = {
     'algo_name':                      'ActorCritic',
     'comment':                        'MonteCarlo target',
     'Target':                         TargetType.MonteCarlo,
+    'Network':                        NetworkType.Split,
     'prefered_environment':           'CartPole-v0',
     'expected_reward_goal':           200,
     'batch_size_in_ts':               4000,

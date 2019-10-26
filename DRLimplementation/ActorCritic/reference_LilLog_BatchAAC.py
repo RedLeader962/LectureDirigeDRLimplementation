@@ -22,7 +22,7 @@ from blocAndTools.agent import Agent
 from blocAndTools.rl_vocabulary import rl_name
 from blocAndTools import buildingbloc as bloc, ConsolPrintLearningStats
 # from blocAndTools.container.samplecontainer import TrajectoryCollector, UniformBatchCollector
-from blocAndTools.container.samplecontainer_batch_oarv import (TrajectoryContainerBatchOARV,
+from blocAndTools.container.samplecontainer_batch_OARV import (TrajectoryContainerBatchOARV,
                                                                TrajectoryCollectorBatchOARV,
                                                                UniformeBatchContainerBatchOARV,
                                                                UniformBatchCollectorBatchOARV, )
