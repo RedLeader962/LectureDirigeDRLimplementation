@@ -256,33 +256,37 @@ def warmup_agent_for_playing(agent: Type[Agent], spec: ExperimentSpec):
     ac_agent.play(run_name='todo --> CHANGE_TO_My_TrainedAgent', max_trajectories=args.play_for)
 
 
-
-
 # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * * *
 # *                                                                                                                    *
 # *                             Configure selected experiment specification & warmup agent                             *
 # *                                                                                                                    *
 # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * * *
+
 if args.trainMC:
     """ ---- Batch Split network architecture with Monte Carlo TD target ---- """
     exp_spec = configure_exp_spec(batch_AAC_MonteCarlo_target_hparam)
     warmup_agent_for_training(BatchActorCriticAgent, exp_spec)
+
 elif args.trainBootstap:
     """ ---- Batch Split network architecture with Bootstrap estimate TD target run ---- """
     exp_spec = configure_exp_spec(batch_AAC_Bootstrap_target_hparam)
     warmup_agent_for_training(BatchActorCriticAgent, exp_spec)
+
 elif args.trainShared:
     """ ---- Batch Shared network architecture with Bootstrap estimate TD target run ---- """
     exp_spec = configure_exp_spec(batch_AAC_Bootstrap_SHARED_net_hparam)
     warmup_agent_for_training(BatchActorCriticAgent, exp_spec)
+
 elif args.trainOnlineShared:
     """ ---- ONLINE Shared network architecture with Bootstrap estimate TD target run ---- """
     exp_spec = configure_exp_spec(ONLINE_AAC_Bootstrap_SHARED_net_hparam)
     warmup_agent_for_training(OnlineActorCriticAgent, exp_spec)
+
 elif args.reference:
     """ ---- Lil-Log reference run ---- """
     exp_spec = configure_exp_spec(lilLogBatch_AAC_hparam)
     warmup_agent_for_training(ReferenceActorCriticAgent, exp_spec)
+
 else:
 
     """ ---- Play run ---- """

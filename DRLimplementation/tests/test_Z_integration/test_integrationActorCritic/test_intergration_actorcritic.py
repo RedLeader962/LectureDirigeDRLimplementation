@@ -24,7 +24,7 @@ In browser, go to:
 AGENT_ROOT_DIR = "test_Z_integration/test_integrationActorCritic"
 
 CARTPOLE_HPARAM = {
-    'paramameter_set_name':           'Batch AAC',
+    'paramameter_set_name':           'Integrate Batch AAC',
     'algo_name':                      'ActorCritic',
     'comment':                        'MonteCarlo target',
     'Target':                         TargetType.MonteCarlo,
@@ -82,6 +82,7 @@ def setup_ActorCritic_train_algo_generator_with_PASSING_spec():
     actorcritic_agent.writer = writer
 
     yield epoch_generator, nb_of_try, env_max_return, exp_spec
+
     consol_print_learning_stats.print_experiment_stats(print_plot=exp_spec.show_plot)
     actorcritic_agent.writer.close()
 
@@ -100,6 +101,7 @@ def setup_ActorCritic_train_algo_generator_with_FAILING_spec():
     actorcritic_agent.writer = writer
 
     yield epoch_generator, nb_of_try, env_max_return, exp_spec
+
     consol_print_learning_stats.print_experiment_stats(print_plot=exp_spec.show_plot)
     actorcritic_agent.writer.close()
 

@@ -76,6 +76,7 @@ def setup_REINFORCE_train_algo_generator_with_PASSING_spec():
     reinforce_agent.writer = writer
 
     yield epoch_generator, nb_of_try, env_max_return, exp_spec
+
     consol_print_learning_stats.print_experiment_stats(print_plot=exp_spec.show_plot)
     reinforce_agent.writer.close()
 
@@ -94,6 +95,7 @@ def setup_REINFORCE_train_algo_generator_with_FAILING_spec():
     reinforce_agent.writer = writer
 
     yield epoch_generator, nb_of_try, env_max_return, exp_spec
+
     consol_print_learning_stats.print_experiment_stats(print_plot= exp_spec.show_plot)
     reinforce_agent.writer.close()
 
