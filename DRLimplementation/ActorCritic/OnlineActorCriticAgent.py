@@ -73,15 +73,12 @@ class OnlineActorCriticAgent(Agent):
 
             print(":: SHARED network constructed")
 
-
-
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
         # *                                                                                                           *
         # *                                                 Advantage                                                 *
         # *                                                                                                           *
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
-        # # \\\\\\    My bloc    \\\\\\
         # # alternate architecture with element wise computed advantage
         # self.Advantage_ph = tf_cv1.placeholder(tf.float32, shape=self.Qvalues_ph.shape, name=vocab.advantage_ph)
 
@@ -255,6 +252,7 @@ class OnlineActorCriticAgent(Agent):
                 """ ---- Expose current epoch computed information for integration test ---- """
                 yield (epoch, stage_actor_mean_loss, stage_average_trjs_return, stage_average_trjs_lenght)
 
+            print("\n\n\n:: Global step collected: {}".format(global_step_i), end="")
         return None
 
     def _train_on_minibatch(self, consol_print_learning_stats, local_step_t):

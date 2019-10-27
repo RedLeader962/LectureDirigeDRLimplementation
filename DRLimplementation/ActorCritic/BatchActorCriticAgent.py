@@ -216,7 +216,8 @@ class BatchActorCriticAgent(Agent):
                                 trjCOLLECTOR.compute_Qvalues_as_rewardToGo()
                             elif self.exp_spec['Target'] is TargetType.Bootstrap:
                                 """ ---- Element wise computed Bootstrap estimate target ---- """
-                                TD_target = compute_TD_target(trjCOLLECTOR.rewards, trjCOLLECTOR.V_estimates)
+                                TD_target = compute_TD_target(trjCOLLECTOR.rewards, trjCOLLECTOR.V_estimates,
+                                                              self.exp_spec.discout_factor)
                                 trjCOLLECTOR.set_Qvalues(TD_target.tolist())
 
                             trj_summary = sess.run(self.summary_trj_op, {self.Summary_trj_return_ph: trj_return})

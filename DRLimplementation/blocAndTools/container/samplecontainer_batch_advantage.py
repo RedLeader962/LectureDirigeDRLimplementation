@@ -106,7 +106,7 @@ class TrajectoryCollectorBatchAdvantage(TrajectoryCollector):
                 - or compute_Qvalues_as_BootstrapEstimate
         """
         # (Priority) todo:unit-test --> the stored result and cascading behavior:
-        self.set_Qvalues(compute_TD_target(self.rewards, self.V_estimates).tolist())
+        self.set_Qvalues(compute_TD_target(self.rewards, self.V_estimates, self._exp_spec.discout_factor).tolist())
         return None
 
     def set_advantage(self, advantages):

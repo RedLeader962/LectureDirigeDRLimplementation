@@ -106,8 +106,7 @@ class Agent(object, metaclass=ABCMeta):
             (epoch, epoch_loss, batch_average_trjs_return, batch_average_trjs_lenght) = epoch
 
         """ ---- Teardown ---- """
-        if self.exp_spec.show_plot:
-            consol_print_learning_stats.print_experiment_stats(print_plot=self.exp_spec.show_plot)
+        consol_print_learning_stats.print_experiment_stats(print_plot=self.exp_spec.show_plot)
 
         self.writer.close()
         return None

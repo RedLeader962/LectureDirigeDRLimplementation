@@ -84,7 +84,7 @@ class TrajectoryCollectorBatchOARV(TrajectoryCollector):
                 - or compute_Qvalues_as_BootstrapEstimate
         """
         # (Priority) todo:unit-test --> the stored result and cascading behavior:
-        TD_target: list = compute_TD_target(self.rewards, self.V_estimates).tolist()
+        TD_target: list = compute_TD_target(self.rewards, self.V_estimates, self._exp_spec.discout_factor).tolist()
         self.set_Qvalues(TD_target)
         return None
 

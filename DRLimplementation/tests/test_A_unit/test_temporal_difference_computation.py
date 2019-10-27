@@ -33,14 +33,14 @@ def test_get_t_and_tPrime_array_view_for_element_wise_op(setUpDecr):
 
 def test_compute_TD_target_COMPUTE_PASS(setUpDecr):
 
-    target = compute_TD_target(setUpDecr.arrayOne, setUpDecr.mock_V_estimate)
+    target = compute_TD_target(setUpDecr.arrayOne, setUpDecr.mock_V_estimate, 1)
 
     assert np.equal(target, setUpDecr.expected_target).all(), "{} != {}".format(target, setUpDecr.expected_target)
 
 
 def test_compute_TD_target_LEN_PASS(setUpDecr):
 
-    target = compute_TD_target(setUpDecr.arrayOne, setUpDecr.mock_V_estimate)
+    target = compute_TD_target(setUpDecr.arrayOne, setUpDecr.mock_V_estimate, 1)
 
     assert len(setUpDecr.arrayOne) == len(target)
 

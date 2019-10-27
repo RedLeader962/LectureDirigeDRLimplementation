@@ -158,9 +158,9 @@ class TrajectoryCollectorMiniBatchOnlineOAnORV(TrajectoryCollector):
                 - set_Qvalues,
                 - or compute_Qvalues_as_BootstrapEstimate
         """
-
         mb_idx = self._trjCollector_minibatch_runing_idx
-        TD_target: list = compute_TD_target(self.rewards[mb_idx:], self.V_estimates[mb_idx:]).tolist()
+        TD_target: list = compute_TD_target(self.rewards[mb_idx:], self.V_estimates[mb_idx:],
+                                            self._exp_spec.discout_factor).tolist()
         self.set_Qvalues(TD_target)
         return None
 
