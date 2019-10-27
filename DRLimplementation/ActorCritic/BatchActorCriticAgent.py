@@ -101,7 +101,9 @@ class BatchActorCriticAgent(Agent):
         # *                                           Actor & Critic Train                                            *
         # *                                                                                                           *
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-        self.actor_loss, self.actor_policy_optimizer = actor_train(self.action_ph, log_pi=log_pi, advantage=Advantage,
+        self.actor_loss, self.actor_policy_optimizer = actor_train(action_placeholder=self.action_ph,
+                                                                   log_pi=log_pi,
+                                                                   advantage=Advantage,
                                                                    experiment_spec=self.exp_spec,
                                                                    playground=self.playground)
 
@@ -124,8 +126,7 @@ class BatchActorCriticAgent(Agent):
 
         """ ---- Trajectory summary ---- """
         self.Summary_trj_return_ph = tf_cv1.placeholder(tf.float32, name='Summary_trj_return_ph')
-        self.summary_trj_op = tf_cv1.summary.scalar('Trajectory return', self.Summary_trj_return_ph,
-                                                    family=vocab.G)
+        self.summary_trj_op = tf_cv1.summary.scalar('Trajectory return', self.Summary_trj_return_ph, family=vocab.G)
 
         return None
 
@@ -254,8 +255,10 @@ class BatchActorCriticAgent(Agent):
                     [self.observation_ph, self.action_ph, self.Qvalues_ph, self.Summary_batch_avg_trjs_return_ph],
                     [batch_observations, batch_actions, batch_Qvalues, batch_average_trjs_return])
 
-                e_actor_loss, e_V_phi_loss, epoch_summary = sess.run([self.actor_loss, self.V_phi_loss, self.summary_epoch_op],
-                                                               feed_dict=epoch_feed_dictionary)
+                e_actor_loss, e_V_phi_loss, epoch_summary = sess.run([self.actor_loss,
+                                                                      self.V_phi_loss,
+                                                                      self.summary_epoch_op],
+                                                                     feed_dict=epoch_feed_dictionary)
 
                 self.writer.add_summary(epoch_summary, global_step=global_step_i)
 

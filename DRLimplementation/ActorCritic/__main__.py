@@ -108,7 +108,7 @@ batch_AAC_Bootstrap_SHARED_net_hparam = {
     'critique_loop_len':              100,
     'theta_nn_h_layer_topo':          (60, 60),
     'random_seed':                    13,
-    'theta_hidden_layers_activation': tf.nn.leaky_relu,  # tf.nn.tanh, tf.nn.leaky_relu
+    'theta_hidden_layers_activation': tf.nn.leaky_relu,  # tf.nn.tanh, tf.nn.relu
     'theta_output_layers_activation': None,
     'render_env_every_What_epoch':    100,
     'print_metric_every_what_epoch':  8,
@@ -124,27 +124,28 @@ batch_AAC_Bootstrap_SHARED_net_hparam = {
                                        "probably because of unlucky grpah initialisation or unlucky initial state")
     }
 
-ONLINE_AAC_Bootstrap_SHARED_net_hparam = {
-    'paramameter_set_name':           'Online AAC shared network',
+ONLINE_AAC_Bootstrap_SPLIT_net_hparam = {
+    'paramameter_set_name':           'Online AAC Split network',
     'algo_name':                      'Online ActorCritic',
     'comment':                        '',
-    'Network':                        NetworkType.Shared,
+    'Network':                        NetworkType.Split,
     'prefered_environment':           'CartPole-v0',
     'expected_reward_goal':           200,
     'batch_size_in_ts':               5,
-    'stage_size_in_trj':              20,
-    'max_epoch':                      400,
+    'stage_size_in_trj':              80,
+    'max_epoch':                      50,
     'discounted_reward_to_go':        True,
-    'discout_factor':                 0.999,
+    'discout_factor':                 0.99,
     'learning_rate':                  1e-3,
     'critic_learning_rate':           1e-4,
     'critique_loop_len':              1,
-    'theta_nn_h_layer_topo':          (60, 60),
+    'theta_nn_h_layer_topo':          (32, 32),
     'random_seed':                    13,
-    'theta_hidden_layers_activation': tf.nn.leaky_relu,  # tf.nn.tanh, tf.nn.leaky_relu
+    # 'theta_hidden_layers_activation': tf.nn.leaky_relu,  # tf.nn.tanh, tf.nn.relu
+    'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh, tf.nn.leaky_relu
     'theta_output_layers_activation': None,
     'render_env_every_What_epoch':    100,
-    'print_metric_every_what_epoch':  8,
+    'print_metric_every_what_epoch':  2,
     'isTestRun':                      False,
     'show_plot':                      False,
     'note':                           ""
@@ -279,7 +280,7 @@ elif args.trainShared:
 
 elif args.trainOnlineShared:
     """ ---- ONLINE Shared network architecture with Bootstrap estimate TD target run ---- """
-    exp_spec = configure_exp_spec(ONLINE_AAC_Bootstrap_SHARED_net_hparam)
+    exp_spec = configure_exp_spec(ONLINE_AAC_Bootstrap_SPLIT_net_hparam)
     warmup_agent_for_training(OnlineActorCriticAgent, exp_spec)
 
 elif args.reference:

@@ -181,8 +181,10 @@ class OnlineActorCriticAgent(Agent):
                     consol_print_learning_stats.next_glorious_trajectory()
 
                     """ ---- Simulator: time-steps ---- """
+                    local_step_t = 0
                     while True:
                         global_step_i += 1
+                        local_step_t += 1
                         self._render_trajectory_on_condition(epoch, render_env,
                                                              experimentCOLLECTOR.trj_collected_so_far())
 
@@ -199,14 +201,14 @@ class OnlineActorCriticAgent(Agent):
 
                         """ ---- Agent: Collect current timestep events ---- """
                         self.trjCOLLECTOR.collect_OAnORV(obs_t=obs_t, act_t=action, obs_tPrime=obs_tPrime,
-                                                    rew_t=reward, V_estimate=V_t)                                    # <-- (!) TRJ collector control
+                                                         rew_t=reward, V_estimate=V_t)                                    # <-- (!) TRJ collector control
 
                         obs_t = obs_tPrime
 
                         if done:
                             """ ---- Simulator: trajectory as ended ---- """
                             trj_return = self.trjCOLLECTOR.trajectory_ended()
-                            self._train_on_minibatch(consol_print_learning_stats)
+                            self._train_on_minibatch(consol_print_learning_stats, local_step_t)
 
                             trj_summary = self.sess.run(self.summary_trj_op, {self.Summary_trj_return_ph: trj_return})
                             self.writer.add_summary(trj_summary, global_step=global_step_i)
@@ -215,27 +217,21 @@ class OnlineActorCriticAgent(Agent):
                             trj_container = self.trjCOLLECTOR.pop_trajectory_and_reset()                # <-- (!) TRJ container control
                             experimentCOLLECTOR.collect(trj_container)                                             # <-- (!) BATCH collector control
 
-                            consol_print_learning_stats.trajectory_training_stat(
-                                the_trajectory_return=trj_return, timestep=len(trj_container))                     # <-- (!) TRJ container ACCESS
+                            consol_print_learning_stats.trajectory_training_stat(the_trajectory_return=trj_return,
+                                                                                 timestep=len(trj_container))                     # <-- (!) TRJ container ACCESS
                             break
 
                         elif self.trjCOLLECTOR.minibatch_is_full():
-                            self._train_on_minibatch(consol_print_learning_stats)
+                            self._train_on_minibatch(consol_print_learning_stats, local_step_t)
 
                 """ ---- Simulator: epoch as ended, it's time to learn! ---- """
                 stage_trj_collected = experimentCOLLECTOR.trj_collected_so_far()
                 stage_timestep_collected = experimentCOLLECTOR.timestep_collected_so_far()
 
-
-
                 """ ---- Prepare data for backpropagation in the neural net ---- """
                 experiment_container = experimentCOLLECTOR.pop_batch_and_reset()                                     # <-- (!) BATCH collector control
                 stage_average_trjs_return, stage_average_trjs_lenght = experiment_container.get_basic_metric()       # <-- (!) BATCH container ACCESS
                 stage_actor_mean_loss, stage_critic_mean_loss = experiment_container.get_stage_mean_loss()           # <-- (!) BATCH container ACCESS
-
-                # batch_observations = experiment_container.batch_observations                                 # BATCH container ACCESS  # =Muted=
-                # batch_actions = experiment_container.batch_actions                                           # BATCH container ACCESS  # =Muted=
-                # batch_Qvalues = experiment_container.batch_Qvalues                                           # BATCH container ACCESS  # =Muted=
 
                 # self._data_shape_is_compatibility_with_graph(batch_Qvalues, batch_actions, batch_observations) # =Muted=
 
@@ -252,8 +248,7 @@ class OnlineActorCriticAgent(Agent):
                     epoch_average_trjs_return=stage_average_trjs_return,
                     epoch_average_trjs_lenght=stage_average_trjs_lenght,
                     number_of_trj_collected=stage_trj_collected,
-                    total_timestep_collected=stage_timestep_collected
-                    )
+                    total_timestep_collected=stage_timestep_collected)
 
                 self._save_learned_model(stage_average_trjs_return, epoch, self.sess)
 
@@ -262,7 +257,7 @@ class OnlineActorCriticAgent(Agent):
 
         return None
 
-    def _train_on_minibatch(self, consol_print_learning_stats):
+    def _train_on_minibatch(self, consol_print_learning_stats, local_step_t):
         self.trjCOLLECTOR.compute_Qvalues_as_BootstrapEstimate()                                       # <-- (!) TRJ collector COMPUTE
         minibatch = self.trjCOLLECTOR.get_minibatch()
 
@@ -280,6 +275,7 @@ class OnlineActorCriticAgent(Agent):
         # *                    Update policy_theta & critic V_phi over the minibatch                         *
         # *                                                                                                  *
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
+        # consol_print_learning_stats.track_progress(progress=local_step_t, message="Agent training")
 
         """ ---- Train actor ---- """
         self.sess.run(self.actor_policy_optimizer, feed_dict=minibatch_feed_dictionary)
@@ -290,7 +286,6 @@ class OnlineActorCriticAgent(Agent):
             [minibatch.obs_t, minibatch.q_values_t])
 
         for c_loop in range(self.exp_spec['critique_loop_len']):                                                     # <-- (!) propably 1 iteration
-            consol_print_learning_stats.track_progress(progress=c_loop, message="Critic training")
             self.sess.run(self.V_phi_optimizer, feed_dict=critic_feed_dictionary)
 
         return None
