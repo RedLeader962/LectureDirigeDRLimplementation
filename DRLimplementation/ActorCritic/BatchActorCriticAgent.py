@@ -40,6 +40,12 @@ class BatchActorCriticAgent(Agent):
         assert isinstance(self.exp_spec['Network'], NetworkType), ("exp_spec['Network'] must be explicitely defined "
                                                                    "with a NetworkType enum")
 
+        if self.exp_spec.random_seed == 0:
+            print(":: Random seed control is turned OFF")
+        else:
+            tf_cv1.random.set_random_seed(self.exp_spec.random_seed)
+            np.random.seed(self.exp_spec.random_seed)
+
         """ ---- Placeholder ---- """
         self.observation_ph, self.action_ph, self.Qvalues_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
             self.playground, obs_shape_constraint=None, action_shape_constraint=None, Q_name=vocab.Qvalues_ph)
@@ -156,8 +162,7 @@ class BatchActorCriticAgent(Agent):
         trjCOLLECTOR, batchCOLLECTOR = self._instantiate_data_collector()
 
         """ ---- Warm-up the computation graph and start learning! ---- """
-        tf_cv1.random.set_random_seed(self.exp_spec.random_seed)
-        np.random.seed(self.exp_spec.random_seed)
+
         with tf_cv1.Session() as sess:
             sess.run(tf_cv1.global_variables_initializer())  # initialize random variable in the computation graph
 

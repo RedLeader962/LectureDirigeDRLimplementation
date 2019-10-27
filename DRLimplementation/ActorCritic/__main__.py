@@ -2,8 +2,9 @@
 """
 Invoke Actor-Critic agent using
 
-    python -m ActorCritic [--help] [--train] [--render_training] [--discounted] [--play_for] [--test_run]
+    python -m ActorCritic [--help] [--trainMC] [--renderTraining] [--discounted] [--play_for] [--testRun]
 
+todo --> add command line new training spec:
 
 Note on TensorBoard usage:
     Start TensorBoard in terminal:
@@ -39,10 +40,10 @@ from blocAndTools.rl_vocabulary import TargetType, NetworkType
 #           Example with experiment average step of 100:
 #              0.9^100 = 0.000026 vs 0.99^100 = 0.366003 vs 0.999^100 = 0.904792
 
-batch_AAC_MonteCarlo_target_hparam = {
-    'paramameter_set_name':           'Batch AAC MonteCarlo target',
+BATCH_AAC_MonteCarlo_SPLIT_net_hparam = {
+    'paramameter_set_name':           'Batch-AAC-Split-nn',
     'algo_name':                      'Batch ActorCritic',
-    'comment':                        '',
+    'comment':                        'MonteCarlo-target',
     'Target':                         TargetType.MonteCarlo,
     'Network':                        NetworkType.Split,
     'prefered_environment':           'CartPole-v0',
@@ -65,24 +66,32 @@ batch_AAC_MonteCarlo_target_hparam = {
     'note':                           ''
     }
 
-batch_AAC_Bootstrap_target_hparam = {
-    'paramameter_set_name':           'Batch AAC Element wise Bootstrap target',
+BATCH_AAC_bootstrap_SPLIT_net_hparam = {
+    'paramameter_set_name':           'Batch-AAC-Split-nn',
     'algo_name':                      'Batch ActorCritic',
-    'comment':                        '',
+    'comment':                        'Discounted-Bootstrap-target Rerun-A',
     'Target':                         TargetType.Bootstrap,
     'Network':                        NetworkType.Split,
     'prefered_environment':           'CartPole-v0',
     'expected_reward_goal':           200,
     'batch_size_in_ts':               4000,
-    'max_epoch':                      30,
+    # 'max_epoch':                      30,
+    'max_epoch':                      50,
     'discounted_reward_to_go':        True,
     'discout_factor':                 0.99,
-    'learning_rate':                  1e-2,
-    'critic_learning_rate':           1e-2,
+    # 'discout_factor':                 0.995,
+    'learning_rate':                  1e-3,
+    'critic_learning_rate':           1e-3,
+    # 'learning_rate':                  1e-4,
+    # 'critic_learning_rate':           1e-4,
+    # 'learning_rate':                  1e-2,
+    # 'critic_learning_rate':           1e-3,
     'critique_loop_len':              80,
     'theta_nn_h_layer_topo':          (32, 32),
+    # 'theta_nn_h_layer_topo':          (62,),    # not working
     'random_seed':                    0,
-    'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh,
+    # 'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh,
+    'theta_hidden_layers_activation': tf.nn.tanh,  # tf.nn.relu,
     'theta_output_layers_activation': None,
     'render_env_every_What_epoch':    100,
     'print_metric_every_what_epoch':  2,
@@ -91,10 +100,16 @@ batch_AAC_Bootstrap_target_hparam = {
     'note':                           "Both loss have a lot less variance. The algo take more time to converge"
     }
 
-batch_AAC_Bootstrap_SHARED_net_hparam = {
-    'paramameter_set_name':           'AAC shared network',
+# BATCH_AAC_bootstrap_SPLIT_net_hparam = BATCH_AAC_bootstrap_SPLIT_net_hparam.copy()
+# BATCH_AAC_bootstrap_SPLIT_net_hparam['comment'] = "(Discounted TD target)"
+# BATCH_AAC_bootstrap_SPLIT_net_hparam['Target'] = TargetType.Bootstrap
+# BATCH_AAC_bootstrap_SPLIT_net_hparam['Network'] = NetworkType.Shared
+# BATCH_AAC_bootstrap_SPLIT_net_hparam['note'] = ""
+
+BATCH_AAC_Bootstrap_SHARED_net_hparam = {
+    'paramameter_set_name':           'Batch-AAC-Shared-nn',
     'algo_name':                      'Batch ActorCritic',
-    'comment':                        'Bootstrap Tiny Batch WORKING',
+    'comment':                        'Bootstrap-Tiny-Batch-WORKING',
     'Target':                         TargetType.Bootstrap,
     'Network':                        NetworkType.Shared,
     'prefered_environment':           'CartPole-v0',
@@ -107,7 +122,7 @@ batch_AAC_Bootstrap_SHARED_net_hparam = {
     'critic_learning_rate':           1e-4,
     'critique_loop_len':              100,
     'theta_nn_h_layer_topo':          (60, 60),
-    'random_seed':                    13,
+    'random_seed':                    0,
     'theta_hidden_layers_activation': tf.nn.leaky_relu,  # tf.nn.tanh, tf.nn.relu
     'theta_output_layers_activation': None,
     'render_env_every_What_epoch':    100,
@@ -125,9 +140,9 @@ batch_AAC_Bootstrap_SHARED_net_hparam = {
     }
 
 ONLINE_AAC_Bootstrap_SPLIT_net_hparam = {
-    'paramameter_set_name':           'Online AAC Split network',
+    'paramameter_set_name':           'Online-AAC-Split-nn',
     'algo_name':                      'Online ActorCritic',
-    'comment':                        'Discounted TD target',
+    'comment':                        'Discounted-Bootstrap-target',
     'Network':                        NetworkType.Split,
     'prefered_environment':           'CartPole-v0',
     'expected_reward_goal':           200,
@@ -139,7 +154,7 @@ ONLINE_AAC_Bootstrap_SPLIT_net_hparam = {
     'critic_learning_rate':           5e-4,
     'critique_loop_len':              1,
     'theta_nn_h_layer_topo':          (32, 32),
-    'random_seed':                    13,
+    'random_seed':                    0,
     'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh, tf.nn.leaky_relu
     'theta_output_layers_activation': None,
     'render_env_every_What_epoch':    100,
@@ -151,10 +166,11 @@ ONLINE_AAC_Bootstrap_SPLIT_net_hparam = {
                                        "critique_loop_len and batch_size_in_ts")
     }
 
+
 ONLINE_AAC_Bootstrap_SPLIT_three_layer_hparam = {
-    'paramameter_set_name':           'Online AAC Split NN16-32-256',
+    'paramameter_set_name':           'Online-AAC-Split-nn16-32-256',
     'algo_name':                      'Online ActorCritic',
-    'comment':                        'Discounted TD target',
+    'comment':                        'Discounted-Bootstrap-target',
     'Network':                        NetworkType.Split,
     'prefered_environment':           'CartPole-v0',
     'expected_reward_goal':           200,
@@ -166,7 +182,7 @@ ONLINE_AAC_Bootstrap_SPLIT_three_layer_hparam = {
     'critic_learning_rate':           5e-4,
     'critique_loop_len':              1,
     'theta_nn_h_layer_topo':          (16, 32, 256),
-    'random_seed':                    13,
+    'random_seed':                    0,
     # 'theta_hidden_layers_activation': tf.nn.leaky_relu,  # tf.nn.tanh, tf.nn.relu
     'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh, tf.nn.leaky_relu
     'theta_output_layers_activation': None,
@@ -178,9 +194,9 @@ ONLINE_AAC_Bootstrap_SPLIT_three_layer_hparam = {
     }
 
 ONLINE_AAC_Bootstrap_SHARED_three_layer_hparam = {
-    'paramameter_set_name':           'Online AAC SHARED NN16-32-256',
+    'paramameter_set_name':           'Online-AAC-Shared-nn16-32-256',
     'algo_name':                      'Online ActorCritic',
-    'comment':                        'Discounted TD target',
+    'comment':                        'Discounted-Bootstrap-target',
     'Network':                        NetworkType.Shared,
     'prefered_environment':           'CartPole-v0',
     'expected_reward_goal':           200,
@@ -192,7 +208,7 @@ ONLINE_AAC_Bootstrap_SHARED_three_layer_hparam = {
     'critic_learning_rate':           3e-4,
     'critique_loop_len':              2,
     'theta_nn_h_layer_topo':          (32, 64, 256),
-    'random_seed':                    13,
+    'random_seed':                    0,
     # 'theta_hidden_layers_activation': tf.nn.leaky_relu,  # tf.nn.tanh, tf.nn.relu
     # 'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh, tf.nn.leaky_relu
     'theta_hidden_layers_activation': tf.nn.tanh,  # tf.nn.relu, tf.nn.leaky_relu
@@ -204,15 +220,15 @@ ONLINE_AAC_Bootstrap_SHARED_three_layer_hparam = {
     'note':                           "Bigger net work better with shared network"
     }
 
-# batch_AAC_Bootstrap_SHARED_net_hparam = batch_AAC_Bootstrap_target_hparam.copy()
-# batch_AAC_Bootstrap_SHARED_net_hparam['comment'] = "Bootstrap SHARED network"
-# batch_AAC_Bootstrap_SHARED_net_hparam['Target'] = TargetType.Bootstrap
-# batch_AAC_Bootstrap_SHARED_net_hparam['Network'] = NetworkType.Shared
-# batch_AAC_Bootstrap_SHARED_net_hparam['note'] = ""
+# BATCH_AAC_Bootstrap_SHARED_net_hparam = BATCH_AAC_bootstrap_SPLIT_net_hparam.copy()
+# BATCH_AAC_Bootstrap_SHARED_net_hparam['comment'] = "Bootstrap SHARED network"
+# BATCH_AAC_Bootstrap_SHARED_net_hparam['Target'] = TargetType.Bootstrap
+# BATCH_AAC_Bootstrap_SHARED_net_hparam['Network'] = NetworkType.Shared
+# BATCH_AAC_Bootstrap_SHARED_net_hparam['note'] = ""
 
 lilLogBatch_AAC_hparam = {
-    'paramameter_set_name':           'Batch AAC',
-    'algo_name':                      'ActorCritic',
+    'paramameter_set_name':           'Batch-AAC',
+    'algo_name':                      'Batch ActorCritic',
     'comment':                        'Lil-Log reference',
     'Target':                         TargetType.MonteCarlo,
     'prefered_environment':           'CartPole-v0',
@@ -235,8 +251,8 @@ lilLogBatch_AAC_hparam = {
     }
 
 test_hparam = {
-    'paramameter_set_name':           'Batch AAC',
-    'algo_name':                      'ActorCritic',
+    'paramameter_set_name':           'Batch-AAC',
+    'algo_name':                      'Batch ActorCritic',
     'comment':                        'TestSpec',
     'Target':                         TargetType.MonteCarlo,
     'Network':                        NetworkType.Split,
@@ -250,7 +266,7 @@ test_hparam = {
     'critic_learning_rate':           1e-3,
     'critique_loop_len':              80,
     'theta_nn_h_layer_topo':          (8, 8),
-    'random_seed':                    82,
+    'random_seed':                    0,
     'theta_hidden_layers_activation': tf.nn.tanh,
     'theta_output_layers_activation': None,
     'render_env_every_What_epoch':    5,
@@ -267,9 +283,9 @@ parser = argparse.ArgumentParser(description=(
     epilog="=============================================================================\n")
 
 # parser.add_argument('--env', type=str, default='CartPole-v0')
-parser.add_argument('--trainMC', action='store_true', help='Train a Batch Actor-Critic agent with Monte Carlo TD target')
-parser.add_argument('--trainBootstap', action='store_true', help='Train a Batch Actor-Critic agent with bootstrap estimate TD target')
-parser.add_argument('--trainShared', action='store_true', help='Train a Batch Actor-Critic agent with shared network')
+parser.add_argument('--trainSplitMC', action='store_true', help='Train a Batch Actor-Critic agent with Monte Carlo TD target')
+parser.add_argument('--trainSplitBootstrap', action='store_true', help='Train a Batch Actor-Critic agent with bootstrap estimate TD target')
+parser.add_argument('--trainSharedBootstrap', action='store_true', help='Train a Batch Actor-Critic agent with shared network')
 parser.add_argument('--trainOnlineSplit', action='store_true', help='Train a Online Actor-Critic agent with split network')
 
 parser.add_argument('--trainOnlineSplit3layer', action='store_true', help='Train a Online Actor-Critic agent with split network')
@@ -278,7 +294,10 @@ parser.add_argument('--trainOnlineShared3layer', action='store_true', help='Trai
 
 parser.add_argument('--reference', action='store_true', help='Execute training of reference Actor-Critic implementation by Lilian Weng')
 
-parser.add_argument('-r', '--render_training', action='store_true',
+parser.add_argument('-rer', '--rerun', type=int, default=1,
+                    help='Rerun training experiment with the same spec r time (default=1)')
+
+parser.add_argument('--renderTraining', action='store_true',
                     help='(Training option) Watch the agent execute trajectories while he is on traning duty')
 
 parser.add_argument('-d', '--discounted', default=None, type=bool,
@@ -287,7 +306,7 @@ parser.add_argument('-d', '--discounted', default=None, type=bool,
 parser.add_argument('-p', '--play_for', type=int, default=20,
                     help='(Playing option) Max playing trajectory, default=20')
 
-parser.add_argument('--test_run', action='store_true')
+parser.add_argument('--testRun', action='store_true')
 
 args = parser.parse_args()
 
@@ -295,7 +314,7 @@ exp_spec = ExperimentSpec()
 
 
 def configure_exp_spec(hparam: dict) -> ExperimentSpec:
-    if args.test_run:
+    if args.testRun:
         exp_spec.set_experiment_spec(test_hparam)
     else:
         exp_spec.set_experiment_spec(hparam)
@@ -306,7 +325,7 @@ def configure_exp_spec(hparam: dict) -> ExperimentSpec:
 def warmup_agent_for_training(agent: Type[Agent], spec: ExperimentSpec):
     # global ac_agent
     ac_agent = agent(spec)
-    ac_agent.train(render_env=args.render_training)
+    ac_agent.train(render_env=args.renderTraining)
 
 def warmup_agent_for_playing(agent: Type[Agent], spec: ExperimentSpec):
     raise NotImplementedError   # todo: implement select and PLAY agent
@@ -320,47 +339,65 @@ def warmup_agent_for_playing(agent: Type[Agent], spec: ExperimentSpec):
 # *                                                                                                                    *
 # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * * *
 
-if args.trainMC:
-    """ ---- Batch Split network architecture with Monte Carlo TD target ---- """
-    exp_spec = configure_exp_spec(batch_AAC_MonteCarlo_target_hparam)
-    warmup_agent_for_training(BatchActorCriticAgent, exp_spec)
+consol_width = 90
+print("\n")
+for _ in range(3):
+    print("\\" * consol_width)
 
-elif args.trainBootstap:
-    """ ---- Batch Split network architecture with Bootstrap estimate TD target run ---- """
-    exp_spec = configure_exp_spec(batch_AAC_Bootstrap_target_hparam)
-    warmup_agent_for_training(BatchActorCriticAgent, exp_spec)
+print("\n:: The experiment will be rerun {} time".format(args.rerun))
 
-elif args.trainShared:
-    """ ---- Batch Shared network architecture with Bootstrap estimate TD target run ---- """
-    exp_spec = configure_exp_spec(batch_AAC_Bootstrap_SHARED_net_hparam)
-    warmup_agent_for_training(BatchActorCriticAgent, exp_spec)
+for r_i in range(args.rerun):
 
-elif args.trainOnlineSplit:
-    """ ---- ONLINE Split network architecture with Bootstrap estimate TD target run ---- """
-    exp_spec = configure_exp_spec(ONLINE_AAC_Bootstrap_SPLIT_net_hparam)
-    warmup_agent_for_training(OnlineActorCriticAgent, exp_spec)
+    print(":: Starting rerun experiment no {}".format(r_i))
 
-elif args.trainOnlineSplit3layer:
-    """ ---- ONLINE Split network 3 hiden layer architecture with Bootstrap estimate TD target run ---- """
-    exp_spec = configure_exp_spec(ONLINE_AAC_Bootstrap_SPLIT_three_layer_hparam)
-    warmup_agent_for_training(OnlineActorCriticAgent, exp_spec)
+    if args.trainSplitMC:
+        """ ---- Batch Split network architecture with Monte Carlo TD target ---- """
+        exp_spec = configure_exp_spec(BATCH_AAC_MonteCarlo_SPLIT_net_hparam)
+        warmup_agent_for_training(BatchActorCriticAgent, exp_spec)
 
-elif args.trainOnlineShared3layer:
-    """ ---- V2 ONLINE Shared network architecture with Bootstrap estimate TD target run ---- """
-    exp_spec = configure_exp_spec(ONLINE_AAC_Bootstrap_SHARED_three_layer_hparam)
-    warmup_agent_for_training(OnlineActorCriticAgent, exp_spec)
+    elif args.trainSplitBootstrap:
+        """ ---- Batch Split network architecture with Bootstrap estimate TD target run ---- """
+        exp_spec = configure_exp_spec(BATCH_AAC_bootstrap_SPLIT_net_hparam)
+        warmup_agent_for_training(BatchActorCriticAgent, exp_spec)
 
-elif args.reference:
-    """ ---- Lil-Log reference run ---- """
-    exp_spec = configure_exp_spec(lilLogBatch_AAC_hparam)
-    warmup_agent_for_training(ReferenceActorCriticAgent, exp_spec)
+    elif args.trainSharedBootstrap:
+        """ ---- Batch Shared network architecture with Bootstrap estimate TD target run ---- """
+        exp_spec = configure_exp_spec(BATCH_AAC_Bootstrap_SHARED_net_hparam)
+        warmup_agent_for_training(BatchActorCriticAgent, exp_spec)
 
-else:
+    elif args.trainOnlineSplit:
+        """ ---- ONLINE Split network architecture with Bootstrap estimate TD target run ---- """
+        exp_spec = configure_exp_spec(ONLINE_AAC_Bootstrap_SPLIT_net_hparam)
+        warmup_agent_for_training(OnlineActorCriticAgent, exp_spec)
 
-    """ ---- Play run ---- """
-    exp_spec = configure_exp_spec(batch_AAC_MonteCarlo_target_hparam)
-    warmup_agent_for_playing(BatchActorCriticAgent, exp_spec)
-    BatchActorCriticAgent(exp_spec)
+    elif args.trainOnlineSplit3layer:
+        """ ---- ONLINE Split network 3 hiden layer architecture with Bootstrap estimate TD target run ---- """
+        exp_spec = configure_exp_spec(ONLINE_AAC_Bootstrap_SPLIT_three_layer_hparam)
+        warmup_agent_for_training(OnlineActorCriticAgent, exp_spec)
 
+    elif args.trainOnlineShared3layer:
+        """ ---- V2 ONLINE Shared network architecture with Bootstrap estimate TD target run ---- """
+        exp_spec = configure_exp_spec(ONLINE_AAC_Bootstrap_SHARED_three_layer_hparam)
+        warmup_agent_for_training(OnlineActorCriticAgent, exp_spec)
+
+    elif args.reference:
+        """ ---- Lil-Log reference run ---- """
+        exp_spec = configure_exp_spec(lilLogBatch_AAC_hparam)
+        warmup_agent_for_training(ReferenceActorCriticAgent, exp_spec)
+
+    else:
+
+        """ ---- Play run ---- """
+        exp_spec = configure_exp_spec(BATCH_AAC_MonteCarlo_SPLIT_net_hparam)
+        warmup_agent_for_playing(BatchActorCriticAgent, exp_spec)
+        BatchActorCriticAgent(exp_spec)
+
+
+name = exp_spec['paramameter_set_name']
+name += " " + exp_spec['comment']
+print("\n:: The experiment - {} - was rerun {} time.\n".format(name, args.rerun))
+
+for _ in range(3):
+    print("/" * consol_width)
 
 exit(0)

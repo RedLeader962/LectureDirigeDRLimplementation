@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="ONLINEActorCritic SHARED netwotk 3 hidden layer --trainOnlineShared3layer" type="PythonConfigurationType" factoryName="Python">
+  <configuration default="false" name="ONLINE AAC Shared nn (3 hidden layer) --trainOnlineShared3layer" type="PythonConfigurationType" factoryName="Python">
     <module name="LectureDirigeDRLimplementation" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />

@@ -83,7 +83,7 @@ class Agent(object, metaclass=ABCMeta):
         :type render_env: bool
         """
 
-        print("\n:: Environment rendering autorised: {}\n".format(render_env))
+        print(":: Environment rendering autorised: {}".format(render_env))
 
         consol_print_learning_stats = ConsolPrintLearningStats(self.exp_spec,
                                                                self.exp_spec.print_metric_every_what_epoch)
