@@ -4,18 +4,34 @@ from collections import namedtuple
 from typing import Type
 from enum import Enum
 
+
+class TargetType(Enum):
+    MonteCarlo = 1
+    Bootstrap = 2
+
+class NetworkType(Enum):
+    Split = 1
+    Shared = 2
+
+
 _rl_vocab_list = [
     'REINFORCE', 'ActorCritic', 'DQN',
     'Discrete', 'Continuous',
     'trajectorie', 'timestep', 'epoch', 'horizon',
-    'observation', 'action', 'policy', 'transition_dynamic', 'reward', 'reward_to_go', 'Qvalues', 'G',
-    'V_estimate', 'TD_target', 'Advantage', 'TD_error',
+    'observation', 'action', 'policy', 'transition_dynamic',
+    'obs_t', 'obs_tPrime'
+    'Qvalues', 'Vvalues'
+    'reward', 'reward_to_go', 'G',
+    'V_estimate', 'Advantage',
+    'TD_target', 'TD_error',
+    'V_pi', 'Q_pi', 'A_pi',
     'policy_theta', 'policy_theta_D', 'policy_theta_C',
-    'theta_NeuralNet', 'phi_NeuralNet', 'actor_network', 'critic_network', 'shared_network',
+    'shared_network', 'split_network', 'two_input_network',
+    'actor_network', 'theta_NeuralNet',
+    'critic_network', 'phi_NeuralNet',  'critic_t', 'critic_tPrime',
     'sampled_action', 'sampled_action_log_pr', 'action_space_log_pr',
     'pseudo_loss', 'actor_loss', 'critic_loss',
     'likelihood', 'negative_likelihood',
-    'V_pi', 'Q_pi', 'A_pi',
     'discout_factor',
     'baseline',
     'objective', 'loss', 'inference',
@@ -23,7 +39,8 @@ _rl_vocab_list = [
     'learning_rate',
     'entropy', 'KL',
     'Multi_Layer_Perceptron',
-    'graph_input', 'obs_ph', 'act_ph', 'Qvalues_ph', 'advantage_ph', 'target_ph',
+    'graph_input', 'obs_ph', 'obs_t_ph', 'obs_tPrime_ph',
+    'act_ph', 'rew_ph', 'Qvalues_ph', 'advantage_ph', 'target_ph',
     'input_layer', 'hidden_', 'output_layer', 'logits'
 ]
 
@@ -48,12 +65,4 @@ A standardize vocabulary to use when refering node in a computation graph
 """
 rl_name: namedtuple = namedtuple('RLvocabulary', _rl_vocab_list, defaults=_rl_vocab_list)
 
-
-class TargetType(Enum):
-    MonteCarlo = 1
-    Bootstrap = 2
-
-class NetworkType(Enum):
-    Split = 1
-    Shared = 2
 

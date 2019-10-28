@@ -10,7 +10,7 @@ import os
 
 from ActorCritic.BatchActorCriticAgent import BatchActorCriticAgent
 from ActorCritic.reference_LilLog_BatchAAC import ReferenceActorCriticAgent
-from ActorCritic.ActorCriticBrain import build_actor_policy_graph, build_critic_graph
+from ActorCritic.ActorCriticBrainSplitNetwork import build_actor_policy_graph, build_critic_graph
 
 name = "ActorCritic"
 

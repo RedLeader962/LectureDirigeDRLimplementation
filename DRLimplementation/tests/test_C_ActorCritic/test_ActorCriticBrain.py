@@ -2,7 +2,7 @@
 import pytest
 import tensorflow as tf
 
-from ActorCritic import ActorCriticBrain
+from ActorCritic import ActorCriticBrainSplitNetwork
 from blocAndTools import buildingbloc as bloc
 
 tf_cv1 = tf.compat.v1   # shortcut
@@ -42,7 +42,7 @@ def test_ActorCritic_agent_ACTOR_DISCRETE_PASS(gym_and_tf_discrete_setup):
     obs_p, act_p, _, exp_spec, playground = gym_and_tf_discrete_setup
     A_ph = tf_cv1.placeholder(tf.float32, shape=(None,), name='advantage_placeholder')
 
-    ActorCriticBrain.build_actor_policy_graph(obs_p, exp_spec, playground)
+    ActorCriticBrainSplitNetwork.build_actor_policy_graph(obs_p, exp_spec, playground)
 
 
 def test_ActorCritic_agent_CRITIC_DISCRETE_PASS(gym_and_tf_discrete_setup):
@@ -50,7 +50,7 @@ def test_ActorCritic_agent_CRITIC_DISCRETE_PASS(gym_and_tf_discrete_setup):
     obs_p, _, Q_values_ph, exp_spec, playground = gym_and_tf_discrete_setup
     target_ph = tf_cv1.placeholder(tf.float32, shape=(None,), name='target_placeholder')
 
-    ActorCriticBrain.build_critic_graph(obs_p, exp_spec)
+    ActorCriticBrainSplitNetwork.build_critic_graph(obs_p, exp_spec)
 
 
 

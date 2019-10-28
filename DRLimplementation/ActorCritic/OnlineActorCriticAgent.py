@@ -8,7 +8,7 @@ import tensorflow.python.util.deprecation as deprecation
 import numpy as np
 from typing import List, Tuple, Any
 
-from ActorCritic.ActorCriticBrain import build_actor_policy_graph, build_critic_graph, critic_train, actor_train
+from ActorCritic.ActorCriticBrainSplitNetwork import build_actor_policy_graph, build_critic_graph, critic_train, actor_train
 from ActorCritic.ActorCriticBrainSharedNetwork import build_actor_critic_shared_graph
 from blocAndTools.agent import Agent
 from blocAndTools.rl_vocabulary import rl_name, TargetType, NetworkType
@@ -43,6 +43,7 @@ class OnlineActorCriticAgent(Agent):
         else:
             tf_cv1.random.set_random_seed(self.exp_spec.random_seed)
             np.random.seed(self.exp_spec.random_seed)
+            print(":: Random seed control is turned ON")
 
         """ ---- Placeholder ---- """
         self.observation_ph, self.action_ph, self.Qvalues_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
@@ -158,6 +159,8 @@ class OnlineActorCriticAgent(Agent):
         """
 
         self.trjCOLLECTOR, experimentCOLLECTOR = self._instantiate_data_collector()
+
+        print(":: ONline ActorCritic agent reporting for training ")
 
         """ ---- Warm-up the computation graph and start learning! ---- """
         with tf_cv1.Session() as sess:

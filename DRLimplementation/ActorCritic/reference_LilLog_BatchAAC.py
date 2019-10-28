@@ -17,7 +17,7 @@ import tensorflow.python.util.deprecation as deprecation
 import numpy as np
 from typing import List, Tuple, Any
 
-from ActorCritic.ActorCriticBrain import build_actor_policy_graph, build_critic_graph
+from ActorCritic.ActorCriticBrainSplitNetwork import build_actor_policy_graph, build_critic_graph
 from blocAndTools.agent import Agent
 from blocAndTools.rl_vocabulary import rl_name
 from blocAndTools import buildingbloc as bloc, ConsolPrintLearningStats

@@ -38,6 +38,8 @@ class ExperimentSpec:
         self.algo_name = algo_name
         self.comment = comment
         self.paramameter_set_name = 'default'
+        self.rerun_tag = None
+        self.rerun_idx = 0
 
         self.isTestRun = isTestRun
         self.prefered_environment = environment_name
@@ -275,7 +277,7 @@ def continuous_space_placeholder(space: gym.spaces.Box, shape_constraint: tuple 
 
 
 def discrete_space_placeholder(space: gym.spaces.Discrete, shape_constraint: tuple = None, dtype=tf.int32, name=None) -> tf.Tensor:
-    assert isinstance(space, gym.spaces.Discrete)
+    assert isinstance(space, gym.spaces.Discrete), "{}".format(space)
     if shape_constraint is not None:
         shape = (*shape_constraint,)
     else:
@@ -471,13 +473,29 @@ def to_scalar(action_array: np.ndarray):
 
 def setup_commented_run_dir_str(exp_spec: ExperimentSpec, agent_root_dir: str) -> str:
     date_now = datetime.now()
+
     experiment_name = exp_spec.paramameter_set_name
-    if exp_spec.comment is not None:
-        experiment_name = experiment_name + "(" + exp_spec.comment + ")"
+    comment = exp_spec.comment
+
+    if comment is not None:
+        comment = "(" + comment + ")"
+        cleaned_comment = comment.replace(" ", "+")
+        experiment_name = experiment_name + comment
+    else:
+        cleaned_comment = ""
 
     cleaned_name = experiment_name.replace(" ", "_")
-    runs_dir = "{}/graph".format(agent_root_dir)
-    run_str = "Run--{}-{}d{}h{}m".format(cleaned_name, date_now.day, date_now.hour, date_now.minute, )
+
+    tag = exp_spec.rerun_tag
+    if tag is not None:
+        exp_str = "Exp-{}-{}".format(tag, cleaned_comment)
+        runs_dir = "{}/graph/{}".format(agent_root_dir, exp_str)
+        tag_i = "{}{}".format(tag, exp_spec.rerun_idx)
+        run_str = "Run-{}-{}-d{}h{}m{}s{}".format(tag_i, cleaned_name, date_now.day, date_now.hour, date_now.minute, date_now.second)
+    else:
+        runs_dir = "{}/graph".format(agent_root_dir)
+        run_str = "Run--{}-d{}h{}m{}s{}".format(cleaned_name, date_now.day, date_now.hour, date_now.minute, date_now.second)
+
     run_dir = "{}/{}".format(runs_dir, run_str)
     return run_dir
 

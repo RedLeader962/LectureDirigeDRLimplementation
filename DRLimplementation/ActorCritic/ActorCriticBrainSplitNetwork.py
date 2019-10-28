@@ -76,7 +76,7 @@ def actor_train(action_placeholder, log_pi, advantage, experiment_spec, playgrou
     return actor_loss, actor_policy_optimizer_op
 
 
-def build_critic_graph(observation_placeholder: tf.Tensor, experiment_spec: ExperimentSpec) -> tf.Tensor:
+def build_critic_graph(obs_t_ph: tf.Tensor, exp_spec: ExperimentSpec) -> tf.Tensor:
     """
     Critic network phi
             input: the observations collected
@@ -87,12 +87,36 @@ def build_critic_graph(observation_placeholder: tf.Tensor, experiment_spec: Expe
 
     with tf.name_scope(vocab.critic_network) as scope:
         """ ---- Build parameter PHI as a multilayer perceptron ---- """
-        critic = build_MLP_computation_graph(observation_placeholder, 1, experiment_spec.theta_nn_h_layer_topo,
-                                             hidden_layers_activation=experiment_spec.theta_hidden_layers_activation,
-                                             output_layers_activation=experiment_spec.theta_output_layers_activation,
+        critic = build_MLP_computation_graph(obs_t_ph, 1, exp_spec.theta_nn_h_layer_topo,
+                                             hidden_layers_activation=exp_spec.theta_hidden_layers_activation,
+                                             output_layers_activation=exp_spec.theta_output_layers_activation,
                                              name=vocab.phi_NeuralNet)
 
     return critic
+
+def build_two_input_critic_graph(obs_t_ph: tf.Tensor, obs_tPrime_ph: tf.Tensor, exp_spec: ExperimentSpec) -> tf.Tensor:
+    """
+    Critic network phi
+            input: the observations collected for timestep t and tPrime
+            output: the logits of each action in the action space
+
+    :return: critic
+    """
+
+    with tf.name_scope(vocab.critic_network) as scope:
+        """ ---- Build parameter PHI as a multilayer perceptron ---- """
+        critic_t = build_MLP_computation_graph(obs_t_ph, 1, exp_spec.theta_nn_h_layer_topo,
+                                               hidden_layers_activation=exp_spec.theta_hidden_layers_activation,
+                                               output_layers_activation=exp_spec.theta_output_layers_activation,
+                                               name=vocab.phi_NeuralNet)
+
+        critic_tPrime = build_MLP_computation_graph(obs_tPrime_ph, 1, exp_spec.theta_nn_h_layer_topo,
+                                                    hidden_layers_activation=exp_spec.theta_hidden_layers_activation,
+                                                    output_layers_activation=exp_spec.theta_output_layers_activation,
+                                                    reuse=True,
+                                                    name=vocab.phi_NeuralNet)
+
+    return critic_t, critic_tPrime
 
 
 def critic_train(advantage, experiment_spec) -> (tf.Tensor, tf.Operation):
