@@ -1,0 +1,28 @@
+   ExperimentSpec{
+      'algo_name': Batch ActorCritic
+      'comment': LunarLander-v2
+      'paramameter_set_name': Batch-AAC-Split-nn
+      'rerun_tag': BMCSPL-Lunar-B
+      'rerun_idx': 3
+      'isTestRun': False
+      'prefered_environment': LunarLander-v2
+      'expected_reward_goal': 200
+      'show_plot': False
+      'batch_size_in_ts': 8000
+      'max_epoch': 60
+      'discout_factor': 0.99
+      'learning_rate': 0.01
+      'discounted_reward_to_go': True
+      'theta_nn_h_layer_topo': (64, 64)
+      'random_seed': 0
+      'theta_hidden_layers_activation': <function relu at 0x1308f9268>
+      'theta_output_layers_activation': None
+      'render_env_every_What_epoch': 100
+      'log_every_step': 1000
+      'print_metric_every_what_epoch': 2
+      'Target': TargetType.MonteCarlo
+      'Network': NetworkType.Split
+      'critic_learning_rate': 0.01
+      'critique_loop_len': 80
+      'note': 
+   }

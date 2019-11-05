@@ -9,7 +9,6 @@ import sys
 import os
 
 from ActorCritic.BatchActorCriticAgent import BatchActorCriticAgent
-from ActorCritic.reference_LilLog_BatchAAC import ReferenceActorCriticAgent
 from ActorCritic.ActorCriticBrainSplitNetwork import build_actor_policy_graph, build_critic_graph
 
 name = "ActorCritic"

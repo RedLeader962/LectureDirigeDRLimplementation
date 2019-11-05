@@ -168,7 +168,7 @@ class OnlineTwoInputAdvantageActorCriticAgent(Agent):
 
         self.trjCOLLECTOR, experimentCOLLECTOR = self._instantiate_data_collector()
 
-        print(":: ONline ActorCritic agent reporting for training ")
+        print(":: ONline (Two input Advantage) ActorCritic agent reporting for training ")
 
         """ ---- Warm-up the computation graph and start learning! ---- """
         with tf_cv1.Session() as sess:

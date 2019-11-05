@@ -1,0 +1,28 @@
+   ExperimentSpec{
+      'algo_name': Online ActorCritic
+      'comment': Discounted-Bootstrap-target
+      'paramameter_set_name': Online-AAC-Shared-nn16-32-256
+      'rerun_tag': OSHA-A
+      'rerun_idx': 2
+      'isTestRun': False
+      'prefered_environment': CartPole-v0
+      'expected_reward_goal': 200
+      'show_plot': False
+      'batch_size_in_ts': 10
+      'max_epoch': 45
+      'discout_factor': 0.95
+      'learning_rate': 0.0003
+      'discounted_reward_to_go': True
+      'theta_nn_h_layer_topo': (32, 64, 256)
+      'random_seed': 0
+      'theta_hidden_layers_activation': <function tanh at 0x12d44bc80>
+      'theta_output_layers_activation': None
+      'render_env_every_What_epoch': 100
+      'log_every_step': 1000
+      'print_metric_every_what_epoch': 5
+      'Network': NetworkType.Shared
+      'stage_size_in_trj': 50
+      'critic_learning_rate': 0.0003
+      'critique_loop_len': 2
+      'note': Bigger net work better with shared network
+   }

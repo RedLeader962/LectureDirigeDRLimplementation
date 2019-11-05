@@ -45,7 +45,7 @@ from blocAndTools.rl_vocabulary import TargetType, NetworkType
 
 BATCH_AAC_MonteCarlo_SPLIT_net_hparam = {
     'paramameter_set_name':           'Batch-AAC-Split-nn',
-    'rerun_tag':                      None,
+    'rerun_tag':                      'BMCSPL-A',
     'algo_name':                      'Batch ActorCritic',
     'comment':                        'MonteCarlo-target',
     'Target':                         TargetType.MonteCarlo,
@@ -69,6 +69,19 @@ BATCH_AAC_MonteCarlo_SPLIT_net_hparam = {
     'show_plot':                      False,
     'note':                           ''
     }
+
+BATCH_AAC_MonteCarlo_SPLIT_net_hparam = BATCH_AAC_MonteCarlo_SPLIT_net_hparam.copy()
+# BATCH_AAC_MonteCarlo_SPLIT_net_hparam['rerun_tag'] = 'BMCSPL-NoD-A'
+# BATCH_AAC_MonteCarlo_SPLIT_net_hparam['comment'] = 'Undiscounted MonteCarlo-target'
+# BATCH_AAC_MonteCarlo_SPLIT_net_hparam['discounted_reward_to_go'] = False
+
+BATCH_AAC_MonteCarlo_SPLIT_net_hparam['rerun_tag'] = 'BMCSPL-Lunar-B'
+BATCH_AAC_MonteCarlo_SPLIT_net_hparam['comment'] = 'LunarLander-v2'
+BATCH_AAC_MonteCarlo_SPLIT_net_hparam['prefered_environment'] = 'LunarLander-v2'
+BATCH_AAC_MonteCarlo_SPLIT_net_hparam['batch_size_in_ts'] = 8000
+BATCH_AAC_MonteCarlo_SPLIT_net_hparam['max_epoch'] = 60
+BATCH_AAC_MonteCarlo_SPLIT_net_hparam['theta_nn_h_layer_topo'] = (64, 64)
+
 
 BATCH_AAC_bootstrap_SPLIT_net_hparam = {
     'paramameter_set_name':           'Batch-AAC-Split-nn',
@@ -121,7 +134,7 @@ BATCH_AAC_bootstrap_SPLIT_net_hparam['batch_size_in_ts'] = 2000
 BATCH_AAC_bootstrap_SPLIT_net_hparam['critique_loop_len'] = 120
 
 
-BATCH_AAC_bootstrap_SPLIT_net_hparam['rerun_tag'] = 'DD'
+BATCH_AAC_bootstrap_SPLIT_net_hparam['rerun_tag'] = 'BBSPL-A'
 BATCH_AAC_bootstrap_SPLIT_net_hparam['random_seed'] = 0
 BATCH_AAC_bootstrap_SPLIT_net_hparam['batch_size_in_ts'] = 3000
 BATCH_AAC_bootstrap_SPLIT_net_hparam['critique_loop_len'] = 120
@@ -133,7 +146,7 @@ BATCH_AAC_bootstrap_SPLIT_net_hparam['theta_nn_h_layer_topo'] = (16, 32, 64)
 
 BATCH_AAC_Bootstrap_SHARED_net_hparam = {
     'paramameter_set_name':           'Batch-AAC-Shared-nn',
-    'rerun_tag':                      None,
+    'rerun_tag':                      'BSHA-A',
     'algo_name':                      'Batch ActorCritic',
     'comment':                        'Bootstrap-Tiny-Batch-WORKING',
     'Target':                         TargetType.Bootstrap,
@@ -155,7 +168,8 @@ BATCH_AAC_Bootstrap_SHARED_net_hparam = {
     'print_metric_every_what_epoch':  8,
     'isTestRun':                      False,
     'show_plot':                      False,
-    'note':                           ("Converge aparently faster."
+    'note':                           ("Fail to learn 4 time out of 5 runs"
+                                       "Converge aparently faster."
                                        "Does not learn on large batch! "
                                        "Work only on tiny batch (more or less 1 trajectory)"
                                        "Use small hlayer topo."
@@ -167,7 +181,7 @@ BATCH_AAC_Bootstrap_SHARED_net_hparam = {
 
 ONLINE_AAC_Bootstrap_SPLIT_net_hparam = {
     'paramameter_set_name':           'Online-AAC-Split-nn',
-    'rerun_tag':                      None,
+    'rerun_tag':                      'OSPL-A',
     'algo_name':                      'Online ActorCritic',
     'comment':                        'Discounted-Bootstrap-target',
     'Network':                        NetworkType.Split,
@@ -196,7 +210,7 @@ ONLINE_AAC_Bootstrap_SPLIT_net_hparam = {
 
 ONLINE_AAC_Bootstrap_SPLIT_three_layer_hparam = {
     'paramameter_set_name':           'Online-AAC-Split-nn16-32-256',
-    'rerun_tag':                      None,
+    'rerun_tag':                      'OSPL3L-A',
     'algo_name':                      'Online ActorCritic',
     'comment':                        'Discounted-Bootstrap-target',
     'Network':                        NetworkType.Split,
@@ -224,7 +238,7 @@ ONLINE_AAC_Bootstrap_SPLIT_three_layer_hparam = {
 
 ONLINE_AAC_Bootstrap_SHARED_three_layer_hparam = {
     'paramameter_set_name':           'Online-AAC-Shared-nn16-32-256',
-    'rerun_tag':                      None,
+    'rerun_tag':                      'OSHA-A',
     'algo_name':                      'Online ActorCritic',
     'comment':                        'Discounted-Bootstrap-target',
     'Network':                        NetworkType.Shared,
@@ -247,29 +261,28 @@ ONLINE_AAC_Bootstrap_SHARED_three_layer_hparam = {
     'print_metric_every_what_epoch':  5,
     'isTestRun':                      False,
     'show_plot':                      False,
-    'note':                           "Bigger net work better with shared network"
+    'note':                           "Bigger network better with shared network. Fail to learn 2 time out of 5 runs"
     }
 
 ONLINE_AAC_Bootstrap_TwoInputAdv_SPLIT_three_layer_hparam = {
     'paramameter_set_name':           'Online-AAC-Split-TwoInputAdv-nn16-32-256',
-    'rerun_tag':                      'TWO',
+    'rerun_tag':                      'OSTWO-H',
     'algo_name':                      'Online ActorCritic',
     'comment':                        'Discounted-Bootstrap-target',
     'Network':                        NetworkType.Split,
     'prefered_environment':           'CartPole-v0',
     'expected_reward_goal':           200,
-    'batch_size_in_ts':               20,
+    'batch_size_in_ts':               5,
     'stage_size_in_trj':              50,
-    'max_epoch':                      45,
+    'max_epoch':                      25,
     'discout_factor':                 0.999,
-    'learning_rate':                  5e-5,
+    'learning_rate':                  1e-4,
     'critic_learning_rate':           5e-4,
     'critique_loop_len':              1,
-    'theta_nn_h_layer_topo':          (16, 32, 256),
+    # 'theta_nn_h_layer_topo':          (16, 32, 80),
+    'theta_nn_h_layer_topo':          (16, 32, 32),
     'random_seed':                    0,
-    # 'theta_hidden_layers_activation': tf.nn.leaky_relu,  # tf.nn.tanh, tf.nn.relu
     'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh, tf.nn.leaky_relu
-    # 'theta_hidden_layers_activation': tf.nn.tanh,  # tf.nn.relu, tf.nn.leaky_relu
     'theta_output_layers_activation': None,
     'render_env_every_What_epoch':    100,
     'print_metric_every_what_epoch':  5,

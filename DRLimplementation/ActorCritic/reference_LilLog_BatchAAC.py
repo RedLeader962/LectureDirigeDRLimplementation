@@ -34,8 +34,6 @@ deprecation._PRINT_DEPRECATION_WARNINGS = False
 vocab = rl_name()
 # endregion
 
-
-
 class ReferenceActorCriticAgent(Agent):
     def _use_hardcoded_agent_root_directory(self):
         self.agent_root_dir = 'ActorCritic'

@@ -1,0 +1,28 @@
+   ExperimentSpec{
+      'algo_name': Batch ActorCritic
+      'comment': Undiscounted MonteCarlo-target
+      'paramameter_set_name': Batch-AAC-Split-nn
+      'rerun_tag': BMCSPL-NoD-A
+      'rerun_idx': 1
+      'isTestRun': False
+      'prefered_environment': CartPole-v0
+      'expected_reward_goal': 200
+      'show_plot': False
+      'batch_size_in_ts': 4000
+      'max_epoch': 30
+      'discout_factor': 0.99
+      'learning_rate': 0.01
+      'discounted_reward_to_go': False
+      'theta_nn_h_layer_topo': (32, 32)
+      'random_seed': 0
+      'theta_hidden_layers_activation': <function relu at 0x1280ad268>
+      'theta_output_layers_activation': None
+      'render_env_every_What_epoch': 100
+      'log_every_step': 1000
+      'print_metric_every_what_epoch': 2
+      'Target': TargetType.MonteCarlo
+      'Network': NetworkType.Split
+      'critic_learning_rate': 0.01
+      'critique_loop_len': 80
+      'note': 
+   }

@@ -1,0 +1,28 @@
+   ExperimentSpec{
+      'algo_name': Online ActorCritic
+      'comment': Discounted-Bootstrap-target
+      'paramameter_set_name': Online-AAC-Split-TwoInputAdv-nn16-32-256
+      'rerun_tag': OSTWO-H
+      'rerun_idx': 4
+      'isTestRun': False
+      'prefered_environment': CartPole-v0
+      'expected_reward_goal': 200
+      'show_plot': False
+      'batch_size_in_ts': 5
+      'max_epoch': 25
+      'discout_factor': 0.999
+      'learning_rate': 0.0001
+      'discounted_reward_to_go': True
+      'theta_nn_h_layer_topo': (16, 32, 32)
+      'random_seed': 0
+      'theta_hidden_layers_activation': <function relu at 0x12d41e268>
+      'theta_output_layers_activation': None
+      'render_env_every_What_epoch': 100
+      'log_every_step': 1000
+      'print_metric_every_what_epoch': 5
+      'Network': NetworkType.Split
+      'stage_size_in_trj': 50
+      'critic_learning_rate': 0.0005
+      'critique_loop_len': 1
+      'note': 
+   }
