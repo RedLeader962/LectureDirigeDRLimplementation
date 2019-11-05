@@ -16,7 +16,7 @@ Note on TensorBoard usage:
 
 
 """
-from typing import List, Tuple, Any, Iterable, Union, Type
+from typing import Type
 import argparse
 import tensorflow as tf
 
@@ -24,7 +24,7 @@ from blocAndTools.agent import Agent
 from ActorCritic.BatchActorCriticAgent import BatchActorCriticAgent
 from ActorCritic.OnlineActorCriticAgent import OnlineActorCriticAgent
 from ActorCritic.OnlineTwoInputAdvantageActorCriticAgent import OnlineTwoInputAdvantageActorCriticAgent
-from ActorCritic.reference_LilLog_BatchAAC import ReferenceActorCriticAgent
+from tests.test_Z_integration.test_integrationActorCritic.reference_LilLog_BatchAAC import ReferenceActorCriticAgent
 from blocAndTools.buildingbloc import ExperimentSpec
 from blocAndTools.rl_vocabulary import TargetType, NetworkType
 
@@ -70,78 +70,89 @@ BATCH_AAC_MonteCarlo_SPLIT_net_hparam = {
     'note':                           ''
     }
 
-BATCH_AAC_MonteCarlo_SPLIT_net_hparam = BATCH_AAC_MonteCarlo_SPLIT_net_hparam.copy()
-# BATCH_AAC_MonteCarlo_SPLIT_net_hparam['rerun_tag'] = 'BMCSPL-NoD-A'
-# BATCH_AAC_MonteCarlo_SPLIT_net_hparam['comment'] = 'Undiscounted MonteCarlo-target'
-# BATCH_AAC_MonteCarlo_SPLIT_net_hparam['discounted_reward_to_go'] = False
-
-BATCH_AAC_MonteCarlo_SPLIT_net_hparam['rerun_tag'] = 'BMCSPL-Lunar-B'
-BATCH_AAC_MonteCarlo_SPLIT_net_hparam['comment'] = 'LunarLander-v2'
-BATCH_AAC_MonteCarlo_SPLIT_net_hparam['prefered_environment'] = 'LunarLander-v2'
-BATCH_AAC_MonteCarlo_SPLIT_net_hparam['batch_size_in_ts'] = 8000
-BATCH_AAC_MonteCarlo_SPLIT_net_hparam['max_epoch'] = 60
-BATCH_AAC_MonteCarlo_SPLIT_net_hparam['theta_nn_h_layer_topo'] = (64, 64)
-
-
-BATCH_AAC_bootstrap_SPLIT_net_hparam = {
+BATCH_AAC_Undiscounted_MonteCarlo_SPLIT_net_hparam = {
     'paramameter_set_name':           'Batch-AAC-Split-nn',
-    'rerun_tag':                      None,
+    'rerun_tag':                      'BMCSPL-NoD-A',
     'algo_name':                      'Batch ActorCritic',
-    'comment':                        'Discounted-Bootstrap-target',
-    'Target':                         TargetType.Bootstrap,
+    'comment':                        'Undiscounted MonteCarlo-target',
+    'Target':                         TargetType.MonteCarlo,
     'Network':                        NetworkType.Split,
     'prefered_environment':           'CartPole-v0',
     'expected_reward_goal':           200,
     'batch_size_in_ts':               4000,
-    # 'max_epoch':                      30,
-    'max_epoch':                      50,
-    'discounted_reward_to_go':        True,
+    'max_epoch':                      30,
+    'discounted_reward_to_go':        False,
     'discout_factor':                 0.99,
     'learning_rate':                  1e-2,
-    'critic_learning_rate':           1e-3,
+    'critic_learning_rate':           1e-2,
     'critique_loop_len':              80,
     'theta_nn_h_layer_topo':          (32, 32),
-    # 'theta_nn_h_layer_topo':          (62,),    # <--(!) not learning
     'random_seed':                    0,
-    # 'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh,
-    'theta_hidden_layers_activation': tf.nn.tanh,  # tf.nn.relu,
+    'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh,
     'theta_output_layers_activation': None,
     'render_env_every_What_epoch':    100,
     'print_metric_every_what_epoch':  2,
     'isTestRun':                      False,
     'show_plot':                      False,
-    'note':                           "Both loss have a lot less variance. The algo take more time to converge."
+    'note':                           ''
     }
 
-BATCH_AAC_bootstrap_SPLIT_net_hparam = BATCH_AAC_bootstrap_SPLIT_net_hparam.copy()
-BATCH_AAC_bootstrap_SPLIT_net_hparam['learning_rate'] = 1e-2
-BATCH_AAC_bootstrap_SPLIT_net_hparam['critic_learning_rate'] = 1e-2
+BATCH_AAC_LunarLander_hparam = {
+    'paramameter_set_name':           'Batch-AAC-Split-nn',
+    'rerun_tag':                      'BMC-Lunar-B',
+    'algo_name':                      'Batch ActorCritic',
+    'comment':                        'MonteCarlo-target LunarLander',
+    'Target':                         TargetType.MonteCarlo,
+    'Network':                        NetworkType.Split,
+    'prefered_environment':           'LunarLander-v2',
+    'expected_reward_goal':           200,
+    'batch_size_in_ts':               8000,
+    'max_epoch':                      60,
+    'discounted_reward_to_go':        False,
+    'discout_factor':                 0.99,
+    'learning_rate':                  1e-2,
+    'critic_learning_rate':           1e-2,
+    'critique_loop_len':              80,
+    'theta_nn_h_layer_topo':          (64, 64),
+    'random_seed':                    0,
+    'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh,
+    'theta_output_layers_activation': None,
+    'render_env_every_What_epoch':    100,
+    'print_metric_every_what_epoch':  2,
+    'isTestRun':                      False,
+    'show_plot':                      False,
+    'note':                           ''
+    }
 
 
-# BATCH_AAC_bootstrap_SPLIT_net_hparam['comment'] = 'Discounted-Bootstrap-target Short-sighted'
-# BATCH_AAC_bootstrap_SPLIT_net_hparam['discout_factor'] = 0.9
-
-BATCH_AAC_bootstrap_SPLIT_net_hparam['rerun_tag'] = 'AA'
-BATCH_AAC_bootstrap_SPLIT_net_hparam['comment'] = 'Discounted-Bootstrap-target Farsighted'
-BATCH_AAC_bootstrap_SPLIT_net_hparam['discout_factor'] = 0.9999
-
-BATCH_AAC_bootstrap_SPLIT_net_hparam['theta_hidden_layers_activation'] = tf.nn.relu
-BATCH_AAC_bootstrap_SPLIT_net_hparam['note'] = "Both loss have a lot less variance. The algo take more time to converge. relu seams to work better"
-
-BATCH_AAC_bootstrap_SPLIT_net_hparam['rerun_tag'] = 'AAA'
-BATCH_AAC_bootstrap_SPLIT_net_hparam['random_seed'] = 33
-BATCH_AAC_bootstrap_SPLIT_net_hparam['batch_size_in_ts'] = 2000
-BATCH_AAC_bootstrap_SPLIT_net_hparam['critique_loop_len'] = 120
-
-
-BATCH_AAC_bootstrap_SPLIT_net_hparam['rerun_tag'] = 'BBSPL-A'
-BATCH_AAC_bootstrap_SPLIT_net_hparam['random_seed'] = 0
-BATCH_AAC_bootstrap_SPLIT_net_hparam['batch_size_in_ts'] = 3000
-BATCH_AAC_bootstrap_SPLIT_net_hparam['critique_loop_len'] = 120
-BATCH_AAC_bootstrap_SPLIT_net_hparam['max_epoch'] = 50
-BATCH_AAC_bootstrap_SPLIT_net_hparam['learning_rate'] = 1e-2
-BATCH_AAC_bootstrap_SPLIT_net_hparam['critic_learning_rate'] = 1e-3
-BATCH_AAC_bootstrap_SPLIT_net_hparam['theta_nn_h_layer_topo'] = (16, 32, 64)
+BATCH_AAC_bootstrap_SPLIT_net_hparam = {
+    'paramameter_set_name':           'Batch-AAC-Split-nn',
+    'rerun_tag':                      'BBSPL-A',
+    'algo_name':                      'Batch ActorCritic',
+    'comment':                        'Discounted-Bootstrap-target Farsighted',
+    'Target':                         TargetType.Bootstrap,
+    'Network':                        NetworkType.Split,
+    'prefered_environment':           'CartPole-v0',
+    'expected_reward_goal':           200,
+    'batch_size_in_ts':               3000,
+    # 'max_epoch':                      30,
+    'max_epoch':                      50,
+    'discounted_reward_to_go':        True,
+    'discout_factor':                 0.9999,
+    'learning_rate':                  1e-2,
+    'critic_learning_rate':           1e-3,
+    'critique_loop_len':              120,
+    'theta_nn_h_layer_topo':          (16, 32, 64),
+    # 'theta_nn_h_layer_topo':          (62,),    # <--(!) not learning
+    'random_seed':                    0,
+    'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.relu,
+    'theta_output_layers_activation': None,
+    'render_env_every_What_epoch':    100,
+    'print_metric_every_what_epoch':  2,
+    'isTestRun':                      False,
+    'show_plot':                      False,
+    'note':                           "Both loss have a lot less variance. The algo take more time to converge. relu seams to work better"
+    }
 
 
 BATCH_AAC_Bootstrap_SHARED_net_hparam = {
@@ -225,7 +236,6 @@ ONLINE_AAC_Bootstrap_SPLIT_three_layer_hparam = {
     'critique_loop_len':              1,
     'theta_nn_h_layer_topo':          (16, 32, 256),
     'random_seed':                    0,
-    # 'theta_hidden_layers_activation': tf.nn.leaky_relu,  # tf.nn.tanh, tf.nn.relu
     'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh, tf.nn.leaky_relu
     'theta_output_layers_activation': None,
     'render_env_every_What_epoch':    100,
@@ -253,8 +263,6 @@ ONLINE_AAC_Bootstrap_SHARED_three_layer_hparam = {
     'critique_loop_len':              2,
     'theta_nn_h_layer_topo':          (32, 64, 256),
     'random_seed':                    0,
-    # 'theta_hidden_layers_activation': tf.nn.leaky_relu,  # tf.nn.tanh, tf.nn.relu
-    # 'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh, tf.nn.leaky_relu
     'theta_hidden_layers_activation': tf.nn.tanh,  # tf.nn.relu, tf.nn.leaky_relu
     'theta_output_layers_activation': None,
     'render_env_every_What_epoch':    100,
@@ -291,11 +299,6 @@ ONLINE_AAC_Bootstrap_TwoInputAdv_SPLIT_three_layer_hparam = {
     'note':                           ""
     }
 
-# BATCH_AAC_Bootstrap_SHARED_net_hparam = BATCH_AAC_bootstrap_SPLIT_net_hparam.copy()
-# BATCH_AAC_Bootstrap_SHARED_net_hparam['comment'] = "Bootstrap SHARED network"
-# BATCH_AAC_Bootstrap_SHARED_net_hparam['Target'] = TargetType.Bootstrap
-# BATCH_AAC_Bootstrap_SHARED_net_hparam['Network'] = NetworkType.Shared
-# BATCH_AAC_Bootstrap_SHARED_net_hparam['note'] = ""
 
 lilLogBatch_AAC_hparam = {
     'paramameter_set_name':           'Batch-AAC',
