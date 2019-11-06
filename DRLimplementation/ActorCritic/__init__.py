@@ -9,7 +9,11 @@ import sys
 import os
 
 from ActorCritic.BatchActorCriticAgent import BatchActorCriticAgent
-from ActorCritic.ActorCriticBrainSplitNetwork import build_actor_policy_graph, build_critic_graph
+from ActorCritic.OnlineActorCriticAgent import OnlineActorCriticAgent
+from ActorCritic.OnlineTwoInputAdvantageActorCriticAgent import OnlineTwoInputAdvantageActorCriticAgent
+from ActorCritic.ActorCriticBrainSplitNetwork import (build_actor_policy_graph, build_two_input_critic_graph,
+                                                      build_critic_graph, actor_train, critic_train)
+from ActorCritic.ActorCriticBrainSharedNetwork import build_actor_critic_shared_graph
 
 name = "ActorCritic"
 

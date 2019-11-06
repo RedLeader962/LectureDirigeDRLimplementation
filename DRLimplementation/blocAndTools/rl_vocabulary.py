@@ -4,7 +4,6 @@ from collections import namedtuple
 from typing import Type
 from enum import Enum
 
-
 class TargetType(Enum):
     MonteCarlo = 1
     Bootstrap = 2
@@ -12,6 +11,7 @@ class TargetType(Enum):
 class NetworkType(Enum):
     Split = 1
     Shared = 2
+
 
 
 _rl_vocab_list = [

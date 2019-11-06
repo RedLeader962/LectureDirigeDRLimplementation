@@ -24,9 +24,10 @@ from blocAndTools.agent import Agent
 from ActorCritic.BatchActorCriticAgent import BatchActorCriticAgent
 from ActorCritic.OnlineActorCriticAgent import OnlineActorCriticAgent
 from ActorCritic.OnlineTwoInputAdvantageActorCriticAgent import OnlineTwoInputAdvantageActorCriticAgent
-from tests.test_Z_integration.test_integrationActorCritic.reference_LilLog_BatchAAC import ReferenceActorCriticAgent
 from blocAndTools.buildingbloc import ExperimentSpec
-from blocAndTools.rl_vocabulary import TargetType, NetworkType
+from blocAndTools.rl_vocabulary import TargetType, NetworkType  # , ActorCriticAgentType
+
+
 
 # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 # *                                                                                                                   *
@@ -48,6 +49,7 @@ BATCH_AAC_MonteCarlo_SPLIT_net_hparam = {
     'rerun_tag':                      'BMCSPL-A',
     'algo_name':                      'Batch ActorCritic',
     'comment':                        'MonteCarlo-target',
+    'AgentType':                      BatchActorCriticAgent,
     'Target':                         TargetType.MonteCarlo,
     'Network':                        NetworkType.Split,
     'prefered_environment':           'CartPole-v0',
@@ -75,6 +77,7 @@ BATCH_AAC_Undiscounted_MonteCarlo_SPLIT_net_hparam = {
     'rerun_tag':                      'BMCSPL-NoD-A',
     'algo_name':                      'Batch ActorCritic',
     'comment':                        'Undiscounted MonteCarlo-target',
+    'AgentType':                      BatchActorCriticAgent,
     'Target':                         TargetType.MonteCarlo,
     'Network':                        NetworkType.Split,
     'prefered_environment':           'CartPole-v0',
@@ -97,32 +100,6 @@ BATCH_AAC_Undiscounted_MonteCarlo_SPLIT_net_hparam = {
     'note':                           ''
     }
 
-BATCH_AAC_LunarLander_hparam = {
-    'paramameter_set_name':           'Batch-AAC-Split-nn',
-    'rerun_tag':                      'BMC-Lunar-B',
-    'algo_name':                      'Batch ActorCritic',
-    'comment':                        'MonteCarlo-target LunarLander',
-    'Target':                         TargetType.MonteCarlo,
-    'Network':                        NetworkType.Split,
-    'prefered_environment':           'LunarLander-v2',
-    'expected_reward_goal':           200,
-    'batch_size_in_ts':               8000,
-    'max_epoch':                      60,
-    'discounted_reward_to_go':        False,
-    'discout_factor':                 0.99,
-    'learning_rate':                  1e-2,
-    'critic_learning_rate':           1e-2,
-    'critique_loop_len':              80,
-    'theta_nn_h_layer_topo':          (64, 64),
-    'random_seed':                    0,
-    'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh,
-    'theta_output_layers_activation': None,
-    'render_env_every_What_epoch':    100,
-    'print_metric_every_what_epoch':  2,
-    'isTestRun':                      False,
-    'show_plot':                      False,
-    'note':                           ''
-    }
 
 
 BATCH_AAC_bootstrap_SPLIT_net_hparam = {
@@ -130,6 +107,7 @@ BATCH_AAC_bootstrap_SPLIT_net_hparam = {
     'rerun_tag':                      'BBSPL-A',
     'algo_name':                      'Batch ActorCritic',
     'comment':                        'Discounted-Bootstrap-target Farsighted',
+    'AgentType':                      BatchActorCriticAgent,
     'Target':                         TargetType.Bootstrap,
     'Network':                        NetworkType.Split,
     'prefered_environment':           'CartPole-v0',
@@ -160,6 +138,7 @@ BATCH_AAC_Bootstrap_SHARED_net_hparam = {
     'rerun_tag':                      'BSHA-A',
     'algo_name':                      'Batch ActorCritic',
     'comment':                        'Bootstrap-Tiny-Batch-WORKING',
+    'AgentType':                      BatchActorCriticAgent,
     'Target':                         TargetType.Bootstrap,
     'Network':                        NetworkType.Shared,
     'prefered_environment':           'CartPole-v0',
@@ -195,6 +174,7 @@ ONLINE_AAC_Bootstrap_SPLIT_net_hparam = {
     'rerun_tag':                      'OSPL-A',
     'algo_name':                      'Online ActorCritic',
     'comment':                        'Discounted-Bootstrap-target',
+    'AgentType':                      OnlineActorCriticAgent,
     'Network':                        NetworkType.Split,
     'prefered_environment':           'CartPole-v0',
     'expected_reward_goal':           200,
@@ -224,6 +204,7 @@ ONLINE_AAC_Bootstrap_SPLIT_three_layer_hparam = {
     'rerun_tag':                      'OSPL3L-A',
     'algo_name':                      'Online ActorCritic',
     'comment':                        'Discounted-Bootstrap-target',
+    'AgentType':                      OnlineActorCriticAgent,
     'Network':                        NetworkType.Split,
     'prefered_environment':           'CartPole-v0',
     'expected_reward_goal':           200,
@@ -251,6 +232,7 @@ ONLINE_AAC_Bootstrap_SHARED_three_layer_hparam = {
     'rerun_tag':                      'OSHA-A',
     'algo_name':                      'Online ActorCritic',
     'comment':                        'Discounted-Bootstrap-target',
+    'AgentType':                      OnlineActorCriticAgent,
     'Network':                        NetworkType.Shared,
     'prefered_environment':           'CartPole-v0',
     'expected_reward_goal':           200,
@@ -277,6 +259,7 @@ ONLINE_AAC_Bootstrap_TwoInputAdv_SPLIT_three_layer_hparam = {
     'rerun_tag':                      'OSTWO-H',
     'algo_name':                      'Online ActorCritic',
     'comment':                        'Discounted-Bootstrap-target',
+    'AgentType':                      OnlineTwoInputAdvantageActorCriticAgent,
     'Network':                        NetworkType.Split,
     'prefered_environment':           'CartPole-v0',
     'expected_reward_goal':           200,
@@ -287,7 +270,6 @@ ONLINE_AAC_Bootstrap_TwoInputAdv_SPLIT_three_layer_hparam = {
     'learning_rate':                  1e-4,
     'critic_learning_rate':           5e-4,
     'critique_loop_len':              1,
-    # 'theta_nn_h_layer_topo':          (16, 32, 80),
     'theta_nn_h_layer_topo':          (16, 32, 32),
     'random_seed':                    0,
     'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh, tf.nn.leaky_relu
@@ -299,23 +281,51 @@ ONLINE_AAC_Bootstrap_TwoInputAdv_SPLIT_three_layer_hparam = {
     'note':                           ""
     }
 
-
-lilLogBatch_AAC_hparam = {
-    'paramameter_set_name':           'Batch-AAC',
-    'rerun_tag':                      None,
-    'algo_name':                      'Batch ActorCritic',
-    'comment':                        'Lil-Log reference',
-    'Target':                         TargetType.MonteCarlo,
-    'prefered_environment':           'CartPole-v0',
+ONLINE_AAC_LunarLander_Bootstrap_TwoInputAdv_SPLIT_three_layer_hparam = {
+    'paramameter_set_name':           'Online-AAC-Split-TwoInputAdv-nn62-62',
+    'rerun_tag':                      'O-Lunar-B',
+    'algo_name':                      'Online ActorCritic',
+    'comment':                        'Discounted-Bootstrap-target',
+    'AgentType':                      OnlineTwoInputAdvantageActorCriticAgent,
+    'Network':                        NetworkType.Split,
+    'prefered_environment':           'LunarLander-v2',
     'expected_reward_goal':           200,
-    'batch_size_in_ts':               4000,
-    'max_epoch':                      30,
-    'discounted_reward_to_go':        True,
+    'batch_size_in_ts':               30,
+    'stage_size_in_trj':              20,
+    'max_epoch':                      65,
+    'discout_factor':                 0.99,
+    'learning_rate':                  1e-4,
+    'critic_learning_rate':           5e-4,
+    'critique_loop_len':              2,
+    'theta_nn_h_layer_topo':          (62, 62),
+    'random_seed':                    0,
+    'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh, tf.nn.leaky_relu
+    'theta_output_layers_activation': None,
+    'render_env_every_What_epoch':    100,
+    'print_metric_every_what_epoch':  5,
+    'isTestRun':                      False,
+    'show_plot':                      False,
+    'note':                           ""
+    }
+
+BATCH_AAC_LunarLander_hparam = {
+    'paramameter_set_name':           'Batch-AAC-Split-nn',
+    'rerun_tag':                      'B-Lunar-A',
+    'algo_name':                      'Batch ActorCritic',
+    'comment':                        'MonteCarlo-target LunarLander',
+    'AgentType':                      BatchActorCriticAgent,
+    'Target':                         TargetType.MonteCarlo,
+    'Network':                        NetworkType.Split,
+    'prefered_environment':           'LunarLander-v2',
+    'expected_reward_goal':           200,
+    'batch_size_in_ts':               8000,
+    'max_epoch':                      60,
+    'discounted_reward_to_go':        False,
     'discout_factor':                 0.99,
     'learning_rate':                  1e-2,
     'critic_learning_rate':           1e-2,
     'critique_loop_len':              80,
-    'theta_nn_h_layer_topo':          (32, 32),
+    'theta_nn_h_layer_topo':          (64, 64),
     'random_seed':                    0,
     'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh,
     'theta_output_layers_activation': None,
@@ -323,13 +333,15 @@ lilLogBatch_AAC_hparam = {
     'print_metric_every_what_epoch':  2,
     'isTestRun':                      False,
     'show_plot':                      False,
+    'note':                           ''
     }
 
 test_hparam = {
     'paramameter_set_name':           'Batch-AAC',
-    'rerun_tag':                      'A',
+    'rerun_tag':                      'TEST-RUN-A',
     'algo_name':                      'Batch ActorCritic',
     'comment':                        'TestSpec',
+    'AgentType':                      BatchActorCriticAgent,
     'Target':                         TargetType.MonteCarlo,
     'Network':                        NetworkType.Split,
     'prefered_environment':           'CartPole-v0',
@@ -370,8 +382,8 @@ parser.add_argument('--trainOnlineShared3layer', action='store_true', help='Trai
 
 parser.add_argument('--trainOnlineSplitTwoInputAdvantage', action='store_true', help='Train a Online Actor-Critic agent with split Two input Advantage network')
 
-
-parser.add_argument('--reference', action='store_true', help='Execute training of reference Actor-Critic implementation by Lilian Weng')
+parser.add_argument('--trainOnlineLunarLander', action='store_true', help='Train on LunarLander a Online Actor-Critic agent with split Two input Advantage network')
+parser.add_argument('--trainBatchLunarLander', action='store_true', help='Train on LunarLander a Batch Actor-Critic agent ')
 
 parser.add_argument('-rer', '--rerun', type=int, default=1,
                     help='Rerun training experiment with the same spec r time (default=1)')
@@ -406,13 +418,14 @@ def configure_exp_spec(hparam: dict, run_idx) -> ExperimentSpec:
 
     return exp_spec
 
-def warmup_agent_for_training(agent: Type[Agent], spec: ExperimentSpec):
-    # global ac_agent
+def warmup_agent_for_training(spec: ExperimentSpec):
+    agent = spec['AgentType']
     ac_agent = agent(spec)
     ac_agent.train(render_env=args.renderTraining)
 
-def warmup_agent_for_playing(agent: Type[Agent], spec: ExperimentSpec):
+def warmup_agent_for_playing(spec: ExperimentSpec):
     raise NotImplementedError   # todo: implement select and PLAY agent
+    agent = spec['AgentType']
     ac_agent = agent(spec)
     ac_agent.play(run_name='todo --> CHANGE_TO_My_TrainedAgent', max_trajectories=args.play_for)
 
@@ -437,50 +450,53 @@ for r_i in range(args.rerun):
     if args.trainSplitMC:
         """ ---- Batch Split network architecture with Monte Carlo TD target ---- """
         exp_spec = configure_exp_spec(BATCH_AAC_MonteCarlo_SPLIT_net_hparam, r_i)
-        warmup_agent_for_training(BatchActorCriticAgent, exp_spec)
+        warmup_agent_for_training(exp_spec)
 
     elif args.trainSplitBootstrap:
         """ ---- Batch Split network architecture with Bootstrap estimate TD target run ---- """
         exp_spec = configure_exp_spec(BATCH_AAC_bootstrap_SPLIT_net_hparam, r_i)
-        warmup_agent_for_training(BatchActorCriticAgent, exp_spec)
+        warmup_agent_for_training(exp_spec)
 
     elif args.trainSharedBootstrap:
         """ ---- Batch Shared network architecture with Bootstrap estimate TD target run ---- """
         exp_spec = configure_exp_spec(BATCH_AAC_Bootstrap_SHARED_net_hparam, r_i)
-        warmup_agent_for_training(BatchActorCriticAgent, exp_spec)
+        warmup_agent_for_training(exp_spec)
 
     elif args.trainOnlineSplit:
         """ ---- ONLINE Split network architecture run ---- """
         exp_spec = configure_exp_spec(ONLINE_AAC_Bootstrap_SPLIT_net_hparam, r_i)
-        warmup_agent_for_training(OnlineActorCriticAgent, exp_spec)
+        warmup_agent_for_training(exp_spec)
 
     elif args.trainOnlineSplit3layer:
         """ ---- ONLINE Split network 3 hiden layer architecture  run ---- """
         exp_spec = configure_exp_spec(ONLINE_AAC_Bootstrap_SPLIT_three_layer_hparam, r_i)
-        warmup_agent_for_training(OnlineActorCriticAgent, exp_spec)
+        warmup_agent_for_training(exp_spec)
 
     elif args.trainOnlineShared3layer:
         """ ---- V2 ONLINE Shared network architecture with Bootstrap estimate TD target run ---- """
         exp_spec = configure_exp_spec(ONLINE_AAC_Bootstrap_SHARED_three_layer_hparam, r_i)
-        warmup_agent_for_training(OnlineActorCriticAgent, exp_spec)
+        warmup_agent_for_training(exp_spec)
 
     elif args.trainOnlineSplitTwoInputAdvantage:
         """ ---- ONLINE Split Two Input Advantage network 3 hiden layer architecture run ---- """
         exp_spec = configure_exp_spec(ONLINE_AAC_Bootstrap_TwoInputAdv_SPLIT_three_layer_hparam, r_i)
-        warmup_agent_for_training(OnlineTwoInputAdvantageActorCriticAgent, exp_spec)
+        warmup_agent_for_training(exp_spec)
 
-    elif args.reference:
-        """ ---- Lil-Log reference run ---- """
-        exp_spec = configure_exp_spec(lilLogBatch_AAC_hparam, r_i)
-        warmup_agent_for_training(ReferenceActorCriticAgent, exp_spec)
+    elif args.trainOnlineLunarLander:
+        """ ---- LunarLander ONLINE Split Two Input Advantage network 3 hiden layer architecture run ---- """
+        exp_spec = configure_exp_spec(ONLINE_AAC_LunarLander_Bootstrap_TwoInputAdv_SPLIT_three_layer_hparam, r_i)
+        warmup_agent_for_training(exp_spec)
+
+    elif args.trainBatchLunarLander:
+        """ ---- LunarLander batch architecture run ---- """
+        exp_spec = configure_exp_spec(BATCH_AAC_LunarLander_hparam, r_i)
+        warmup_agent_for_training(exp_spec)
 
     else:
 
         """ ---- Play run ---- """
         exp_spec = configure_exp_spec(BATCH_AAC_MonteCarlo_SPLIT_net_hparam, r_i)
-        warmup_agent_for_playing(BatchActorCriticAgent, exp_spec)
-        BatchActorCriticAgent(exp_spec)
-
+        warmup_agent_for_playing(exp_spec)
 
 name = exp_spec['paramameter_set_name']
 name += " " + exp_spec['comment']

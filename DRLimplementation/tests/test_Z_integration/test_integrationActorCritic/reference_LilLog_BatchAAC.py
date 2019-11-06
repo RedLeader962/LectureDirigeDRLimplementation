@@ -15,19 +15,17 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import tensorflow as tf
 import tensorflow.python.util.deprecation as deprecation
 import numpy as np
-from typing import List, Tuple, Any
+from typing import Type, Tuple
+import argparse
 
-from ActorCritic.ActorCriticBrainSplitNetwork import build_actor_policy_graph, build_critic_graph
+
 from blocAndTools.agent import Agent
-from blocAndTools.rl_vocabulary import rl_name
-from blocAndTools import buildingbloc as bloc, ConsolPrintLearningStats
-# from blocAndTools.container.samplecontainer import TrajectoryCollector, UniformBatchCollector
+from blocAndTools.rl_vocabulary import rl_name, TargetType, NetworkType
+from blocAndTools import buildingbloc as bloc, ConsolPrintLearningStats, ExperimentSpec
 from blocAndTools.container.samplecontainer_batch_OARV import (TrajectoryContainerBatchOARV,
                                                                TrajectoryCollectorBatchOARV,
                                                                UniformeBatchContainerBatchOARV,
                                                                UniformBatchCollectorBatchOARV, )
-from blocAndTools.temporal_difference_computation import (computhe_the_Advantage, compute_TD_target,
-                                                          get_t_and_tPrime_array_view_for_element_wise_op, )
 
 tf_cv1 = tf.compat.v1  # shortcut
 deprecation._PRINT_DEPRECATION_WARNINGS = False
@@ -296,3 +294,142 @@ class ReferenceActorCriticAgent(Agent):
                 yield (epoch, e_actor_loss, batch_average_trjs_return, batch_average_trjs_lenght)
 
         return None
+
+
+if __name__ == '__main__':
+
+    lilLogBatch_AAC_hparam = {
+        'paramameter_set_name':           'Batch-AAC',
+        'rerun_tag':                      None,
+        'algo_name':                      'Batch ActorCritic',
+        'comment':                        'Lil-Log reference',
+        'Target':                         TargetType.MonteCarlo,
+        'prefered_environment':           'CartPole-v0',
+        'expected_reward_goal':           200,
+        'batch_size_in_ts':               4000,
+        'max_epoch':                      30,
+        'discounted_reward_to_go':        True,
+        'discout_factor':                 0.99,
+        'learning_rate':                  1e-2,
+        'critic_learning_rate':           1e-2,
+        'critique_loop_len':              80,
+        'theta_nn_h_layer_topo':          (32, 32),
+        'random_seed':                    0,
+        'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh,
+        'theta_output_layers_activation': None,
+        'render_env_every_What_epoch':    100,
+        'print_metric_every_what_epoch':  2,
+        'isTestRun':                      False,
+        'show_plot':                      False,
+        }
+
+    test_hparam = {
+        'paramameter_set_name':           'Batch-AAC',
+        'rerun_tag':                      'A',
+        'algo_name':                      'Batch ActorCritic',
+        'comment':                        'TestSpec',
+        'Target':                         TargetType.MonteCarlo,
+        'Network':                        NetworkType.Split,
+        'prefered_environment':           'CartPole-v0',
+        'expected_reward_goal':           200,
+        'batch_size_in_ts':               1000,
+        'max_epoch':                      5,
+        'discounted_reward_to_go':        True,
+        'discout_factor':                 0.999,
+        'learning_rate':                  3e-4,
+        'critic_learning_rate':           1e-3,
+        'critique_loop_len':              80,
+        'theta_nn_h_layer_topo':          (8, 8),
+        'random_seed':                    0,
+        'theta_hidden_layers_activation': tf.nn.tanh,
+        'theta_output_layers_activation': None,
+        'render_env_every_What_epoch':    5,
+        'print_metric_every_what_epoch':  2,
+        'isTestRun':                      True,
+        'show_plot':                      False,
+        }
+
+    parser = argparse.ArgumentParser(description=(
+        "=============================================================================\n"
+        ":: Command line option for the Actor-Critic Agent.\n\n"
+        "   The agent will play by default using previously trained computation graph.\n"
+        "   You can execute training by using the argument: --train "),
+        epilog="=============================================================================\n")
+
+    # parser.add_argument('--env', type=str, default='CartPole-v0')
+
+    parser.add_argument('-rer', '--rerun', type=int, default=1,
+                        help='Rerun training experiment with the same spec r time (default=1)')
+
+    parser.add_argument('--renderTraining', action='store_true',
+                        help='(Training option) Watch the agent execute trajectories while he is on traning duty')
+
+    parser.add_argument('-d', '--discounted', default=None, type=bool,
+                        help='(Training option) Force training execution with discounted reward-to-go')
+
+    parser.add_argument('--testRun', action='store_true')
+
+    args = parser.parse_args()
+
+    exp_spec = ExperimentSpec()
+
+
+    def configure_exp_spec(hparam: dict, run_idx) -> ExperimentSpec:
+
+        if args.testRun:
+            exp_spec.set_experiment_spec(test_hparam)
+        else:
+            exp_spec.set_experiment_spec(hparam)
+
+        exp_spec.rerun_idx = run_idx
+
+        if args.discounted is not None:
+            exp_spec.set_experiment_spec({'discounted_reward_to_go': args.discounted})
+
+        return exp_spec
+
+
+    def warmup_agent_for_training(agent: Type[Agent], spec: ExperimentSpec):
+        # global ac_agent
+        ac_agent = agent(spec)
+        ac_agent.train(render_env=args.renderTraining)
+
+
+    def warmup_agent_for_playing(agent: Type[Agent], spec: ExperimentSpec):
+        raise NotImplementedError  # todo: implement select and PLAY agent
+        ac_agent = agent(spec)
+        ac_agent.play(run_name='todo --> CHANGE_TO_My_TrainedAgent', max_trajectories=args.play_for)
+
+
+    # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * * *
+    # *                                                                                                                    *
+    # *                             Configure selected experiment specification & warmup agent                             *
+    # *                                                                                                                    *
+    # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * * *
+
+    consol_width = 90
+    print("\n")
+    for _ in range(3):
+        print("\\" * consol_width)
+
+    print("\n:: The experiment will be rerun {} time".format(args.rerun))
+
+    for r_i in range(args.rerun):
+
+        print(":: Starting rerun experiment no {}".format(r_i))
+
+        """ ---- Lil-Log reference run ---- """
+        exp_spec = configure_exp_spec(lilLogBatch_AAC_hparam, r_i)
+        warmup_agent_for_training(ReferenceActorCriticAgent, exp_spec)
+
+    name = exp_spec['paramameter_set_name']
+    name += " " + exp_spec['comment']
+
+    print("\n:: The experiment - {} - was rerun {} time.\n".format(name, args.rerun),
+          exp_spec.__repr__(),
+          "\n")
+
+    for _ in range(3):
+        print("/" * consol_width)
+
+    exit(0)
