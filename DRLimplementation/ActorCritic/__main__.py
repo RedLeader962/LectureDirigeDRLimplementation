@@ -16,7 +16,7 @@ Note on TensorBoard usage:
 
 
 """
-from typing import Type
+from typing import Type, List, Tuple, Any
 import argparse
 import tensorflow as tf
 
@@ -338,7 +338,7 @@ BATCH_AAC_LunarLander_hparam = {
 
 test_hparam = {
     'paramameter_set_name':           'Batch-AAC',
-    'rerun_tag':                      'TEST-RUN-A',
+    'rerun_tag':                      'TEST-RUN-C',
     'algo_name':                      'Batch ActorCritic',
     'comment':                        'TestSpec',
     'AgentType':                      BatchActorCriticAgent,
@@ -353,7 +353,8 @@ test_hparam = {
     'learning_rate':                  3e-4,
     'critic_learning_rate':           1e-3,
     'critique_loop_len':              80,
-    'theta_nn_h_layer_topo':          (8, 8),
+    # 'theta_nn_h_layer_topo':          (8, 8),
+    'theta_nn_h_layer_topo':          [(4, 4), (6, 6)],
     'random_seed':                    0,
     'theta_hidden_layers_activation': tf.nn.tanh,
     'theta_output_layers_activation': None,
@@ -394,7 +395,11 @@ parser.add_argument('--renderTraining', action='store_true',
 parser.add_argument('-d', '--discounted', default=None, type=bool,
                     help='(Training option) Force training execution with discounted reward-to-go')
 
-parser.add_argument('-p', '--play_for', type=int, default=20,
+parser.add_argument('--play_for', type=int, default=20,
+                    help='(Playing option) Max playing trajectory, default=20')
+
+# (Priority) todo:implement --> select agent to play by command line:
+parser.add_argument('-p', '--play', type=str,
                     help='(Playing option) Max playing trajectory, default=20')
 
 parser.add_argument('--testRun', action='store_true')
@@ -404,12 +409,60 @@ args = parser.parse_args()
 exp_spec = ExperimentSpec()
 
 
-def configure_exp_spec(hparam: dict, run_idx) -> ExperimentSpec:
+def run_experiment(hparam: dict, run_idx: int) -> Tuple[dict, str, ]:
+    init_hparam = hparam.copy()
 
     if args.testRun:
-        exp_spec.set_experiment_spec(test_hparam)
+        hparam = test_hparam
+
+    hparam_search_list, key, values_search_set = configure_exp_spec_for_hparam_search(hparam)
+    for hparam in hparam_search_list:
+        exp_spec_ = configure_exp_spec_for_run(hparam, run_idx)
+        warmup_agent_for_training(exp_spec_)
+
+    return init_hparam, key, values_search_set
+
+def hparam_search_list_to_str(key, values_search_set):
+    values_str = ''
+    for v in values_search_set:
+        v_str = str(v)
+        v_str = v_str.replace(' ', '')
+        values_str += v_str
+    hparam_search_str = key + '[' + values_str + ']'
+    return hparam_search_str
+
+def configure_exp_spec_for_hparam_search(hparam: dict) -> Tuple[List[dict], Any, Any]:
+    field = test_hparam_search_set(hparam)
+    if field is None:
+        return [hparam], None, None
     else:
-        exp_spec.set_experiment_spec(hparam)
+        key, values = field
+        hparam_search_list = []
+        for v in values:
+            hp = hparam.copy()
+            hp[key] = v
+            tag = hp['rerun_tag']
+            value_str = str(v)
+            value_str = value_str.replace(' ', '')
+            # value_str = value_str.replace(',', '-')
+            hp['rerun_tag'] = tag + '-' + key + value_str
+            hparam_search_list.append(hp)
+        return hparam_search_list, key, values
+
+def test_hparam_search_set(hparam: dict) -> Tuple[str, list] or Tuple[None, None]:
+    """
+    Test if a specifiation dictionary as a field containing multiple values to experiment
+    :param hparam: the specification for an experiment
+    :return: the field key and values_search_set to execute or None if all field are single value
+    """
+    for k, values in hparam.items():
+        if isinstance(values, list):
+            return k, values
+    return None, None
+
+
+def configure_exp_spec_for_run(hparam: dict, run_idx) -> ExperimentSpec:
+    exp_spec.set_experiment_spec(hparam)
 
     exp_spec.rerun_idx = run_idx
 
@@ -441,69 +494,97 @@ print("\n")
 for _ in range(3):
     print("\\" * consol_width)
 
-print("\n:: The experiment will be rerun {} time".format(args.rerun))
 
-for r_i in range(args.rerun):
-
-    print(":: Starting rerun experiment no {}".format(r_i))
-
-    if args.trainSplitMC:
-        """ ---- Batch Split network architecture with Monte Carlo TD target ---- """
-        exp_spec = configure_exp_spec(BATCH_AAC_MonteCarlo_SPLIT_net_hparam, r_i)
-        warmup_agent_for_training(exp_spec)
-
-    elif args.trainSplitBootstrap:
-        """ ---- Batch Split network architecture with Bootstrap estimate TD target run ---- """
-        exp_spec = configure_exp_spec(BATCH_AAC_bootstrap_SPLIT_net_hparam, r_i)
-        warmup_agent_for_training(exp_spec)
-
-    elif args.trainSharedBootstrap:
-        """ ---- Batch Shared network architecture with Bootstrap estimate TD target run ---- """
-        exp_spec = configure_exp_spec(BATCH_AAC_Bootstrap_SHARED_net_hparam, r_i)
-        warmup_agent_for_training(exp_spec)
-
-    elif args.trainOnlineSplit:
-        """ ---- ONLINE Split network architecture run ---- """
-        exp_spec = configure_exp_spec(ONLINE_AAC_Bootstrap_SPLIT_net_hparam, r_i)
-        warmup_agent_for_training(exp_spec)
-
-    elif args.trainOnlineSplit3layer:
-        """ ---- ONLINE Split network 3 hiden layer architecture  run ---- """
-        exp_spec = configure_exp_spec(ONLINE_AAC_Bootstrap_SPLIT_three_layer_hparam, r_i)
-        warmup_agent_for_training(exp_spec)
-
-    elif args.trainOnlineShared3layer:
-        """ ---- V2 ONLINE Shared network architecture with Bootstrap estimate TD target run ---- """
-        exp_spec = configure_exp_spec(ONLINE_AAC_Bootstrap_SHARED_three_layer_hparam, r_i)
-        warmup_agent_for_training(exp_spec)
-
-    elif args.trainOnlineSplitTwoInputAdvantage:
-        """ ---- ONLINE Split Two Input Advantage network 3 hiden layer architecture run ---- """
-        exp_spec = configure_exp_spec(ONLINE_AAC_Bootstrap_TwoInputAdv_SPLIT_three_layer_hparam, r_i)
-        warmup_agent_for_training(exp_spec)
-
-    elif args.trainOnlineLunarLander:
-        """ ---- LunarLander ONLINE Split Two Input Advantage network 3 hiden layer architecture run ---- """
-        exp_spec = configure_exp_spec(ONLINE_AAC_LunarLander_Bootstrap_TwoInputAdv_SPLIT_three_layer_hparam, r_i)
-        warmup_agent_for_training(exp_spec)
-
-    elif args.trainBatchLunarLander:
-        """ ---- LunarLander batch architecture run ---- """
-        exp_spec = configure_exp_spec(BATCH_AAC_LunarLander_hparam, r_i)
-        warmup_agent_for_training(exp_spec)
-
+if args.play:
+    # (Priority) todo:implement --> :
+    """ ---- Play run ---- """
+    if args.testRun:
+        exp_spec.set_experiment_spec(test_hparam)
     else:
+        exp_spec.set_experiment_spec(BATCH_AAC_MonteCarlo_SPLIT_net_hparam)
+    warmup_agent_for_playing(exp_spec)
+else:
 
-        """ ---- Play run ---- """
-        exp_spec = configure_exp_spec(BATCH_AAC_MonteCarlo_SPLIT_net_hparam, r_i)
-        warmup_agent_for_playing(exp_spec)
+    print("\n:: The experiment will be rerun {} time".format(args.rerun))
+    initial_hparam = None
 
-name = exp_spec['paramameter_set_name']
-name += " " + exp_spec['comment']
+    for r_i in range(args.rerun):
 
-print("\n:: The experiment - {} - was rerun {} time.\n".format(name, args.rerun),
-      exp_spec.__repr__(),
-      "\n")
+        print(":: Starting rerun experiment no {}".format(r_i))
+
+        if args.trainSplitMC:
+            """ ---- Batch Split network architecture with Monte Carlo TD target ---- """
+            # exp_spec = configure_exp_spec_for_run(BATCH_AAC_MonteCarlo_SPLIT_net_hparam, r_i)
+            # warmup_agent_for_training(exp_spec)
+            initial_hparam, key, values_search_set = run_experiment(BATCH_AAC_MonteCarlo_SPLIT_net_hparam, r_i)
+
+        elif args.trainSplitBootstrap:
+            """ ---- Batch Split network architecture with Bootstrap estimate TD target run ---- """
+            # exp_spec = configure_exp_spec_for_run(BATCH_AAC_bootstrap_SPLIT_net_hparam, r_i)
+            # warmup_agent_for_training(exp_spec)
+            initial_hparam, key, values_search_set = run_experiment(BATCH_AAC_bootstrap_SPLIT_net_hparam, r_i)
+
+        elif args.trainSharedBootstrap:
+            """ ---- Batch Shared network architecture with Bootstrap estimate TD target run ---- """
+            # exp_spec = configure_exp_spec_for_run(BATCH_AAC_Bootstrap_SHARED_net_hparam, r_i)
+            # warmup_agent_for_training(exp_spec)
+            initial_hparam, key, values_search_set = run_experiment(BATCH_AAC_Bootstrap_SHARED_net_hparam, r_i)
+
+        elif args.trainOnlineSplit:
+            """ ---- ONLINE Split network architecture run ---- """
+            # exp_spec = configure_exp_spec_for_run(ONLINE_AAC_Bootstrap_SPLIT_net_hparam, r_i)
+            # warmup_agent_for_training(exp_spec)
+            initial_hparam, key, values_search_set = run_experiment(ONLINE_AAC_Bootstrap_SPLIT_net_hparam, r_i)
+
+        elif args.trainOnlineSplit3layer:
+            """ ---- ONLINE Split network 3 hiden layer architecture  run ---- """
+            # exp_spec = configure_exp_spec_for_run(ONLINE_AAC_Bootstrap_SPLIT_three_layer_hparam, r_i)
+            # warmup_agent_for_training(exp_spec)
+            initial_hparam, key, values_search_set = run_experiment(ONLINE_AAC_Bootstrap_SPLIT_three_layer_hparam, r_i)
+
+        elif args.trainOnlineShared3layer:
+            """ ---- V2 ONLINE Shared network architecture with Bootstrap estimate TD target run ---- """
+            # exp_spec = configure_exp_spec_for_run(ONLINE_AAC_Bootstrap_SHARED_three_layer_hparam, r_i)
+            # warmup_agent_for_training(exp_spec)
+            initial_hparam, key, values_search_set = run_experiment(ONLINE_AAC_Bootstrap_SHARED_three_layer_hparam, r_i)
+
+        elif args.trainOnlineSplitTwoInputAdvantage:
+            """ ---- ONLINE Split Two Input Advantage network 3 hiden layer architecture run ---- """
+            # exp_spec = configure_exp_spec_for_run(ONLINE_AAC_Bootstrap_TwoInputAdv_SPLIT_three_layer_hparam, r_i)
+            # warmup_agent_for_training(exp_spec)
+            initial_hparam, key, values_search_set = run_experiment(ONLINE_AAC_Bootstrap_TwoInputAdv_SPLIT_three_layer_hparam, r_i)
+
+        elif args.trainOnlineLunarLander:
+            """ ---- LunarLander ONLINE Split Two Input Advantage network 3 hiden layer architecture run ---- """
+            # exp_spec = configure_exp_spec_for_run(ONLINE_AAC_LunarLander_Bootstrap_TwoInputAdv_SPLIT_three_layer_hparam, r_i)
+            # warmup_agent_for_training(exp_spec)
+            initial_hparam, key, values_search_set = run_experiment(
+                ONLINE_AAC_LunarLander_Bootstrap_TwoInputAdv_SPLIT_three_layer_hparam, r_i)
+
+        elif args.trainBatchLunarLander:
+            """ ---- LunarLander batch architecture run ---- """
+            # exp_spec = configure_exp_spec_for_run(BATCH_AAC_LunarLander_hparam, r_i)
+            # warmup_agent_for_training(exp_spec)
+            initial_hparam, key, values_search_set = run_experiment(BATCH_AAC_LunarLander_hparam, r_i)
+
+        else:
+            raise NotImplementedError
+
+    # exp_spec.set_experiment_spec(initial_hparam)
+    exp_rerun_tag = initial_hparam['rerun_tag']
+    exp_hparam_search_str = hparam_search_list_to_str(key, values_search_set)
+    search_hparam_tag = exp_rerun_tag + '-' + exp_hparam_search_str
+    exp_spec.set_experiment_spec(
+        {
+            'rerun_tag': search_hparam_tag,
+            key: values_search_set
+            })
+    name = exp_spec['paramameter_set_name']
+    name += " " + exp_spec['comment']
+
+    print("\n:: The experiment - {} - was rerun {} time.\n".format(name, args.rerun),
+          exp_spec.__repr__(),
+          "\n")
 
 for _ in range(3):
     print("/" * consol_width)
