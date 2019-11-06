@@ -338,7 +338,7 @@ BATCH_AAC_LunarLander_hparam = {
 
 test_hparam = {
     'paramameter_set_name':           'Batch-AAC',
-    'rerun_tag':                      'TEST-RUN-C',
+    'rerun_tag':                      'TEST-RUN-G',
     'algo_name':                      'Batch ActorCritic',
     'comment':                        'TestSpec',
     'AgentType':                      BatchActorCriticAgent,
@@ -346,15 +346,16 @@ test_hparam = {
     'Network':                        NetworkType.Split,
     'prefered_environment':           'CartPole-v0',
     'expected_reward_goal':           200,
-    'batch_size_in_ts':               1000,
+    'batch_size_in_ts':               300,
     'max_epoch':                      5,
     'discounted_reward_to_go':        True,
-    'discout_factor':                 0.999,
+    # 'discout_factor':                 0.999,
+    'discout_factor':                 [0.999, 0.9],
     'learning_rate':                  3e-4,
     'critic_learning_rate':           1e-3,
     'critique_loop_len':              80,
-    # 'theta_nn_h_layer_topo':          (8, 8),
-    'theta_nn_h_layer_topo':          [(4, 4), (6, 6)],
+    'theta_nn_h_layer_topo':          (8, 8),
+    # 'theta_nn_h_layer_topo':          [(4, 4), (6, 6)],
     'random_seed':                    0,
     'theta_hidden_layers_activation': tf.nn.tanh,
     'theta_output_layers_activation': None,
@@ -409,11 +410,11 @@ args = parser.parse_args()
 exp_spec = ExperimentSpec()
 
 
-def run_experiment(hparam: dict, run_idx: int) -> Tuple[dict, str, ]:
-    init_hparam = hparam.copy()
-
+def run_experiment(hparam: dict, run_idx: int) -> Tuple[dict, str, list]:
     if args.testRun:
         hparam = test_hparam
+
+    init_hparam = hparam.copy()
 
     hparam_search_list, key, values_search_set = configure_exp_spec_for_hparam_search(hparam)
     for hparam in hparam_search_list:
@@ -422,21 +423,27 @@ def run_experiment(hparam: dict, run_idx: int) -> Tuple[dict, str, ]:
 
     return init_hparam, key, values_search_set
 
-def hparam_search_list_to_str(key, values_search_set):
-    values_str = ''
-    for v in values_search_set:
-        v_str = str(v)
-        v_str = v_str.replace(' ', '')
-        values_str += v_str
-    hparam_search_str = key + '[' + values_str + ']'
-    return hparam_search_str
+def hparam_search_list_to_str(akey, aValues_search_set):
+    if akey is None:
+        return ''
+    else:
+        values_str = ''
+        for v in aValues_search_set:
+            v_str = str(v)
+            v_str = v_str.replace(' ', '')
+            v_str = v_str.replace('(', '\\(')
+            v_str = v_str.replace(')', '\\)')
+            values_str += v_str + '|'
+
+        values_str = values_str.rstrip('|')
+        hparam_search_str = akey + '=(' + values_str + ')'
+        return hparam_search_str
 
 def configure_exp_spec_for_hparam_search(hparam: dict) -> Tuple[List[dict], Any, Any]:
-    field = test_hparam_search_set(hparam)
-    if field is None:
+    key, values = test_hparam_search_set(hparam)
+    if key is None:
         return [hparam], None, None
     else:
-        key, values = field
         hparam_search_list = []
         for v in values:
             hp = hparam.copy()
@@ -445,7 +452,7 @@ def configure_exp_spec_for_hparam_search(hparam: dict) -> Tuple[List[dict], Any,
             value_str = str(v)
             value_str = value_str.replace(' ', '')
             # value_str = value_str.replace(',', '-')
-            hp['rerun_tag'] = tag + '-' + key + value_str
+            hp['rerun_tag'] = tag + '-' + key + '=' + value_str
             hparam_search_list.append(hp)
         return hparam_search_list, key, values
 
@@ -507,6 +514,8 @@ else:
 
     print("\n:: The experiment will be rerun {} time".format(args.rerun))
     initial_hparam = None
+    key = None
+    values_search_set = None
 
     for r_i in range(args.rerun):
 
@@ -570,21 +579,30 @@ else:
         else:
             raise NotImplementedError
 
-    # exp_spec.set_experiment_spec(initial_hparam)
-    exp_rerun_tag = initial_hparam['rerun_tag']
-    exp_hparam_search_str = hparam_search_list_to_str(key, values_search_set)
-    search_hparam_tag = exp_rerun_tag + '-' + exp_hparam_search_str
-    exp_spec.set_experiment_spec(
-        {
-            'rerun_tag': search_hparam_tag,
-            key: values_search_set
-            })
     name = exp_spec['paramameter_set_name']
     name += " " + exp_spec['comment']
 
-    print("\n:: The experiment - {} - was rerun {} time.\n".format(name, args.rerun),
-          exp_spec.__repr__(),
-          "\n")
+    exp_rerun_tag = initial_hparam['rerun_tag']
+    if key is None:
+        print("\n:: The experiment - {} - was rerun {} time".format(name, args.rerun),
+              "\n:: TensorBoard rerun tag: {}".format(exp_rerun_tag),
+              "\n")
+    else:
+        exp_hparam_search_str = hparam_search_list_to_str(key, values_search_set)
+        exp_rerun_tag = exp_rerun_tag + '-' + exp_hparam_search_str
+        exp_spec.set_experiment_spec(
+            {
+                'rerun_tag': exp_rerun_tag,
+                key: values_search_set
+                })
+
+        print("\n:: Experiment - {}:".format(name),
+              "\n\t\t- was run over hyperparameter['values']: {}{}".format(key, str(values_search_set)),
+              "\n\t\t- each 'values' was rerun {} time".format(args.rerun),
+              "\n:: TensorBoard rerun tag: {}\n".format(exp_rerun_tag),
+              # "\n"
+              )
+
 
 for _ in range(3):
     print("/" * consol_width)

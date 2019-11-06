@@ -64,11 +64,18 @@ class ExperimentSpec:
         self._assert_param()
 
     def _assert_param(self):
-        assert (0 <= self.discout_factor) and (self.discout_factor <= 1)
-        try:
+
+        if isinstance(self.discout_factor, list):
+            for each in self.discout_factor:
+                assert (0 <= each) and (each <= 1)
+        else:
+            assert (0 <= self.discout_factor) and (self.discout_factor <= 1)
+
+        if isinstance(self.theta_nn_h_layer_topo, list):
+            for each in self.theta_nn_h_layer_topo:
+                assert isinstance(each, tuple)
+        else:
             assert isinstance(self.theta_nn_h_layer_topo, tuple)
-        except AssertionError as e:
-            assert isinstance(self.theta_nn_h_layer_topo[0], tuple)
 
     def __getitem__(self, item):
         return self.__dict__[item]
