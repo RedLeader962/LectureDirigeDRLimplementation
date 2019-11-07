@@ -114,10 +114,12 @@ class ExperimentSpec:
         repr_str = data_container_class_representation(self, class_name, space_from_margin=3)
         return repr_str
 
-    def set_experiment_spec(self, dict_param: dict) -> None:
+    def set_experiment_spec(self, dict_param: dict, print_change=True) -> None:
         """
         Change any spec value and/or append aditional spec with value
 
+        :param print_change:
+        :type print_change:
         :param dict_param: A dictionary of spec: value
         :type dict_param: dict
         """
@@ -127,8 +129,9 @@ class ExperimentSpec:
 
         self._assert_param()
 
-        print("\n\n:: Switching to parameter: {}\n".format(self.paramameter_set_name))
-        print(self.__repr__())
+        if print_change:
+            print("\n\n:: Switching to parameter: {}\n".format(self.paramameter_set_name))
+            print(self.__repr__())
         return None
 
 def data_container_class_representation(class_instance, class_name: str, space_from_margin=0) -> str:
@@ -500,7 +503,7 @@ def setup_commented_run_dir_str(exp_spec: ExperimentSpec, agent_root_dir: str) -
     if tag is not None:
         exp_str = "Exp-{}-{}".format(tag, cleaned_comment)
         runs_dir = "{}/graph/{}".format(agent_root_dir, exp_str)
-        tag_i = "{}{}".format(tag, exp_spec.rerun_idx)
+        tag_i = "{}-{}".format(tag, exp_spec.rerun_idx)
         run_str = "Run-{}-{}-d{}h{}m{}s{}".format(tag_i, cleaned_name, date_now.day, date_now.hour, date_now.minute, date_now.second)
     else:
         runs_dir = "{}/graph".format(agent_root_dir)

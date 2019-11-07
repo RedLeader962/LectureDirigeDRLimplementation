@@ -144,7 +144,9 @@ class Agent(object, metaclass=ABCMeta):
     def play(self, run_name: str, max_trajectories=20) -> None:
         with tf_cv1.Session() as sess:
 
-            # todo:implement --> hparam loading functionality : Required to make experiment management clean and bug free
+            # todo:implement --> hparam loading functionality : Required to make experiment management
+            #                                                                                   clean and bug free
+
             # note: Past implementation ref
             #   |       - Store: Deep_RL/DQN/DQN_OpenAI_Baseline/FalconX_env/train_2_DQN_OpenAi_baseline_FalconX.py
             #   |       - Load: Deep_RL/DQN/DQN_OpenAI_Baseline/FalconX_env/enjoy_2_DQN_OpenAI_baseline_FalconX.py
