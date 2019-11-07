@@ -30,6 +30,11 @@ def run_experiment(hparam: dict, args_: Namespace, test_hparam, rerun_nb=1) -> T
 
     hparam_search_list, key, values_search_set = configure_experiment_hparam_search(hparam)
 
+    exp_hparam_search_str = values_search_list_to_regex_compatible_str(key, values_search_set)
+    exp_rerun_tag = init_hparam['rerun_tag']
+    exp_rerun_tag = exp_rerun_tag + '-' + exp_hparam_search_str
+    print(":: TensorBoard rerun tag: {}\n".format(exp_rerun_tag),)
+
     for hparam in hparam_search_list:
         for run_idx in range(rerun_nb):
             print(":: Starting rerun experiment no {}".format(run_idx))
