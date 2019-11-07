@@ -10,7 +10,8 @@ def run_experiment(hparam: dict, args_: Namespace, test_hparam, rerun_nb=1) -> T
     Set up and execute experirment
     Is responsible of:
         1- instantiate a ExperiementSpec
-        2- setup experiment for multi values run if hparam there is field with list of values
+        2- check for dictionary field with list of values ex: 'theta_nn_h_layer_topo': [(16, 32), (64, 64), (84, 84)],
+        2- setup experiment for hyperparameter search over those values
         3- execute training following experiment specification
         4- execute rerun as requested
         5- report result in consol message

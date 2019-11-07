@@ -21,8 +21,6 @@ Invoke Actor-Critic agent using
             [--trainOnlineLunarLander]: Train on LunarLander a Online Actor-Critic agent with split Two input Advantage network
             [--trainBatchLunarLander]: Train on LunarLander a Batch Actor-Critic agent
 
-
-
 Note on TensorBoard usage:
     Start TensorBoard in terminal:
         cd DRLimplementation   (!)
@@ -296,22 +294,22 @@ ONLINE_AAC_LunarLander_Bootstrap_TwoInputAdv_SPLIT_three_layer_hparam = {
 
 BATCH_AAC_LunarLander_hparam = {
     'paramameter_set_name':           'Batch-AAC-Split-nn',
-    'rerun_tag':                      'BBOOT-Lunar-G',
+    'rerun_tag':                      'BBOOT-Lunar-H',
     'algo_name':                      'Batch ActorCritic',
     'comment':                        'Bootstrap-Target LunarLander',
     'AgentType':                      BatchActorCriticAgent,
     'Target':                         TargetType.Bootstrap,
     'Network':                        NetworkType.Split,
     'prefered_environment':           'LunarLander-v2',
-    'expected_reward_goal':           195,
-    'batch_size_in_ts':               200000,
-    'max_epoch':                      80,
+    'expected_reward_goal':           190,      # trigger model save on reach
+    'batch_size_in_ts':               60000,
+    'max_epoch':                      140,
     'discounted_reward_to_go':        True,
     'discout_factor':                 0.9999,
     'learning_rate':                  5e-3,
     'critic_learning_rate':           5e-4,
-    'critique_loop_len':              160,
-    'theta_nn_h_layer_topo':          [(16, 16, 16), (64, 64), (84, 84), (16, 34, 84)],
+    'critique_loop_len':              80,
+    'theta_nn_h_layer_topo':          [(16, 32, 16), (64, 64), (84, 84), (16, 34, 84)],
     'random_seed':                    0,
     'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh,
     'theta_output_layers_activation': None,
@@ -355,8 +353,23 @@ test_hparam = {
 parser = argparse.ArgumentParser(description=(
     "=============================================================================\n"
     ":: Command line option for the Actor-Critic Agent.\n\n"
-    "   The agent will play by default using previously trained computation graph.\n"
-    "   You can execute training by using the argument: --train "),
+    "To play:\n"
+    "     python -m ActorCritic --play [--play_for] [--help] [--testRun]\n\n"
+    "To train:\n"
+    "     python -m ActorCritic --trainExperimentSpecification [--rerun] [--renderTraining] [--discounted] [--help] [--testRun]\n\n"
+    "Choose --trainExperimentSpecification between the following:\n"
+    "     - CartPole-v0 environment:\n"
+    "          [--trainSplitMC]: Train a Batch Actor-Critic agent with Monte Carlo TD target\n"
+    "          [--trainSplitBootstrap]: Train a Batch Actor-Critic agent with bootstrap estimate TD target\n"
+    "          [--trainSharedBootstrap]: Train a Batch Actor-Critic agent with shared network\n"
+    "          [--trainOnlineSplit]: Train a Online Actor-Critic agent with split network\n"
+    "          [--trainOnlineSplit3layer]: Train a Online Actor-Critic agent with split network\n"
+    "          [--trainOnlineShared3layer]: Train a Online Actor-Critic agent with Shared network\n"
+    "          [--trainOnlineSplitTwoInputAdvantage]: Train a Online Actor-Critic agent with split Two input Advantage network\n"
+    "     - LunarLander-v2 environment:\n"
+    "          [--trainOnlineLunarLander]: Train on LunarLander a Online Actor-Critic agent with split Two input Advantage network\n"
+    "          [--trainBatchLunarLander]: Train on LunarLander a Batch Actor-Critic agent\n"
+    ),
     epilog="=============================================================================\n")
 
 # parser.add_argument('--env', type=str, default='CartPole-v0')

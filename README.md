@@ -20,7 +20,7 @@ Québec, QC, Canada,
 ### Essay on:
 - **[Basic policy gradient](DRLimplementation/BasicPolicyGradient)**
 - **[Actor-Critic](DRLimplementation/ActorCritic)**
-- **[A reflexion on design, architecture and implementation details](https://github.com/RedLeader962/LectureDirigeDRLimplementation/raw/master/Reflexion_on_design_and_architecture_LucCoupal_v1-0.pdf)**
+- **[A reflexion on design, architecture and implementation details](https://github.com/RedLeader962/LectureDirigeDRLimplementation/raw/master/Reflexion_on_design_and_architecture_LucCoupal_v1-1.pdf)**
 - Maximum Entropy DRL
 - Meta-DRL
 
