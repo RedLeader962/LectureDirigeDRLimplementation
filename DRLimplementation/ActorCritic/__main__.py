@@ -2,9 +2,26 @@
 """
 Invoke Actor-Critic agent using
 
-    python -m ActorCritic [--help] [--trainMC] [--renderTraining] [--discounted] [--play_for] [--testRun]
+    To play:
+        `python -m ActorCritic --play [--play_for] [--help] [--testRun]`
 
-todo --> add command line new training spec:
+    To train:
+        `python -m ActorCritic --trainExperimentSpecification [--rerun] [--renderTraining] [--discounted] [--help] [--testRun]`
+
+        Choose `--trainExperimentSpecification` between the following:
+        - CartPole-v0 environment:
+            [--trainSplitMC]: Train a Batch Actor-Critic agent with Monte Carlo TD target
+            [--trainSplitBootstrap]: Train a Batch Actor-Critic agent with bootstrap estimate TD target
+            [--trainSharedBootstrap]: Train a Batch Actor-Critic agent with shared network
+            [--trainOnlineSplit]: Train a Online Actor-Critic agent with split network
+            [--trainOnlineSplit3layer]: Train a Online Actor-Critic agent with split network
+            [--trainOnlineShared3layer]: Train a Online Actor-Critic agent with Shared network
+            [--trainOnlineSplitTwoInputAdvantage]: Train a Online Actor-Critic agent with split Two input Advantage network
+        - LunarLander-v2 environment:
+            [--trainOnlineLunarLander]: Train on LunarLander a Online Actor-Critic agent with split Two input Advantage network
+            [--trainBatchLunarLander]: Train on LunarLander a Batch Actor-Critic agent
+
+
 
 Note on TensorBoard usage:
     Start TensorBoard in terminal:
@@ -25,9 +42,7 @@ from ActorCritic.OnlineTwoInputAdvantageActorCriticAgent import OnlineTwoInputAd
 from blocAndTools.buildingbloc import ExperimentSpec
 from blocAndTools.experiement_runner import (run_experiment, warmup_agent_for_playing, experiment_closing_message,
                                              experiment_start_message, )
-from blocAndTools.rl_vocabulary import TargetType, NetworkType  # , ActorCriticAgentType
-
-
+from blocAndTools.rl_vocabulary import TargetType, NetworkType
 
 # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 # *                                                                                                                   *
@@ -56,7 +71,6 @@ BATCH_AAC_MonteCarlo_SPLIT_net_hparam = {
     'expected_reward_goal':           200,
     'batch_size_in_ts':               4000,
     'max_epoch':                      30,
-    # 'discounted_reward_to_go':        True,
     'discounted_reward_to_go':        [True, False],
     'discout_factor':                 0.99,
     'learning_rate':                  1e-2,
@@ -282,27 +296,27 @@ ONLINE_AAC_LunarLander_Bootstrap_TwoInputAdv_SPLIT_three_layer_hparam = {
 
 BATCH_AAC_LunarLander_hparam = {
     'paramameter_set_name':           'Batch-AAC-Split-nn',
-    'rerun_tag':                      'B-Lunar-A',
+    'rerun_tag':                      'BBOOT-Lunar-G',
     'algo_name':                      'Batch ActorCritic',
-    'comment':                        'MonteCarlo-target LunarLander',
+    'comment':                        'Bootstrap-Target LunarLander',
     'AgentType':                      BatchActorCriticAgent,
-    'Target':                         TargetType.MonteCarlo,
+    'Target':                         TargetType.Bootstrap,
     'Network':                        NetworkType.Split,
     'prefered_environment':           'LunarLander-v2',
-    'expected_reward_goal':           200,
-    'batch_size_in_ts':               4000,
+    'expected_reward_goal':           195,
+    'batch_size_in_ts':               200000,
     'max_epoch':                      80,
     'discounted_reward_to_go':        True,
-    'discout_factor':                 0.99,
-    'learning_rate':                  1e-3,
-    'critic_learning_rate':           1e-3,
-    'critique_loop_len':              80,
-    'theta_nn_h_layer_topo':          [(16, 16), (32, 32), (64, 64)],
+    'discout_factor':                 0.9999,
+    'learning_rate':                  5e-3,
+    'critic_learning_rate':           5e-4,
+    'critique_loop_len':              160,
+    'theta_nn_h_layer_topo':          [(16, 16, 16), (64, 64), (84, 84), (16, 34, 84)],
     'random_seed':                    0,
     'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh,
     'theta_output_layers_activation': None,
-    'render_env_every_What_epoch':    100,
-    'print_metric_every_what_epoch':  4,
+    'render_env_every_What_epoch':    5,
+    'print_metric_every_what_epoch':  5,
     'isTestRun':                      False,
     'show_plot':                      False,
     'note':                           ''
@@ -310,7 +324,7 @@ BATCH_AAC_LunarLander_hparam = {
 
 test_hparam = {
     'paramameter_set_name':           'Batch-AAC',
-    'rerun_tag':                      'TEST-RUN-A',
+    'rerun_tag':                      'TEST-RUN-C',
     'algo_name':                      'Batch ActorCritic',
     'comment':                        'TestSpec',
     'AgentType':                      BatchActorCriticAgent,
@@ -319,7 +333,7 @@ test_hparam = {
     'prefered_environment':           'CartPole-v0',
     'expected_reward_goal':           200,
     'batch_size_in_ts':               300,
-    'max_epoch':                      5,
+    'max_epoch':                      10,
     'discounted_reward_to_go':        True,
     'discout_factor':                 0.999,
     # 'discout_factor':                 [0.999, 0.91],
@@ -332,7 +346,7 @@ test_hparam = {
     'random_seed':                    0,
     'theta_hidden_layers_activation': tf.nn.tanh,
     'theta_output_layers_activation': None,
-    'render_env_every_What_epoch':    5,
+    'render_env_every_What_epoch':    3,
     'print_metric_every_what_epoch':  2,
     'isTestRun':                      True,
     'show_plot':                      False,
@@ -349,12 +363,10 @@ parser = argparse.ArgumentParser(description=(
 parser.add_argument('--trainSplitMC', action='store_true', help='Train a Batch Actor-Critic agent with Monte Carlo TD target')
 parser.add_argument('--trainSplitBootstrap', action='store_true', help='Train a Batch Actor-Critic agent with bootstrap estimate TD target')
 parser.add_argument('--trainSharedBootstrap', action='store_true', help='Train a Batch Actor-Critic agent with shared network')
+
 parser.add_argument('--trainOnlineSplit', action='store_true', help='Train a Online Actor-Critic agent with split network')
-
 parser.add_argument('--trainOnlineSplit3layer', action='store_true', help='Train a Online Actor-Critic agent with split network')
-
 parser.add_argument('--trainOnlineShared3layer', action='store_true', help='Train a Online Actor-Critic agent with Shared network')
-
 parser.add_argument('--trainOnlineSplitTwoInputAdvantage', action='store_true', help='Train a Online Actor-Critic agent with split Two input Advantage network')
 
 parser.add_argument('--trainOnlineLunarLander', action='store_true', help='Train on LunarLander a Online Actor-Critic agent with split Two input Advantage network')
@@ -369,27 +381,24 @@ parser.add_argument('--renderTraining', action='store_true',
 parser.add_argument('-d', '--discounted', default=None, type=bool,
                     help='(Training option) Force training execution with discounted reward-to-go')
 
-parser.add_argument('--play_for', type=int, default=20,
-                    help='(Playing option) Max playing trajectory, default=20')
 
 # (Priority) todo:implement --> select agent to play by command line:
 parser.add_argument('-p', '--play', type=str,
+                    help='(Playing option) Max playing trajectory, default=20')
+
+parser.add_argument('--play_for', type=int, default=20,
                     help='(Playing option) Max playing trajectory, default=20')
 
 parser.add_argument('--testRun', action='store_true')
 
 args = parser.parse_args()
 
-
-
 # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * * *
 # *                                                                                                                    *
 # *                             Configure selected experiment specification & warmup agent                             *
 # *                                                                                                                    *
 # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * * *
-
 consol_width = 90
-
 experiment_start_message(consol_width, args.rerun)
 
 if args.play:
@@ -460,7 +469,5 @@ else:
     # --------------------------------------------------------------------------------------------------- training ---/
 
     experiment_closing_message(hparam, args.rerun, key, values_search_set, consol_width)
-
-
 
 exit(0)

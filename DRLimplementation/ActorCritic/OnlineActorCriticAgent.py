@@ -2,24 +2,21 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from typing import Tuple
+
+import numpy as np
 # region ::Import statement ...
 import tensorflow as tf
 import tensorflow.python.util.deprecation as deprecation
-import numpy as np
-from typing import List, Tuple, Any
 
-from ActorCritic.ActorCriticBrainSplitNetwork import build_actor_policy_graph, build_critic_graph, critic_train, actor_train
 from ActorCritic.ActorCriticBrainSharedNetwork import build_actor_critic_shared_graph
-from blocAndTools.agent import Agent
-from blocAndTools.rl_vocabulary import rl_name, TargetType, NetworkType
+from ActorCritic.ActorCriticBrainSplitNetwork import (build_actor_policy_graph, build_critic_graph, critic_train,
+                                                      actor_train, )
 from blocAndTools import buildingbloc as bloc, ConsolPrintLearningStats
-# from blocAndTools.container.samplecontainer import TrajectoryCollector, UniformBatchCollector
-from blocAndTools.container.samplecontainer_online_mini_batch_OAnORV import (TrajectoryContainerMiniBatchOnlineOAnORV,
-                                                                             TrajectoryCollectorMiniBatchOnlineOAnORV,
-                                                                             UnconstrainedExperimentStageContainerOnlineAAC,
-                                                                             ExperimentStageCollectorOnlineAAC)
-from blocAndTools.temporal_difference_computation import (computhe_the_Advantage, compute_TD_target,
-                                                          get_t_and_tPrime_array_view_for_element_wise_op, )
+from blocAndTools.agent import Agent
+from blocAndTools.container.samplecontainer_online_mini_batch_OAnORV import (TrajectoryCollectorMiniBatchOnlineOAnORV,
+                                                                             ExperimentStageCollectorOnlineAAC, )
+from blocAndTools.rl_vocabulary import rl_name, NetworkType
 
 tf_cv1 = tf.compat.v1  # shortcut
 deprecation._PRINT_DEPRECATION_WARNINGS = False
@@ -134,7 +131,8 @@ class OnlineActorCriticAgent(Agent):
 
         return None
 
-    def _instantiate_data_collector(self) -> Tuple[TrajectoryCollectorMiniBatchOnlineOAnORV, ExperimentStageCollectorOnlineAAC]:
+    def _instantiate_data_collector(self) -> Tuple[TrajectoryCollectorMiniBatchOnlineOAnORV,
+                                                   ExperimentStageCollectorOnlineAAC]:
         """
         Data collector utility
 
@@ -180,7 +178,7 @@ class OnlineActorCriticAgent(Agent):
                 consol_print_learning_stats.next_glorious_epoch()
 
                 """ ---- Simulator: trajectories ---- """
-                while experimentCOLLECTOR.is_not_full():                         # <-- (!) BATCH collector control over sampling from batch capacity
+                while experimentCOLLECTOR.is_not_full():
                     obs_t = self.playground.env.reset()
                     consol_print_learning_stats.next_glorious_trajectory()
 
@@ -205,7 +203,7 @@ class OnlineActorCriticAgent(Agent):
 
                         """ ---- Agent: Collect current timestep events ---- """
                         self.trjCOLLECTOR.collect_OAnORV(obs_t=obs_t, act_t=action, obs_tPrime=obs_tPrime,
-                                                         rew_t=reward, V_estimate=V_t)                                    # <-- (!) TRJ collector control
+                                                         rew_t=reward, V_estimate=V_t)
 
                         obs_t = obs_tPrime
 
@@ -218,11 +216,11 @@ class OnlineActorCriticAgent(Agent):
                             self.writer.add_summary(trj_summary, global_step=global_step_i)
 
                             """ ---- Agent: Collect the sampled trajectory  ---- """
-                            trj_container = self.trjCOLLECTOR.pop_trajectory_and_reset()                # <-- (!) TRJ container control
-                            experimentCOLLECTOR.collect(trj_container)                                             # <-- (!) BATCH collector control
+                            trj_container = self.trjCOLLECTOR.pop_trajectory_and_reset()
+                            experimentCOLLECTOR.collect(trj_container)
 
                             consol_print_learning_stats.trajectory_training_stat(the_trajectory_return=trj_return,
-                                                                                 timestep=len(trj_container))                     # <-- (!) TRJ container ACCESS
+                                                                                 timestep=len(trj_container))
                             break
 
                         elif self.trjCOLLECTOR.minibatch_is_full():
@@ -233,15 +231,16 @@ class OnlineActorCriticAgent(Agent):
                 stage_timestep_collected = experimentCOLLECTOR.timestep_collected_so_far()
 
                 """ ---- Prepare data for backpropagation in the neural net ---- """
-                experiment_container = experimentCOLLECTOR.pop_batch_and_reset()                                     # <-- (!) BATCH collector control
-                stage_average_trjs_return, stage_average_trjs_lenght = experiment_container.get_basic_metric()       # <-- (!) BATCH container ACCESS
-                stage_actor_mean_loss, stage_critic_mean_loss = experiment_container.get_stage_mean_loss()           # <-- (!) BATCH container ACCESS
+                experiment_container = experimentCOLLECTOR.pop_batch_and_reset()
+                stage_average_trjs_return, stage_average_trjs_lenght = experiment_container.get_basic_metric()
+                stage_actor_mean_loss, stage_critic_mean_loss = experiment_container.get_stage_mean_loss()
 
-                # self._data_shape_is_compatibility_with_graph(batch_Qvalues, batch_actions, batch_observations) # =Muted=
-
-                epoch_feed_dictionary = bloc.build_feed_dictionary(
-                    [self.summary_stage_avg_trjs_actor_loss_ph, self.summary_stage_avg_trjs_critic_loss_ph, self.summary_stage_avg_trjs_return_ph],
-                    [stage_actor_mean_loss, stage_critic_mean_loss, stage_average_trjs_return])
+                epoch_feed_dictionary = bloc.build_feed_dictionary([self.summary_stage_avg_trjs_actor_loss_ph,
+                                                                    self.summary_stage_avg_trjs_critic_loss_ph,
+                                                                    self.summary_stage_avg_trjs_return_ph],
+                                                                   [stage_actor_mean_loss,
+                                                                    stage_critic_mean_loss,
+                                                                    stage_average_trjs_return])
 
                 epoch_summary = self.sess.run(self.summary_epoch_op, feed_dict=epoch_feed_dictionary)
 
@@ -263,7 +262,7 @@ class OnlineActorCriticAgent(Agent):
         return None
 
     def _train_on_minibatch(self, consol_print_learning_stats, local_step_t):
-        self.trjCOLLECTOR.compute_Qvalues_as_BootstrapEstimate()                                       # <-- (!) TRJ collector COMPUTE
+        self.trjCOLLECTOR.compute_Qvalues_as_BootstrapEstimate()
         minibatch = self.trjCOLLECTOR.get_minibatch()
 
         minibatch_feed_dictionary = bloc.build_feed_dictionary([self.observation_ph, self.action_ph, self.Qvalues_ph],
@@ -290,7 +289,7 @@ class OnlineActorCriticAgent(Agent):
             [self.observation_ph, self.Qvalues_ph],
             [minibatch.obs_t, minibatch.q_values_t])
 
-        for c_loop in range(self.exp_spec['critique_loop_len']):                                                     # <-- (!) propably 1 iteration
+        for c_loop in range(self.exp_spec['critique_loop_len']):      # <-- (!) most likely 1 iteration
             self.sess.run(self.V_phi_optimizer, feed_dict=critic_feed_dictionary)
 
         return None

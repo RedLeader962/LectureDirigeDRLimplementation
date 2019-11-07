@@ -133,7 +133,7 @@ class Agent(object, metaclass=ABCMeta):
             self.playground.env.render()  # keep environment rendering turned OFF during unit test
 
     def _save_learned_model(self, batch_average_trjs_return: float, epoch, sess: tf_cv1.Session) -> None:
-        if batch_average_trjs_return == float(self.exp_spec.expected_reward_goal):
+        if batch_average_trjs_return >= float(self.exp_spec.expected_reward_goal):
             self._save_checkpoint(epoch, sess, self.exp_spec.algo_name)
 
     def _save_checkpoint(self, epoch: int, sess: tf_cv1.Session, algo_name: str) -> None:
@@ -146,8 +146,7 @@ class Agent(object, metaclass=ABCMeta):
 
             # todo:implement --> hparam loading functionality : Required to make experiment management
             #                                                                                   clean and bug free
-
-            # note: Past implementation ref
+            # note: Check my past implementation as ref
             #   |       - Store: Deep_RL/DQN/DQN_OpenAI_Baseline/FalconX_env/train_2_DQN_OpenAi_baseline_FalconX.py
             #   |       - Load: Deep_RL/DQN/DQN_OpenAI_Baseline/FalconX_env/enjoy_2_DQN_OpenAI_baseline_FalconX.py
             # Loading code:

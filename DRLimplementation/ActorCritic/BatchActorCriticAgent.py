@@ -1,25 +1,23 @@
 # coding=utf-8
 
+# region ::Import statement ...
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-# region ::Import statement ...
+from typing import Tuple
+import numpy as np
 import tensorflow as tf
 import tensorflow.python.util.deprecation as deprecation
-import numpy as np
-from typing import List, Tuple, Any
 
-from ActorCritic.ActorCriticBrainSplitNetwork import build_actor_policy_graph, build_critic_graph, critic_train, actor_train
 from ActorCritic.ActorCriticBrainSharedNetwork import build_actor_critic_shared_graph
-from blocAndTools.agent import Agent
-from blocAndTools.rl_vocabulary import rl_name, TargetType, NetworkType
+from ActorCritic.ActorCriticBrainSplitNetwork import (build_actor_policy_graph, build_critic_graph, critic_train,
+                                                      actor_train, )
 from blocAndTools import buildingbloc as bloc, ConsolPrintLearningStats
-# from blocAndTools.container.samplecontainer import TrajectoryCollector, UniformBatchCollector
-from blocAndTools.container.samplecontainer_batch_OARV import (TrajectoryContainerBatchOARV,
-                                                               TrajectoryCollectorBatchOARV,
+from blocAndTools.agent import Agent
+from blocAndTools.container.samplecontainer_batch_OARV import (TrajectoryCollectorBatchOARV,
                                                                UniformeBatchContainerBatchOARV,
                                                                UniformBatchCollectorBatchOARV, )
-from blocAndTools.temporal_difference_computation import (computhe_the_Advantage, compute_TD_target,
-                                                          get_t_and_tPrime_array_view_for_element_wise_op, )
+from blocAndTools.rl_vocabulary import rl_name, TargetType, NetworkType
+from blocAndTools.temporal_difference_computation import compute_TD_target
 
 tf_cv1 = tf.compat.v1  # shortcut
 deprecation._PRINT_DEPRECATION_WARNINGS = False
@@ -81,8 +79,6 @@ class BatchActorCriticAgent(Agent):
                 self.observation_ph, self.exp_spec, self.playground)
 
             print(":: SHARED network constructed")
-
-
 
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
         # *                                                                                                           *
@@ -255,8 +251,6 @@ class BatchActorCriticAgent(Agent):
                 batch_observations = batch_container.batch_observations
                 batch_actions = batch_container.batch_actions
                 batch_Qvalues = batch_container.batch_Qvalues
-
-                # self._data_shape_is_compatibility_with_graph(batch_Qvalues, batch_actions, batch_observations) # =Muted=
 
                 """ ---- Agent: Compute gradient & update policy ---- """
                 epoch_feed_dictionary = bloc.build_feed_dictionary(

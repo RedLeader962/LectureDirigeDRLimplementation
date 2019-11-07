@@ -3,14 +3,15 @@ import gym
 import tensorflow as tf
 
 from blocAndTools.buildingbloc import (ExperimentSpec, GymPlayground, build_MLP_computation_graph,
-                                       policy_theta_discrete_space, discrete_pseudo_loss, policy_optimizer)
+                                       policy_theta_discrete_space, )
 from blocAndTools.rl_vocabulary import rl_name
 
 tf_cv1 = tf.compat.v1  # shortcut
 vocab = rl_name()
 
 
-def build_actor_critic_shared_graph(obs_ph: tf.Tensor, exp_spec: ExperimentSpec, playground: GymPlayground) -> (tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor):
+def build_actor_critic_shared_graph(obs_ph: tf.Tensor, exp_spec: ExperimentSpec,
+                                    playground: GymPlayground) -> (tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor):
     """
     The ACTOR-CRITIC shared network variant architecture
 

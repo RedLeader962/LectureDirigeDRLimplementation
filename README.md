@@ -14,11 +14,14 @@ Québec, QC, Canada,
 [Brahim.Chaib-draa@ift.ulaval.ca](Brahim.Chaib-draa@ift.ulaval.ca)
 
 ---
+![TaxonomyActorCritic](./visual/TaxonomyDRL.png) 
+
+
 ### Essay on:
 - **[Basic policy gradient](DRLimplementation/BasicPolicyGradient)**
-- Actor-Critic
+- **[Actor-Critic](DRLimplementation/ActorCritic)**
+- **[A reflexion on design, architecture and implementation details](https://github.com/RedLeader962/LectureDirigeDRLimplementation/raw/master/Reflexion_on_design_and_architecture_LucCoupal_v1-0.pdf)**
 - Maximum Entropy DRL
-- Inverse DRL
 - Meta-DRL
 
 ---
