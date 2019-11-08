@@ -1,7 +1,7 @@
 # coding=utf-8
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Union
+from typing import Any, Union, Tuple, Type
 import gym
 from gym.wrappers import TimeLimit
 import tensorflow as tf
@@ -418,11 +418,11 @@ def discrete_pseudo_loss(log_p_all, action_placeholder: tf.Tensor, Q_values_plac
         return pseudo_loss
 
 
-def policy_optimizer(pseudo_loss: tf.Tensor, learning_rate: ExperimentSpec, name=vocab.policy_optimizer) -> tf.Operation:
+def policy_optimizer(pseudo_loss: tf.Tensor, learning_rate: Type[list, tf_cv1.Tensor], global_gradient_step=None, name=vocab.policy_optimizer) -> tf.Operation:
     """
     Define the optimizing methode for training the REINFORE agent
     """
-    return tf_cv1.train.AdamOptimizer(learning_rate=learning_rate).minimize(pseudo_loss, name=name)
+    return tf_cv1.train.AdamOptimizer(learning_rate=learning_rate).minimize(pseudo_loss, global_step=global_gradient_step , name=name)
 
 
 def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
@@ -511,4 +511,79 @@ def setup_commented_run_dir_str(exp_spec: ExperimentSpec, agent_root_dir: str) -
 
     run_dir = "{}/{}".format(runs_dir, run_str)
     return run_dir
+
+
+def learning_rate_scheduler(X_train_nb_of_samples, initial_learning_rate, batch_size, max_epoch, lr_decay_rate,
+                            name_sufix=None) -> Tuple[tf_cv1.Tensor, tf_cv1.Variable]:
+    """
+    Code from my project Study_on_Deep_Reinforcement_Learning/TensorFlow_exploration/multilayer_perceptron/LowLevel_TF_multilayer_perceptron.py
+
+
+    How to use it:
+        Ex: Momentum optimizer with Learning Rate Scheduling
+
+                decayed_learning_rate, global_step = learning_rate_scheduler(X_train_nb_of_samples,
+                                                                             initial_learning_rate,
+                                                                             batch_size, max_epoch,
+                                                                             lr_decay_rate)
+                optimizer = tf.train.MomentumOptimizer(decayed_learning_rate, momentum=self.momentum, use_nesterov=True)
+                self._training_op = optimizer.minimize(loss, global_step=global_step, name="training_op")
+
+    Check TensorFlow v1 exponential_decay doc for aditional info
+        https://www.tensorflow.org/versions/r1.15/api_docs/python/tf/train/exponential_decay
+
+    :param X_train_nb_of_samples:   Toltal number of sample
+    :param batch_size:              Number of sample by batch
+    :param max_epoch:                max epoch
+    :param initial_learning_rate:
+    :param lr_decay_rate:           learning rate decay ex: 1/1000
+    :param name_sufix: a sufix to be added to the op name ex: 'policy_', 'critic_'
+    :return: the decayed learning rate , the gradient step counter
+    :rtype: Tuple[tf_cv1.Tensor, tf_cv1.Variable]
+    """
+    decay_step = X_train_nb_of_samples // batch_size * max_epoch * 0.1  # todo --> test
+    with tf.name_scope(name_sufix + "lr_scheduler"):
+        gradient_step_counter = _gradient_step_counter_op(name=name_sufix)
+        decayed_learning_rate = tf.train.exponential_decay(learning_rate=initial_learning_rate,
+                                                           global_step=gradient_step_counter,
+                                                           decay_steps=decay_step,
+                                                           decay_rate=lr_decay_rate)
+        tf.summary.scalar(name_sufix + 'lr_scheduler', decayed_learning_rate)
+    return decayed_learning_rate, gradient_step_counter
+
+
+def _gradient_step_counter_op(name=None) -> tf_cv1.Variable:
+    """
+    Create a gradient step counter variable that keep track of how much training step as elapse since begining of training.
+    Usage: Pass a _gradient_step_counter_op instance to a TF optimizer minimize(). It will incremente it at each update.
+
+    usage:
+        tf.compat.v1.train.GradientDescentOptimizer(learning_rate)
+            .minimize(myLoss, global_step=_gradient_step_counter_op)
+    """
+    return tf.Variable(0, trainable=False, name=name + 'gradient_step_counter')
+
+
+def he_initialization(input_op: tf.Tensor, nb_of_neuron: int, seed=None) -> tf.Tensor:
+    """
+    He initialization
+    The best initialization strategy for Relu (and variance of Relu) activation function
+
+    How to use it:
+        In a hidden layer
+            Weight = tf.get_variable(name='W', initializer=he_initialization(input_op, nb_of_neuron, seed))
+            bias   = tf.get_variable(name='b', shape=(nb_of_neuron), initializer=tf.initializers.zeros)
+
+    Code from my project Study_on_Deep_Reinforcement_Learning/TensorFlow_exploration/multilayer_perceptron/LowLevel_TF_multilayer_perceptron.py
+
+    ** Important: the weight random initializer choice make a big difference on the learning performance
+    :param input_op: a tensorFlow operation
+    :param nb_of_neuron: nb of neuron in the layer
+    :param seed:
+    :return: a tensor initialize with random value folowing the He initialization method
+    """
+    nb_of_input_unit = int(input_op.get_shape()[1])
+    stddev = 2 / np.sqrt(nb_of_input_unit + nb_of_neuron)
+    initialized_tensor = tf.truncated_normal((nb_of_input_unit, nb_of_neuron), stddev=stddev, seed=seed)
+    return initialized_tensor
 

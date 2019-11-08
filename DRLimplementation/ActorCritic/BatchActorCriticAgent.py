@@ -172,7 +172,7 @@ class BatchActorCriticAgent(Agent):
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
             """ ---- Simulator: Epochs ---- """
-            global_step_i = 0
+            global_timestep_idx = 0
             for epoch in range(self.exp_spec.max_epoch):
                 consol_print_learning_stats.next_glorious_epoch()
 
@@ -183,7 +183,7 @@ class BatchActorCriticAgent(Agent):
 
                     """ ---- Simulator: time-steps ---- """
                     while True:
-                        global_step_i += 1
+                        global_timestep_idx += 1
                         self._render_trajectory_on_condition(epoch, render_env,
                                                              batchCOLLECTOR.trj_collected_so_far())
 
@@ -224,7 +224,7 @@ class BatchActorCriticAgent(Agent):
                                 trjCOLLECTOR.set_Qvalues(TD_target.tolist())
 
                             trj_summary = sess.run(self.summary_trj_op, {self.Summary_trj_return_ph: trj_return})
-                            self.writer.add_summary(trj_summary, global_step=global_step_i)
+                            self.writer.add_summary(trj_summary, global_step=global_timestep_idx)
 
                             """ ---- Agent: Collect the sampled trajectory  ---- """
                             trj_container = trjCOLLECTOR.pop_trajectory_and_reset()
@@ -262,7 +262,7 @@ class BatchActorCriticAgent(Agent):
                                                                       self.summary_epoch_op],
                                                                      feed_dict=epoch_feed_dictionary)
 
-                self.writer.add_summary(epoch_summary, global_step=global_step_i)
+                self.writer.add_summary(epoch_summary, global_step=global_timestep_idx)
 
                 """ ---- Train actor ---- """
                 sess.run(self.actor_policy_optimizer, feed_dict=epoch_feed_dictionary)

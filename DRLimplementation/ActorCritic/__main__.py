@@ -294,7 +294,7 @@ ONLINE_AAC_LunarLander_Bootstrap_TwoInputAdv_SPLIT_three_layer_hparam = {
 
 BATCH_AAC_LunarLander_hparam = {
     'paramameter_set_name':           'Batch-AAC-Split-nn',
-    'rerun_tag':                      'BBOOT-Lunar-H',
+    'rerun_tag':                      'BBOOT-Lunar-I',
     'algo_name':                      'Batch ActorCritic',
     'comment':                        'Bootstrap-Target LunarLander',
     'AgentType':                      BatchActorCriticAgent,
@@ -306,10 +306,12 @@ BATCH_AAC_LunarLander_hparam = {
     'max_epoch':                      140,
     'discounted_reward_to_go':        True,
     'discout_factor':                 0.9999,
-    'learning_rate':                  5e-3,
-    'critic_learning_rate':           5e-4,
+    'learning_rate':                  [1e-2,5e-3, 1e-3],                                    # EXP-BBOOT-Lunar-I
+    # 'critic_learning_rate':           5e-4,
+    'critic_learning_rate':           1e-4,                                                 # EXP-BBOOT-Lunar-I
     'critique_loop_len':              80,
-    'theta_nn_h_layer_topo':          [(16, 32, 16), (64, 64), (84, 84), (16, 34, 84)],
+    # 'theta_nn_h_layer_topo':          [(16, 32, 16), (64, 64), (84, 84), (16, 34, 84)],   # EXP-BBOOT-Lunar-H
+    'theta_nn_h_layer_topo':          (84, 84),
     'random_seed':                    0,
     'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh,
     'theta_output_layers_activation': None,

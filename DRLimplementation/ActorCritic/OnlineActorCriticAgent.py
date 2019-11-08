@@ -173,7 +173,7 @@ class OnlineActorCriticAgent(Agent):
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
             """ ---- Simulator: Epochs ---- """
-            global_step_i = 0
+            global_timestep_idx = 0
             for epoch in range(self.exp_spec.max_epoch):
                 consol_print_learning_stats.next_glorious_epoch()
 
@@ -185,7 +185,7 @@ class OnlineActorCriticAgent(Agent):
                     """ ---- Simulator: time-steps ---- """
                     local_step_t = 0
                     while True:
-                        global_step_i += 1
+                        global_timestep_idx += 1
                         local_step_t += 1
                         self._render_trajectory_on_condition(epoch, render_env,
                                                              experimentCOLLECTOR.trj_collected_so_far())
@@ -213,7 +213,7 @@ class OnlineActorCriticAgent(Agent):
                             self._train_on_minibatch(consol_print_learning_stats, local_step_t)
 
                             trj_summary = self.sess.run(self.summary_trj_op, {self.Summary_trj_return_ph: trj_return})
-                            self.writer.add_summary(trj_summary, global_step=global_step_i)
+                            self.writer.add_summary(trj_summary, global_step=global_timestep_idx)
 
                             """ ---- Agent: Collect the sampled trajectory  ---- """
                             trj_container = self.trjCOLLECTOR.pop_trajectory_and_reset()
@@ -244,7 +244,7 @@ class OnlineActorCriticAgent(Agent):
 
                 epoch_summary = self.sess.run(self.summary_epoch_op, feed_dict=epoch_feed_dictionary)
 
-                self.writer.add_summary(epoch_summary, global_step=global_step_i)
+                self.writer.add_summary(epoch_summary, global_step=global_timestep_idx)
 
                 consol_print_learning_stats.epoch_training_stat(
                     epoch_loss=stage_actor_mean_loss,
@@ -258,7 +258,7 @@ class OnlineActorCriticAgent(Agent):
                 """ ---- Expose current epoch computed information for integration test ---- """
                 yield (epoch, stage_actor_mean_loss, stage_average_trjs_return, stage_average_trjs_lenght)
 
-            print("\n\n\n:: Global step collected: {}".format(global_step_i), end="")
+            print("\n\n\n:: Global timestep collected: {}".format(global_timestep_idx), end="")
         return None
 
     def _train_on_minibatch(self, consol_print_learning_stats, local_step_t):

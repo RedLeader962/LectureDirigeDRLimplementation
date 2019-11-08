@@ -1,0 +1,47 @@
+
+
+--- Timeit WRITE result (with 1000000 items) -------------------------------------------------
+	250 step per episode, over 20 timeit loops
+
+	populate_numpy_array: 											1.77864 usec per loop
+	populate_append_to_list: 										2.90693 usec per loop
+	populate_fix_size_list: 										2.25386 usec per loop
+	populate_EpisodeData(EpisodeData): 								0.72886 usec per loop
+	populate_EpisodeData(EpisodeDataFixSizeList): 					0.58153 usec per loop
+
+	Overrided (WRITE):
+	overrided_populate_EpisodeData(EpisodeData): 					0.79278 usec per loop
+	overrided_populate_EpisodeData(EpisodeDataFixSizeList): 		0.63938 usec per loop
+
+--- Timeit READ result (with 1000000 items) --------------------------------------------------
+	250 step per episode, over 20 timeit loops
+
+	numpy_array_container: 											17.22643 usec per loop
+	append_to_list: 												6.50967 usec per loop
+	fix_size_list: 													6.59222 usec per loop
+	read_and_write_EpisodeData(EpisodeData): 						7.49651 usec per loop
+	read_and_write_EpisodeData(EpisodeDataFixSizeList): 			7.48418 usec per loop
+
+	Overrided (READ):
+	overrided_read_and_write_EpisodeData(EpisodeData): 				7.83912 usec per loop
+	overrided_read_and_write_EpisodeData(EpisodeDataFixSizeList): 	7.67483 usec per loop
+
+--- Timeit READ&WRITE result (with 1000000 items) ---------------------------------------------
+	250 step per episode, over 20 timeit loops
+
+	numpy_array_container: 											19.00508 usec per loop
+	append_to_list: 												9.41659 usec per loop
+	fix_size_list: 													8.84608 usec per loop
+	read_and_write_EpisodeData(EpisodeData): 						8.22537 usec per loop
+	read_and_write_EpisodeData(EpisodeDataFixSizeList): 			8.06571 usec per loop
+
+	Overrided (READ):
+	overrided_read_and_write_EpisodeData(EpisodeData): 				8.63190 usec per loop
+	overrided_read_and_write_EpisodeData(EpisodeDataFixSizeList): 	8.31422 usec per loop
+
+--- Sizeof (with 1000000 items) --------------------------------------------------------------
+	numpy array							128.00011 Mb
+	python list							128.00102 Mb
+	EpisodeData							321.84000 Mb
+	EpisodeDataFixSizeList				320.62400 Mb
+
