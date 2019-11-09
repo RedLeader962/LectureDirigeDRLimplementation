@@ -69,7 +69,8 @@ BATCH_AAC_MonteCarlo_SPLIT_net_hparam = {
     'expected_reward_goal':           200,
     'batch_size_in_ts':               4000,
     'max_epoch':                      30,
-    'discounted_reward_to_go':        [True, False],
+    # 'discounted_reward_to_go':        [True, False],
+    'discounted_reward_to_go':        True,
     'discout_factor':                 0.99,
     'learning_rate':                  1e-2,
     'critic_learning_rate':           1e-2,
@@ -83,12 +84,19 @@ BATCH_AAC_MonteCarlo_SPLIT_net_hparam = {
     'isTestRun':                      False,
     'show_plot':                      False,
     'note':                           ''
+    # 'rerun_tag':                      'BMCSPL-C-LR-SCHEDULE',
+    # 'learning_rate':                  5e-2,
+    # 'critic_learning_rate':           5e-2,
+    # 'actor_lr_decay_rate':            1e-1,
+    # 'critic_lr_decay_rate':           1e-1,
+    # 'note':                           'Learning rate scheduler work very well with a small decay rate'
     }
 
 
 BATCH_AAC_bootstrap_SPLIT_net_hparam = {
     'paramameter_set_name':           'Batch-AAC-Split-nn',
-    'rerun_tag':                      'BBSPL-A',
+    # 'rerun_tag':                      'BBSPL-A',
+    'rerun_tag':                      'BBSPL-F-ActorAdam-HE',
     'algo_name':                      'Batch ActorCritic',
     'comment':                        'Discounted-Bootstrap-target Farsighted',
     'AgentType':                      BatchActorCriticAgent,
@@ -103,6 +111,8 @@ BATCH_AAC_bootstrap_SPLIT_net_hparam = {
     'discout_factor':                 0.9999,
     'learning_rate':                  1e-2,
     'critic_learning_rate':           1e-3,
+    'actor_lr_decay_rate':            1,    # 9e-1,
+    'critic_lr_decay_rate':           1,    # 9e-1,
     'critique_loop_len':              120,
     'theta_nn_h_layer_topo':          (16, 32, 64),
     # 'theta_nn_h_layer_topo':          (62,),    # <--(!) not learning
@@ -114,6 +124,8 @@ BATCH_AAC_bootstrap_SPLIT_net_hparam = {
     'isTestRun':                      False,
     'show_plot':                      False,
     'note':                           "Both loss have a lot less variance. The algo take more time to converge. relu seams to work better"
+    # 'learning_rate':                  3e-2,
+    # 'critic_learning_rate':           3e-3,
     }
 
 
@@ -133,6 +145,8 @@ BATCH_AAC_Bootstrap_SHARED_net_hparam = {
     'discout_factor':                 0.999,
     'learning_rate':                  1e-3,
     'critic_learning_rate':           1e-4,
+    'actor_lr_decay_rate':            1,                                              # set to 1 to swith OFF scheduler
+    'critic_lr_decay_rate':           1,                                              # set to 1 to swith OFF scheduler
     'critique_loop_len':              100,
     'theta_nn_h_layer_topo':          (60, 60),
     'random_seed':                    0,
@@ -168,6 +182,8 @@ ONLINE_AAC_Bootstrap_SPLIT_net_hparam = {
     'discout_factor':                 0.999,
     'learning_rate':                  1e-4,
     'critic_learning_rate':           5e-4,
+    'actor_lr_decay_rate':            1,                                              # set to 1 to swith OFF scheduler
+    'critic_lr_decay_rate':           1,                                              # set to 1 to swith OFF scheduler
     'critique_loop_len':              1,
     'theta_nn_h_layer_topo':          (32, 32),
     'random_seed':                    0,
@@ -198,6 +214,8 @@ ONLINE_AAC_Bootstrap_SPLIT_three_layer_hparam = {
     'discout_factor':                 0.999,
     'learning_rate':                  5e-5,
     'critic_learning_rate':           5e-4,
+    'actor_lr_decay_rate':            1,                                              # set to 1 to swith OFF scheduler
+    'critic_lr_decay_rate':           1,                                              # set to 1 to swith OFF scheduler
     'critique_loop_len':              1,
     'theta_nn_h_layer_topo':          (16, 32, 256),
     'random_seed':                    0,
@@ -226,6 +244,8 @@ ONLINE_AAC_Bootstrap_SHARED_three_layer_hparam = {
     'discout_factor':                 0.95,
     'learning_rate':                  3e-4,
     'critic_learning_rate':           3e-4,
+    'actor_lr_decay_rate':            1,                                              # set to 1 to swith OFF scheduler
+    'critic_lr_decay_rate':           1,                                              # set to 1 to swith OFF scheduler
     'critique_loop_len':              2,
     'theta_nn_h_layer_topo':          (32, 64, 256),
     'random_seed':                    0,
@@ -253,6 +273,8 @@ ONLINE_AAC_Bootstrap_TwoInputAdv_SPLIT_three_layer_hparam = {
     'discout_factor':                 0.999,
     'learning_rate':                  1e-4,
     'critic_learning_rate':           5e-4,
+    'actor_lr_decay_rate':            1,                                              # set to 1 to swith OFF scheduler
+    'critic_lr_decay_rate':           1,                                              # set to 1 to swith OFF scheduler
     'critique_loop_len':              1,
     'theta_nn_h_layer_topo':          (16, 32, 32),
     'random_seed':                    0,
@@ -280,6 +302,8 @@ ONLINE_AAC_LunarLander_Bootstrap_TwoInputAdv_SPLIT_three_layer_hparam = {
     'discout_factor':                 0.99,
     'learning_rate':                  1e-4,
     'critic_learning_rate':           5e-4,
+    'actor_lr_decay_rate':            1,                                              # set to 1 to swith OFF scheduler
+    'critic_lr_decay_rate':           1,                                              # set to 1 to swith OFF scheduler
     'critique_loop_len':              2,
     'theta_nn_h_layer_topo':          (62, 62),
     'random_seed':                    0,
@@ -309,6 +333,8 @@ BATCH_AAC_LunarLander_hparam = {
     'learning_rate':                  [1e-2,5e-3, 1e-3],                                    # EXP-BBOOT-Lunar-I
     # 'critic_learning_rate':           5e-4,
     'critic_learning_rate':           1e-4,                                                 # EXP-BBOOT-Lunar-I
+    'actor_lr_decay_rate':            1,                                              # set to 1 to swith OFF scheduler
+    'critic_lr_decay_rate':           1,                                              # set to 1 to swith OFF scheduler
     'critique_loop_len':              80,
     # 'theta_nn_h_layer_topo':          [(16, 32, 16), (64, 64), (84, 84), (16, 34, 84)],   # EXP-BBOOT-Lunar-H
     'theta_nn_h_layer_topo':          (84, 84),
@@ -324,7 +350,7 @@ BATCH_AAC_LunarLander_hparam = {
 
 test_hparam = {
     'paramameter_set_name':           'Batch-AAC',
-    'rerun_tag':                      'TEST-RUN-C',
+    'rerun_tag':                      'TEST-RUN-G',
     'algo_name':                      'Batch ActorCritic',
     'comment':                        'TestSpec',
     'AgentType':                      BatchActorCriticAgent,
@@ -340,6 +366,8 @@ test_hparam = {
     # 'learning_rate':                  3e-4,
     'learning_rate':                  [3e-4, 1e-3],
     'critic_learning_rate':           1e-3,
+    'actor_lr_decay_rate':            1,                                              # set to 1 to swith OFF scheduler
+    'critic_lr_decay_rate':           1,                                              # set to 1 to swith OFF scheduler
     'critique_loop_len':              80,
     'theta_nn_h_layer_topo':          (4, 4),
     # 'theta_nn_h_layer_topo':          [(4, 4), (6, 6)],

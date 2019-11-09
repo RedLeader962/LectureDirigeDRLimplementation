@@ -13,11 +13,11 @@ class NetworkType(Enum):
     Shared = 2
 
 
-
 _rl_vocab_list = [
     'REINFORCE', 'ActorCritic', 'DQN',
     'Discrete', 'Continuous',
     'trajectorie', 'timestep', 'epoch', 'horizon',
+    'Trajectory_lenght',
     'observation', 'action', 'policy', 'transition_dynamic',
     'obs_t', 'obs_tPrime'
     'Qvalues', 'Vvalues'

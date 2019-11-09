@@ -126,8 +126,15 @@ class OnlineActorCriticAgent(Agent):
 
         """ ---- Trajectory summary ---- """
         self.Summary_trj_return_ph = tf_cv1.placeholder(tf.float32, name='Summary_trj_return_ph')
-        self.summary_trj_op = tf_cv1.summary.scalar('Trajectory return', self.Summary_trj_return_ph,
-                                                    family=vocab.G)
+        self.summary_trj_return_op = tf_cv1.summary.scalar('Trajectory return', self.Summary_trj_return_ph,
+                                                           family=vocab.G)
+
+        self.Summary_trj_lenght_ph = tf_cv1.placeholder(tf.float32, name='Summary_trj_lenght_ph')
+        self.summary_trj_lenght_op = tf_cv1.summary.scalar('Trajectory lenght', self.Summary_trj_lenght_ph,
+                                                           family=vocab.Trajectory_lenght)
+
+        self.summary_trj_op = tf_cv1.summary.merge([self.summary_trj_return_op, self.summary_trj_lenght_op])
+
 
         return None
 
@@ -212,15 +219,23 @@ class OnlineActorCriticAgent(Agent):
                             trj_return = self.trjCOLLECTOR.trajectory_ended()
                             self._train_on_minibatch(consol_print_learning_stats, local_step_t)
 
-                            trj_summary = self.sess.run(self.summary_trj_op, {self.Summary_trj_return_ph: trj_return})
-                            self.writer.add_summary(trj_summary, global_step=global_timestep_idx)
 
                             """ ---- Agent: Collect the sampled trajectory  ---- """
                             trj_container = self.trjCOLLECTOR.pop_trajectory_and_reset()
                             experimentCOLLECTOR.collect(trj_container)
 
+                            # trj_summary = self.sess.run(self.summary_trj_return_op, {self.Summary_trj_return_ph: trj_return})
+                            trj_len = len(trj_container)
+
+                            trj_summary = sess.run(self.summary_trj_op,
+                                                   {self.Summary_trj_return_ph: trj_return,
+                                                    self.Summary_trj_lenght_ph: trj_len
+                                                    })
+
+                            self.writer.add_summary(trj_summary, global_step=global_timestep_idx)
+
                             consol_print_learning_stats.trajectory_training_stat(the_trajectory_return=trj_return,
-                                                                                 timestep=len(trj_container))
+                                                                                 timestep=trj_len)
                             break
 
                         elif self.trjCOLLECTOR.minibatch_is_full():

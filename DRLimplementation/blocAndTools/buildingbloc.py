@@ -77,7 +77,21 @@ class ExperimentSpec:
         else:
             assert isinstance(self.theta_nn_h_layer_topo, tuple)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str):
+        """
+        Use ExperimentSpecification instance like a dictionary
+        It's the way to access new spec added via set_experiment_spec()
+
+        ```python
+
+            exp_spec.set_experiment_spec({'critique_loop_len': 80})
+            exp_spec['critique_loop_len']
+            > 80
+
+        ```
+        :param item: a specification keyword
+        :return: the specification value
+        """
         return self.__dict__[item]
 
     def get_agent_training_spec(self):
@@ -255,6 +269,7 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, output_dim, hidden
     In the context of deep learning, 'logits' is the equivalent of 'raw output' of our prediction.
     It will later be transform into probabilies using the 'softmax function'
 
+
     :return: a well construct computation graph
     :rtype: tf.Tensor
     """
@@ -264,16 +279,22 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, output_dim, hidden
     with tf_cv1.variable_scope(name_or_scope=name, reuse=reuse):
         h_layer = input_placeholder
 
+        # # (!) the kernel_initializer random initializer choice make a big difference on the learning performance
+        kernel_init = tf_cv1.initializers.he_normal
+        # kernel_init = None
+
         # create & connect all hidden layer
         for id in range(len(hidden_layer_topology)):
             h_layer = tf_cv1.layers.dense(h_layer, hidden_layer_topology[id],
                                           activation=hidden_layers_activation,
                                           reuse=reuse,
+                                          kernel_initializer=kernel_init(),
                                           name='{}{}'.format(vocab.hidden_, id + 1))
 
         logits = tf_cv1.layers.dense(h_layer, output_dim,
                                      activation=output_layers_activation,
                                      reuse=reuse,
+                                     kernel_initializer=kernel_init(),
                                      name=vocab.logits)
 
     return logits
@@ -418,11 +439,11 @@ def discrete_pseudo_loss(log_p_all, action_placeholder: tf.Tensor, Q_values_plac
         return pseudo_loss
 
 
-def policy_optimizer(pseudo_loss: tf.Tensor, learning_rate: Type[list, tf_cv1.Tensor], global_gradient_step=None, name=vocab.policy_optimizer) -> tf.Operation:
+def policy_optimizer(pseudo_loss: tf.Tensor, learning_rate: list or tf_cv1.Tensor, global_gradient_step=None, name=vocab.policy_optimizer) -> tf.Operation:
     """
     Define the optimizing methode for training the REINFORE agent
     """
-    return tf_cv1.train.AdamOptimizer(learning_rate=learning_rate).minimize(pseudo_loss, global_step=global_gradient_step , name=name)
+    return tf_cv1.train.AdamOptimizer(learning_rate=learning_rate).minimize(pseudo_loss, global_step=global_gradient_step, name=name)
 
 
 def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
@@ -513,10 +534,14 @@ def setup_commented_run_dir_str(exp_spec: ExperimentSpec, agent_root_dir: str) -
     return run_dir
 
 
-def learning_rate_scheduler(X_train_nb_of_samples, initial_learning_rate, batch_size, max_epoch, lr_decay_rate,
-                            name_sufix=None) -> Tuple[tf_cv1.Tensor, tf_cv1.Variable]:
+def learning_rate_scheduler(max_gradient_step_expected: int, learning_rate: float, lr_decay_rate: float = 1e-1,
+                            name_sufix: str = None) -> Tuple[tf_cv1.Tensor, tf_cv1.Variable]:
     """
-    Code from my project Study_on_Deep_Reinforcement_Learning/TensorFlow_exploration/multilayer_perceptron/LowLevel_TF_multilayer_perceptron.py
+    Create a learning rate sheduler, a global step counter variable and a TF summary for to keep track in TensorBoard
+    To turn OFF scheduler: set lr_decay_rate=1
+    ex:
+        (lr=1e-1, decay_rate=1e-1, max_epoch=20) --> ~1e-2 after 20 epoch (0.011220184543019637)
+        (lr=1e-1, decay_rate=1e-3, max_epoch=20) --> ~1e-4 after 20 epoch (0.0001412537544622755)
 
 
     How to use it:
@@ -532,23 +557,28 @@ def learning_rate_scheduler(X_train_nb_of_samples, initial_learning_rate, batch_
     Check TensorFlow v1 exponential_decay doc for aditional info
         https://www.tensorflow.org/versions/r1.15/api_docs/python/tf/train/exponential_decay
 
-    :param X_train_nb_of_samples:   Toltal number of sample
-    :param batch_size:              Number of sample by batch
-    :param max_epoch:                max epoch
-    :param initial_learning_rate:
-    :param lr_decay_rate:           learning rate decay ex: 1/1000
-    :param name_sufix: a sufix to be added to the op name ex: 'policy_', 'critic_'
-    :return: the decayed learning rate , the gradient step counter
-    :rtype: Tuple[tf_cv1.Tensor, tf_cv1.Variable]
+    For behavior intuition, check: /exploration_and_benchmarking/behavior-learning_rate_scheduler.py
+
+    :param learning_rate:               the initial learning rate
+    :type learning_rate: float
+    :param lr_decay_rate:               learning-rate decay rate
+    :type lr_decay_rate: float
+    :param max_gradient_step_expected:  Optional - Will be computed this way ```batch_size * max_epoch``` if None
+    :param name_sufix:                  a sufix to be added to the op name ex: 'policy_', 'critic_'
+    :return:                            the decayed learning rate , the gradient step counter
+    :rtype:                             Tuple[tf_cv1.Tensor, tf_cv1.Variable]
     """
-    decay_step = X_train_nb_of_samples // batch_size * max_epoch * 0.1  # todo --> test
-    with tf.name_scope(name_sufix + "lr_scheduler"):
-        gradient_step_counter = _gradient_step_counter_op(name=name_sufix)
-        decayed_learning_rate = tf.train.exponential_decay(learning_rate=initial_learning_rate,
+    if name_sufix is not None:
+        name_sufix += '_'
+
+    # decay_step = max_gradient_step_expected // batch_size * max_epoch * 0.1
+
+    gradient_step_counter = _gradient_step_counter_op(name=name_sufix)
+    decayed_learning_rate = tf_cv1.train.exponential_decay(learning_rate=learning_rate,
                                                            global_step=gradient_step_counter,
-                                                           decay_steps=decay_step,
+                                                           decay_steps=max_gradient_step_expected,
                                                            decay_rate=lr_decay_rate)
-        tf.summary.scalar(name_sufix + 'lr_scheduler', decayed_learning_rate)
+    tf_cv1.summary.scalar(name_sufix + 'learning_rate', decayed_learning_rate, family=vocab.learning_rate)
     return decayed_learning_rate, gradient_step_counter
 
 
@@ -561,7 +591,7 @@ def _gradient_step_counter_op(name=None) -> tf_cv1.Variable:
         tf.compat.v1.train.GradientDescentOptimizer(learning_rate)
             .minimize(myLoss, global_step=_gradient_step_counter_op)
     """
-    return tf.Variable(0, trainable=False, name=name + 'gradient_step_counter')
+    return tf_cv1.Variable(0, trainable=False, name=name + 'gradient_step_counter')
 
 
 def he_initialization(input_op: tf.Tensor, nb_of_neuron: int, seed=None) -> tf.Tensor:
