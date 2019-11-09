@@ -287,6 +287,7 @@ ONLINE_AAC_Bootstrap_TwoInputAdv_SPLIT_three_layer_hparam = {
     'note':                           ""
     }
 
+# (CRITICAL) todo:implement --> lr_scheduler for online agent:
 ONLINE_AAC_LunarLander_Bootstrap_TwoInputAdv_SPLIT_three_layer_hparam = {
     'paramameter_set_name':           'Online-AAC-Split-TwoInputAdv-nn62-62',
     'rerun_tag':                      'O-Lunar-B',
@@ -318,23 +319,24 @@ ONLINE_AAC_LunarLander_Bootstrap_TwoInputAdv_SPLIT_three_layer_hparam = {
 
 BATCH_AAC_LunarLander_hparam = {
     'paramameter_set_name':           'Batch-AAC-Split-nn',
-    'rerun_tag':                      'BBOOT-Lunar-I',
+    'rerun_tag':                      'BBOOT-Lunar-J',
     'algo_name':                      'Batch ActorCritic',
-    'comment':                        'Bootstrap-Target LunarLander',
+    'comment':                        'HE lrSchedule Bootstrap-Target LunarLander',
     'AgentType':                      BatchActorCriticAgent,
     'Target':                         TargetType.Bootstrap,
     'Network':                        NetworkType.Split,
     'prefered_environment':           'LunarLander-v2',
-    'expected_reward_goal':           190,      # trigger model save on reach
+    'expected_reward_goal':           195,      # trigger model save on reach
     'batch_size_in_ts':               60000,
     'max_epoch':                      140,
     'discounted_reward_to_go':        True,
     'discout_factor':                 0.9999,
-    'learning_rate':                  [1e-2,5e-3, 1e-3],                                    # EXP-BBOOT-Lunar-I
-    # 'critic_learning_rate':           5e-4,
-    'critic_learning_rate':           1e-4,                                                 # EXP-BBOOT-Lunar-I
-    'actor_lr_decay_rate':            1,                                              # set to 1 to swith OFF scheduler
-    'critic_lr_decay_rate':           1,                                              # set to 1 to swith OFF scheduler
+    # 'learning_rate':                  5e-3,                                     # BBOOT-Lunar-H-theta_nn_h_layer_topo=(84,84)
+    # 'critic_learning_rate':           5e-4,                                     # BBOOT-Lunar-H-theta_nn_h_layer_topo=(84,84)
+    'learning_rate':                  1e-2,                                     # BBOOT-Lunar-J
+    'critic_learning_rate':           1e-3,                                     # BBOOT-Lunar-J
+    'actor_lr_decay_rate':            0.1,                                              # set to 1 to swith OFF scheduler
+    'critic_lr_decay_rate':           0.1,                                              # set to 1 to swith OFF scheduler
     'critique_loop_len':              80,
     # 'theta_nn_h_layer_topo':          [(16, 32, 16), (64, 64), (84, 84), (16, 34, 84)],   # EXP-BBOOT-Lunar-H
     'theta_nn_h_layer_topo':          (84, 84),
