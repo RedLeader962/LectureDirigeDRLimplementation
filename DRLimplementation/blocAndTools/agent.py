@@ -130,7 +130,7 @@ class Agent(object, metaclass=ABCMeta):
     def _render_trajectory_on_condition(self, epoch, render_env, trj_collected_so_far):
         if (render_env and (epoch % self.exp_spec.render_env_every_What_epoch == 0)
                 and trj_collected_so_far == 0):
-            self.playground.env.render()  # keep environment rendering turned OFF during unit test
+            self.playground.env.env.render()  # keep environment rendering turned OFF during unit test
 
     def _save_learned_model(self, batch_average_trjs_return: float, epoch, sess: tf_cv1.Session) -> None:
         if batch_average_trjs_return >= float(self.exp_spec.expected_reward_goal):
@@ -202,7 +202,7 @@ class Agent(object, metaclass=ABCMeta):
 
     def __del__(self):
         tf_cv1.reset_default_graph()
-        self.playground.env.close()
+        self.playground.env.env.close()
         print(":: Agent >>> CLOSED")
 
 

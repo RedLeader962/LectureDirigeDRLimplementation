@@ -9,7 +9,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.python.util.deprecation as deprecation
 
-from ActorCritic.ActorCriticBrainSharedNetwork import build_actor_critic_shared_graph
+from ActorCritic.ActorCriticBrainSharedNetwork import build_actor_critic_shared_graph, actor_shared_train, critic_shared_train
 from ActorCritic.ActorCriticBrainSplitNetwork import (build_actor_policy_graph, critic_train, actor_train,
                                                       build_two_input_critic_graph, )
 from blocAndTools import buildingbloc as bloc, ConsolPrintLearningStats
@@ -112,11 +112,11 @@ class OnlineTwoInputAdvantageActorCriticAgent(Agent):
         # *                                           Actor & Critic Train                                            *
         # *                                                                                                           *
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-        self.actor_loss, self.actor_policy_optimizer = actor_train(self.action_ph, log_pi=log_pi, advantage=Advantage,
-                                                                   experiment_spec=self.exp_spec,
-                                                                   playground=self.playground)
+        self.actor_loss, self.actor_policy_optimizer = actor_shared_train(self.action_ph, log_pi=log_pi, advantage=Advantage,
+                                                                          experiment_spec=self.exp_spec,
+                                                                          playground=self.playground)
 
-        self.V_phi_loss, self.V_phi_optimizer = critic_train(Advantage, self.exp_spec)
+        self.V_phi_loss, self.V_phi_optimizer = critic_shared_train(Advantage, self.exp_spec)
 
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
         # *                                                                                                            *
@@ -191,6 +191,11 @@ class OnlineTwoInputAdvantageActorCriticAgent(Agent):
             """ ---- Simulator: Epochs ---- """
             global_timestep_idx = 0
             for epoch in range(self.exp_spec.max_epoch):
+                # (Ice-Boxed) todo:implement --> finish lr sheduler for online shared algo:
+                # (Ice-Boxed) todo:implement --> add 'global_timestep_max' to hparam:
+                # if global_timestep_idx >= self.exp_spec['global_timestep_max']:
+                #     break
+
                 consol_print_learning_stats.next_glorious_epoch()
 
                 """ ---- Simulator: trajectories ---- """

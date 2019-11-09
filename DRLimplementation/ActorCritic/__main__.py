@@ -287,7 +287,6 @@ ONLINE_AAC_Bootstrap_TwoInputAdv_SPLIT_three_layer_hparam = {
     'note':                           ""
     }
 
-# (CRITICAL) todo:implement --> lr_scheduler for online agent:
 ONLINE_AAC_LunarLander_Bootstrap_TwoInputAdv_SPLIT_three_layer_hparam = {
     'paramameter_set_name':           'Online-AAC-Split-TwoInputAdv-nn62-62',
     'rerun_tag':                      'O-Lunar-B',
@@ -335,8 +334,8 @@ BATCH_AAC_LunarLander_hparam = {
     # 'critic_learning_rate':           5e-4,                                     # BBOOT-Lunar-H-theta_nn_h_layer_topo=(84,84)
     'learning_rate':                  1e-2,                                     # BBOOT-Lunar-J
     'critic_learning_rate':           1e-3,                                     # BBOOT-Lunar-J
-    'actor_lr_decay_rate':            0.1,                                              # set to 1 to swith OFF scheduler
-    'critic_lr_decay_rate':           0.1,                                              # set to 1 to swith OFF scheduler
+    'actor_lr_decay_rate':            0.01,                                              # set to 1 to swith OFF scheduler
+    'critic_lr_decay_rate':           0.01,                                              # set to 1 to swith OFF scheduler
     'critique_loop_len':              80,
     # 'theta_nn_h_layer_topo':          [(16, 32, 16), (64, 64), (84, 84), (16, 34, 84)],   # EXP-BBOOT-Lunar-H
     'theta_nn_h_layer_topo':          (84, 84),
@@ -376,7 +375,7 @@ test_hparam = {
     'random_seed':                    0,
     'theta_hidden_layers_activation': tf.nn.tanh,
     'theta_output_layers_activation': None,
-    'render_env_every_What_epoch':    3,
+    'render_env_every_What_epoch':    1,
     'print_metric_every_what_epoch':  2,
     'isTestRun':                      True,
     'show_plot':                      False,
