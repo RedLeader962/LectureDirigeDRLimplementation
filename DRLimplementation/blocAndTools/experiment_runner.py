@@ -1,9 +1,8 @@
 # coding=utf-8
 from typing import Tuple, List, Any
 
-from blocAndTools import ExperimentSpec
+from blocAndTools import ExperimentSpec, Agent
 from argparse import Namespace
-
 
 def run_experiment(hparam: dict, args_: Namespace, test_hparam, rerun_nb=1) -> Tuple[dict, str, list]:
     """
@@ -116,17 +115,17 @@ def test_hparam_search_set(hparam: dict) -> Tuple[str, list] or Tuple[None, None
     return None, None
 
 
-def warmup_agent_for_training(spec: ExperimentSpec, args_) -> None:
+def warmup_agent_for_training(spec: ExperimentSpec, args_: Namespace) -> None:
     agent = spec['AgentType']
-    ac_agent = agent(spec)
+    ac_agent: Agent = agent(spec)
     ac_agent.train(render_env=args_.renderTraining)
+    ac_agent.__del__()
 
 
-def warmup_agent_for_playing(spec: ExperimentSpec):
-    raise NotImplementedError   # todo: implement select and PLAY agent
+def warmup_agent_for_playing(run_name, spec: ExperimentSpec, args_: Namespace):
     agent = spec['AgentType']
-    ac_agent = agent(spec)
-    ac_agent.play(run_name='todo --> CHANGE_TO_My_TrainedAgent', max_trajectories=args.play_for)
+    ac_agent: Agent = agent(spec)
+    ac_agent.play(run_name=run_name, max_trajectories=args_.play_for)
 
 
 def experiment_start_message(consol_width, rerun_nb) -> None:

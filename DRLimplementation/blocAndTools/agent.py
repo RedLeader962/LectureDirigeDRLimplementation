@@ -134,12 +134,15 @@ class Agent(object, metaclass=ABCMeta):
 
     def _save_learned_model(self, batch_average_trjs_return: float, epoch, sess: tf_cv1.Session) -> None:
         if batch_average_trjs_return >= float(self.exp_spec.expected_reward_goal):
-            self._save_checkpoint(epoch, sess, self.exp_spec.algo_name)
+            print("\n\n    ::  {} batch avg return reached".format(batch_average_trjs_return))
+            self._save_checkpoint(epoch, sess, self.exp_spec.algo_name, batch_average_trjs_return)
 
-    def _save_checkpoint(self, epoch: int, sess: tf_cv1.Session, algo_name: str) -> None:
-        self.saver.save(sess, '{}/checkpoint/{}_agent'.format(self.this_run_dir, algo_name),
+    def _save_checkpoint(self, epoch: int, sess: tf_cv1.Session, algo_name: str, batch_avrj_trjs_return) -> None:
+        cleaned_name = algo_name.replace(" ", "_")
+        self.saver.save(sess, '{}/checkpoint/{}_agent-{}'.format(self.this_run_dir, cleaned_name,
+                                                                 int(batch_avrj_trjs_return)),
                         global_step=epoch)
-        print("\n\n    :: {} network parameters were saved\n".format(algo_name))
+        print("    ↳ {} network parameters were saved\n".format(algo_name))
 
     def play(self, run_name: str, max_trajectories=20) -> None:
         with tf_cv1.Session() as sess:

@@ -38,8 +38,8 @@ from ActorCritic.BatchActorCriticAgent import BatchActorCriticAgent
 from ActorCritic.OnlineActorCriticAgent import OnlineActorCriticAgent
 from ActorCritic.OnlineTwoInputAdvantageActorCriticAgent import OnlineTwoInputAdvantageActorCriticAgent
 from blocAndTools.buildingbloc import ExperimentSpec
-from blocAndTools.experiement_runner import (run_experiment, warmup_agent_for_playing, experiment_closing_message,
-                                             experiment_start_message, )
+from blocAndTools.experiment_runner import (run_experiment, warmup_agent_for_playing, experiment_closing_message,
+                                            experiment_start_message, )
 from blocAndTools.rl_vocabulary import TargetType, NetworkType
 
 # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -59,7 +59,7 @@ from blocAndTools.rl_vocabulary import TargetType, NetworkType
 
 BATCH_AAC_MonteCarlo_SPLIT_net_hparam = {
     'paramameter_set_name':           'Batch-AAC-Split-nn',
-    'rerun_tag':                      'BMCSPL-B',
+    'rerun_tag':                      'BMCSPL-B-G2',
     'algo_name':                      'Batch ActorCritic',
     'comment':                        'MonteCarlo-target',
     'AgentType':                      BatchActorCriticAgent,
@@ -74,6 +74,8 @@ BATCH_AAC_MonteCarlo_SPLIT_net_hparam = {
     'discout_factor':                 0.99,
     'learning_rate':                  1e-2,
     'critic_learning_rate':           1e-2,
+    'actor_lr_decay_rate':            1,  # 9e-1,
+    'critic_lr_decay_rate':           1,  # 9e-1,
     'critique_loop_len':              80,
     'theta_nn_h_layer_topo':          (32, 32),
     'random_seed':                    0,
@@ -316,9 +318,72 @@ ONLINE_AAC_LunarLander_Bootstrap_TwoInputAdv_SPLIT_three_layer_hparam = {
     'note':                           ""
     }
 
+# BATCH_AAC_LunarLander_hparam = {
+#     'paramameter_set_name':           'Batch-AAC-Split-nn',
+#     'rerun_tag':                      'BBOOT-Lunar-K',
+#     'algo_name':                      'Batch ActorCritic',
+#     'comment':                        'HE lrSchedule Bootstrap-Target LunarLander',
+#     'AgentType':                      BatchActorCriticAgent,
+#     'Target':                         TargetType.Bootstrap,
+#     'Network':                        NetworkType.Split,
+#     'prefered_environment':           'LunarLander-v2',
+#     'expected_reward_goal':           195,      # trigger model save on reach
+#     # 'batch_size_in_ts':               60000,
+#     'batch_size_in_ts':               30000,
+#     # 'max_epoch':                      140,
+#     'max_epoch':                      80,
+#     'discounted_reward_to_go':        True,
+#     'discout_factor':                 0.9999,
+#     # 'learning_rate':                  5e-3,                                     # BBOOT-Lunar-H-theta_nn_h_layer_topo=(84,84)
+#     # 'critic_learning_rate':           5e-4,                                     # BBOOT-Lunar-H-theta_nn_h_layer_topo=(84,84)
+#     # 'learning_rate':                  [1e-1, 1e-2, 1e-3],                                     # BBOOT-Lunar-K
+#     'learning_rate':                  1e-2,                                     # BBOOT-Lunar-K
+#     'critic_learning_rate':           [1e-1, 1e-2, 1e-3],                                     # BBOOT-Lunar-J
+#     'actor_lr_decay_rate':            0.01,                                              # set to 1 to swith OFF scheduler
+#     'critic_lr_decay_rate':           0.01,                                              # set to 1 to swith OFF scheduler
+#     'critique_loop_len':              80,
+#     # 'theta_nn_h_layer_topo':          [(16, 32, 16), (64, 64), (84, 84), (16, 34, 84)],   # EXP-BBOOT-Lunar-H
+#     'theta_nn_h_layer_topo':          (84, 84),
+#     'random_seed':                    0,
+#     'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh,
+#     'theta_output_layers_activation': None,
+#     'render_env_every_What_epoch':    5,
+#     'print_metric_every_what_epoch':  5,
+#     'isTestRun':                      False,
+#     'show_plot':                      False,
+#     'note':                           ''
+#     }
+
+# BATCH_AAC_LunarLander_hparam = {
+#     'paramameter_set_name':           'Batch-AAC-Split-nn',
+#     'rerun_tag':                      'BBOOT-Lunar-K',
+#     'algo_name':                      'Batch ActorCritic',
+#     'comment':                        'HE lrSchedule Bootstrap-Target LunarLander',
+#     'AgentType':                      BatchActorCriticAgent,
+#     'Target':                         TargetType.Bootstrap,
+#     'Network':                        NetworkType.Split,
+#     'prefered_environment':           'LunarLander-v2',
+#     'expected_reward_goal':           195,      # trigger model save on reach
+#     'batch_size_in_ts':               30000,
+#     'max_epoch':                      80,
+#     'discounted_reward_to_go':        True,
+#     'discout_factor':                 0.9999,
+#     'learning_rate':                  1e-2,                                     # BBOOT-Lunar-K
+#     'critic_learning_rate':           1e-3,     # (!) best result from [1e-1, 1e-2, 1e-3]
+#     'actor_lr_decay_rate':            0.01,
+#     'critic_lr_decay_rate':           0.01,
+#     'critique_loop_len':              80,
+#     'theta_nn_h_layer_topo':          (84, 84),
+#     'random_seed':                    0,
+#     'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh,
+#     'render_env_every_What_epoch':    5,
+#     'print_metric_every_what_epoch':  5,
+#     'note':                           'BBOOT-Lunar-K-critic_learning_rate=(0.001) --> Reached avg return ~156 for 30/80 epoch'
+#     }
+
 BATCH_AAC_LunarLander_hparam = {
     'paramameter_set_name':           'Batch-AAC-Split-nn',
-    'rerun_tag':                      'BBOOT-Lunar-J',
+    'rerun_tag':                      'BBOOT-Lunar-L',
     'algo_name':                      'Batch ActorCritic',
     'comment':                        'HE lrSchedule Bootstrap-Target LunarLander',
     'AgentType':                      BatchActorCriticAgent,
@@ -326,46 +391,41 @@ BATCH_AAC_LunarLander_hparam = {
     'Network':                        NetworkType.Split,
     'prefered_environment':           'LunarLander-v2',
     'expected_reward_goal':           195,      # trigger model save on reach
-    'batch_size_in_ts':               60000,
-    'max_epoch':                      140,
+    'batch_size_in_ts':               30000,
+    'max_epoch':                      80,
     'discounted_reward_to_go':        True,
     'discout_factor':                 0.9999,
-    # 'learning_rate':                  5e-3,                                     # BBOOT-Lunar-H-theta_nn_h_layer_topo=(84,84)
-    # 'critic_learning_rate':           5e-4,                                     # BBOOT-Lunar-H-theta_nn_h_layer_topo=(84,84)
-    'learning_rate':                  1e-2,                                     # BBOOT-Lunar-J
-    'critic_learning_rate':           1e-3,                                     # BBOOT-Lunar-J
-    'actor_lr_decay_rate':            0.01,                                              # set to 1 to swith OFF scheduler
-    'critic_lr_decay_rate':           0.01,                                              # set to 1 to swith OFF scheduler
-    'critique_loop_len':              80,
-    # 'theta_nn_h_layer_topo':          [(16, 32, 16), (64, 64), (84, 84), (16, 34, 84)],   # EXP-BBOOT-Lunar-H
-    'theta_nn_h_layer_topo':          (84, 84),
-    'random_seed':                    0,
+    'learning_rate':                  1e-1,
+    'critic_learning_rate':           1e-3,
+    'actor_lr_decay_rate':            0.001,
+    'critic_lr_decay_rate':           0.01,
+    'critique_loop_len':              200,
+    'theta_nn_h_layer_topo':          [(84, 84), (100, 100), (120, 120)],
     'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh,
-    'theta_output_layers_activation': None,
     'render_env_every_What_epoch':    5,
     'print_metric_every_what_epoch':  5,
-    'isTestRun':                      False,
-    'show_plot':                      False,
     'note':                           ''
     }
 
 test_hparam = {
     'paramameter_set_name':           'Batch-AAC',
-    'rerun_tag':                      'TEST-RUN-G',
+    'rerun_tag':                      'TEST-RUN-H',
     'algo_name':                      'Batch ActorCritic',
     'comment':                        'TestSpec',
     'AgentType':                      BatchActorCriticAgent,
     'Target':                         TargetType.MonteCarlo,
     'Network':                        NetworkType.Split,
-    'prefered_environment':           'CartPole-v0',
+    # 'prefered_environment':           'CartPole-v0',
+    # 'batch_size_in_ts':               300,
+    'prefered_environment':           'LunarLander-v2',
+    'batch_size_in_ts':               1000,
     'expected_reward_goal':           200,
-    'batch_size_in_ts':               300,
     'max_epoch':                      10,
     'discounted_reward_to_go':        True,
     'discout_factor':                 0.999,
     # 'discout_factor':                 [0.999, 0.91],
-    # 'learning_rate':                  3e-4,
-    'learning_rate':                  [3e-4, 1e-3],
+    'learning_rate':                  3e-4,
+    # 'learning_rate':                  [3e-4, 1e-3],
     'critic_learning_rate':           1e-3,
     'actor_lr_decay_rate':            1,                                              # set to 1 to swith OFF scheduler
     'critic_lr_decay_rate':           1,                                              # set to 1 to swith OFF scheduler
@@ -375,8 +435,8 @@ test_hparam = {
     'random_seed':                    0,
     'theta_hidden_layers_activation': tf.nn.tanh,
     'theta_output_layers_activation': None,
-    'render_env_every_What_epoch':    1,
-    'print_metric_every_what_epoch':  2,
+    'render_env_every_What_epoch':    5,
+    'print_metric_every_what_epoch':  5,
     'isTestRun':                      True,
     'show_plot':                      False,
     }
@@ -426,9 +486,8 @@ parser.add_argument('-d', '--discounted', default=None, type=bool,
                     help='(Training option) Force training execution with discounted reward-to-go')
 
 
-# (Priority) todo:implement --> select agent to play by command line:
-parser.add_argument('-p', '--play', type=str,
-                    help='(Playing option) Max playing trajectory, default=20')
+# (Ice-box) todo:implement --> select agent to play by command line:
+parser.add_argument('-p', '--play',  action='store_true', help='Play on LunarLander a Batch Actor-Critic agent trained with Bootstrap target on a split network')
 
 parser.add_argument('--play_for', type=int, default=20,
                     help='(Playing option) Max playing trajectory, default=20')
@@ -443,24 +502,57 @@ args = parser.parse_args()
 # *                                                                                                                    *
 # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * * *
 consol_width = 90
-experiment_start_message(consol_width, args.rerun)
 
 if args.play:
-    # (Priority) todo:implement --> :
+
+    # (Ice-box) todo:implement --> load hparam dict from the config.txt
+    BMCSPL_B_G2_hparam = {
+        'paramameter_set_name':           'Batch-AAC-Split-nn',
+        'rerun_tag':                      'BMCSPL-B-G2',
+        'algo_name':                      'Batch ActorCritic',
+        'comment':                        'MonteCarlo-target',
+        'AgentType':                      BatchActorCriticAgent,
+        'Target':                         TargetType.MonteCarlo,
+        'Network':                        NetworkType.Split,
+        'prefered_environment':           'CartPole-v0',
+        'expected_reward_goal':           200,
+        'batch_size_in_ts':               4000,
+        'max_epoch':                      30,
+        'discounted_reward_to_go':        True,
+        'discout_factor':                 0.99,
+        'learning_rate':                  1e-2,
+        'critic_learning_rate':           1e-2,
+        'actor_lr_decay_rate':            1,  # 9e-1,
+        'critic_lr_decay_rate':           1,  # 9e-1,
+        'critique_loop_len':              80,
+        'theta_nn_h_layer_topo':          (32, 32),
+        'random_seed':                    0,
+        'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh,
+        'theta_output_layers_activation': None,
+        'render_env_every_What_epoch':    100,
+        'print_metric_every_what_epoch':  2,
+        'isTestRun':                      False,
+        'show_plot':                      False,
+        'note':                           ''
+        }
+
     """ ---- Play run ---- """
     exp_spec = ExperimentSpec()
-    if args.testRun:
-        exp_spec.set_experiment_spec(test_hparam)
-    else:
-        exp_spec.set_experiment_spec(BATCH_AAC_MonteCarlo_SPLIT_net_hparam)
-    warmup_agent_for_playing(exp_spec)
-else:
+    exp_spec.set_experiment_spec(BMCSPL_B_G2_hparam)
 
+    if args.testRun:
+        exp_spec.set_experiment_spec({'isTestRun': True})
+
+    run_dir = "Run-BMCSPL-B-G2-4-Batch-AAC-Split-nn-d9h15m37s39/checkpoint/Batch_ActorCritic_agent-200-29"
+    warmup_agent_for_playing(run_name=run_dir, spec=exp_spec, args_=args)
+
+else:
     hparam = None
     key = None
     values_search_set = None
 
     # --- training ----------------------------------------------------------------------------------------------------
+    experiment_start_message(consol_width, args.rerun)
 
     if args.trainSplitMC:
         """ ---- Batch Split network architecture with Monte Carlo TD target ---- """
