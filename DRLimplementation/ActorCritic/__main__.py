@@ -39,7 +39,7 @@ from ActorCritic.OnlineActorCriticAgent import OnlineActorCriticAgent
 from ActorCritic.OnlineTwoInputAdvantageActorCriticAgent import OnlineTwoInputAdvantageActorCriticAgent
 from blocAndTools.buildingbloc import ExperimentSpec
 from blocAndTools.experiment_runner import (run_experiment, warmup_agent_for_playing, experiment_closing_message,
-                                            experiment_start_message, )
+                                            experiment_start_message, test_hparam_search_set, )
 from blocAndTools.rl_vocabulary import TargetType, NetworkType
 
 # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -318,41 +318,34 @@ ONLINE_AAC_LunarLander_Bootstrap_TwoInputAdv_SPLIT_three_layer_hparam = {
     'note':                           ""
     }
 
-# BATCH_AAC_LunarLander_hparam = {
-#     'paramameter_set_name':           'Batch-AAC-Split-nn',
-#     'rerun_tag':                      'BBOOT-Lunar-K',
-#     'algo_name':                      'Batch ActorCritic',
-#     'comment':                        'HE lrSchedule Bootstrap-Target LunarLander',
-#     'AgentType':                      BatchActorCriticAgent,
-#     'Target':                         TargetType.Bootstrap,
-#     'Network':                        NetworkType.Split,
-#     'prefered_environment':           'LunarLander-v2',
-#     'expected_reward_goal':           195,      # trigger model save on reach
-#     # 'batch_size_in_ts':               60000,
-#     'batch_size_in_ts':               30000,
-#     # 'max_epoch':                      140,
-#     'max_epoch':                      80,
-#     'discounted_reward_to_go':        True,
-#     'discout_factor':                 0.9999,
-#     # 'learning_rate':                  5e-3,                                     # BBOOT-Lunar-H-theta_nn_h_layer_topo=(84,84)
-#     # 'critic_learning_rate':           5e-4,                                     # BBOOT-Lunar-H-theta_nn_h_layer_topo=(84,84)
-#     # 'learning_rate':                  [1e-1, 1e-2, 1e-3],                                     # BBOOT-Lunar-K
-#     'learning_rate':                  1e-2,                                     # BBOOT-Lunar-K
-#     'critic_learning_rate':           [1e-1, 1e-2, 1e-3],                                     # BBOOT-Lunar-J
-#     'actor_lr_decay_rate':            0.01,                                              # set to 1 to swith OFF scheduler
-#     'critic_lr_decay_rate':           0.01,                                              # set to 1 to swith OFF scheduler
-#     'critique_loop_len':              80,
-#     # 'theta_nn_h_layer_topo':          [(16, 32, 16), (64, 64), (84, 84), (16, 34, 84)],   # EXP-BBOOT-Lunar-H
-#     'theta_nn_h_layer_topo':          (84, 84),
-#     'random_seed':                    0,
-#     'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh,
-#     'theta_output_layers_activation': None,
-#     'render_env_every_What_epoch':    5,
-#     'print_metric_every_what_epoch':  5,
-#     'isTestRun':                      False,
-#     'show_plot':                      False,
-#     'note':                           ''
-#     }
+
+BATCH_AAC_MC_LunarLander_hparam = {
+    'rerun_tag':                      'BMC-Lunar-E',
+    'paramameter_set_name':           'Batch-AAC-Split-nn',
+    'comment':                        '',
+    'AgentType':                      BatchActorCriticAgent,
+    'Network':                        NetworkType.Split,
+    'Target':                         TargetType.MonteCarlo,
+    'algo_name':                      'Batch ActorCritic',
+    'prefered_environment':           'LunarLander-v2',
+    'expected_reward_goal':           195,      # trigger model save on reach
+    'batch_size_in_ts':               3000,
+    'max_epoch':                      120,
+    'discounted_reward_to_go':        True,
+    'discout_factor':                 0.9999,
+    'learning_rate':                        0.01,
+    'critic_learning_rate':                 0.001,
+    'actor_lr_decay_rate':                  0.01,
+    'critic_lr_decay_rate':                 0.01,
+    'critique_loop_len':              80,
+    'theta_nn_h_layer_topo':          (84, 84),
+    'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh,
+    'theta_output_layers_activation': None,
+    'render_env_every_What_epoch':    5,
+    'print_metric_every_what_epoch':  5,
+    'note':                           'Does not learn enough'
+    }
+
 
 # BATCH_AAC_LunarLander_hparam = {
 #     'paramameter_set_name':           'Batch-AAC-Split-nn',
@@ -381,31 +374,69 @@ ONLINE_AAC_LunarLander_Bootstrap_TwoInputAdv_SPLIT_three_layer_hparam = {
 #     'note':                           'BBOOT-Lunar-K-critic_learning_rate=(0.001) --> Reached avg return ~156 for 30/80 epoch'
 #     }
 
+
+# BATCH_AAC_LunarLander_hparam = {
+#     'paramameter_set_name':           'Batch-AAC-Split-nn',
+#     'rerun_tag':                      'BBOOT-Lunar-N-REPRODUCED',
+#     'algo_name':                      'Batch ActorCritic',
+#     'comment':                        'HE lrSchedule Bootstrap-Target LunarLander',
+#     'AgentType':                      BatchActorCriticAgent,
+#     'Target':                         TargetType.Bootstrap,
+#     'Network':                        NetworkType.Split,
+#     'prefered_environment':           'LunarLander-v2',
+#     'expected_reward_goal':           195,      # trigger model save on reach
+#     # 'batch_size_in_ts':               [2500, 5000, 10000, 30000, 60000],
+#     'batch_size_in_ts':               2500,     # (!) best result
+#     'max_epoch':                      120,
+#     # 'random_seed': 42,
+#     'discounted_reward_to_go':        True,
+#     'discout_factor':                 0.9999,
+#     'learning_rate':                        0.01,
+#     'critic_learning_rate':                 0.001,
+#     'actor_lr_decay_rate':                  0.01,
+#     'critic_lr_decay_rate':                 0.01,
+#     'critique_loop_len':              80,
+#     'theta_nn_h_layer_topo':          (84, 84),
+#     'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh,
+#     'theta_output_layers_activation': None,
+#     'render_env_every_What_epoch':    5,
+#     'print_metric_every_what_epoch':  5,
+#     'note':                           'BBOOT-Lunar-N-batch_size_in_ts=2500 --> reached ~200 in 40/120 epoch'
+#                                       '(!) CAN NOT REPRODUCE'
+#     }
+
+
 BATCH_AAC_LunarLander_hparam = {
+    'rerun_tag':                      'BBOOT-Lunar-T',
     'paramameter_set_name':           'Batch-AAC-Split-nn',
-    'rerun_tag':                      'BBOOT-Lunar-L',
-    'algo_name':                      'Batch ActorCritic',
-    'comment':                        'HE lrSchedule Bootstrap-Target LunarLander',
+    'comment':                        '',
     'AgentType':                      BatchActorCriticAgent,
-    'Target':                         TargetType.Bootstrap,
     'Network':                        NetworkType.Split,
+    'Target':                         TargetType.Bootstrap,
+    'algo_name':                      'Batch ActorCritic',
     'prefered_environment':           'LunarLander-v2',
     'expected_reward_goal':           195,      # trigger model save on reach
-    'batch_size_in_ts':               30000,
-    'max_epoch':                      80,
+    'batch_size_in_ts':               4000,
+    # 'max_epoch':                      [220, 170, 120],
+    'max_epoch':                      220,      # (!) best result but not consistent
     'discounted_reward_to_go':        True,
     'discout_factor':                 0.9999,
-    'learning_rate':                  1e-1,
-    'critic_learning_rate':           1e-3,
-    'actor_lr_decay_rate':            0.001,
-    'critic_lr_decay_rate':           0.01,
-    'critique_loop_len':              200,
-    'theta_nn_h_layer_topo':          [(84, 84), (100, 100), (120, 120)],
+    'learning_rate':                        0.01,
+    'critic_learning_rate':                 0.001,
+    'actor_lr_decay_rate':                  0.01,
+    'critic_lr_decay_rate':                 0.01,
+    'critique_loop_len':              80,
+    'theta_nn_h_layer_topo':          (84, 84),
     'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh,
+    'theta_output_layers_activation': None,
     'render_env_every_What_epoch':    5,
     'print_metric_every_what_epoch':  5,
-    'note':                           ''
+    'note':                           '(!) It work 1 time out of 3 time: BBOOT-Lunar-T-max_epoch=220 --> reached ~200 between epoch 73 and 110'
+                                      'History: BBOOT-Lunar-N-batch_size_in_ts=2500 --> reached ~200 in 40/120 epoch'
+                                      'History: BBOOT-Lunar-K-critic_learning_rate=(0.001) --> Reached avg return ~156 for 30/80 epoch'
+                                      '(!) NOT CONSISTENT'
     }
+
 
 test_hparam = {
     'paramameter_set_name':           'Batch-AAC',
@@ -486,13 +517,14 @@ parser.add_argument('-d', '--discounted', default=None, type=bool,
                     help='(Training option) Force training execution with discounted reward-to-go')
 
 
-# (Ice-box) todo:implement --> select agent to play by command line:
-parser.add_argument('-p', '--play',  action='store_true', help='Play on LunarLander a Batch Actor-Critic agent trained with Bootstrap target on a split network')
+# (Ice-box) todo:implement --> select agent hparam to play by command line:
+parser.add_argument('--playLunar',  action='store_true', help='Play on LunarLander-v2 a Batch Actor-Critic agent trained with Bootstrap target on a split network')
+parser.add_argument('--playCartpole',  action='store_true', help='Play on CartPole-v0 a Batch Actor-Critic agent trained with Bootstrap target on a split network')
 
-parser.add_argument('--play_for', type=int, default=20,
+parser.add_argument('--play_for', type=int, default=10,
                     help='(Playing option) Max playing trajectory, default=20')
 
-parser.add_argument('--testRun', action='store_true')
+parser.add_argument('--testRun', action='store_true', help='Flag for automated continuous integration test')
 
 args = parser.parse_args()
 
@@ -503,7 +535,7 @@ args = parser.parse_args()
 # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * * *
 consol_width = 90
 
-if args.play:
+if args.playCartpole:
 
     # (Ice-box) todo:implement --> load hparam dict from the config.txt
     BMCSPL_B_G2_hparam = {
@@ -536,7 +568,7 @@ if args.play:
         'note':                           ''
         }
 
-    """ ---- Play run ---- """
+    """ ---- Play Cartpole run ---- """
     exp_spec = ExperimentSpec()
     exp_spec.set_experiment_spec(BMCSPL_B_G2_hparam)
 
@@ -545,6 +577,52 @@ if args.play:
 
     run_dir = "Run-BMCSPL-B-G2-4-Batch-AAC-Split-nn-d9h15m37s39/checkpoint/Batch_ActorCritic_agent-200-29"
     warmup_agent_for_playing(run_name=run_dir, spec=exp_spec, args_=args)
+
+elif args.playLunar:
+
+    BATCH_AAC_LunarLander_hparam = {
+        'rerun_tag':                      'BBOOT-Lunar-T',
+        'paramameter_set_name':           'Batch-AAC-Split-nn',
+        'comment':                        '',
+        'AgentType':                      BatchActorCriticAgent,
+        'Network':                        NetworkType.Split,
+        'Target':                         TargetType.Bootstrap,
+        'algo_name':                      'Batch ActorCritic',
+        'prefered_environment':           'LunarLander-v2',
+        'expected_reward_goal':           195,  # trigger model save on reach
+        'batch_size_in_ts':               4000,
+        'max_epoch':                      220,
+        'discounted_reward_to_go':        True,
+        'discout_factor':                 0.9999,
+        'learning_rate':                  0.01,
+        'critic_learning_rate':           0.001,
+        'actor_lr_decay_rate':            0.01,
+        'critic_lr_decay_rate':           0.01,
+        'critique_loop_len':              80,
+        'theta_nn_h_layer_topo':          (84, 84),
+        'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh,
+        'theta_output_layers_activation': None,
+        'render_env_every_What_epoch':    5,
+        'print_metric_every_what_epoch':  5,
+        'note':                           '(!) It work 1 time out of 3 time: BBOOT-Lunar-T-max_epoch=220 --> reached ~200 between epoch 73 and 110'
+                                          'History: BBOOT-Lunar-N-batch_size_in_ts=2500 --> reached ~200 in 40/120 epoch'
+                                          'History: BBOOT-Lunar-K-critic_learning_rate=(0.001) --> Reached avg return ~156 for 30/80 epoch'
+        }
+
+    """ ---- Play LunarLander run ---- """
+    run_dir = "Run-BBOOT-Lunar-T-max_epoch=220-0-Batch-AAC-Split-nn()-d10h18m15s22/checkpoint/Batch_ActorCritic_agent-211-116"
+
+    exp_spec = ExperimentSpec()
+
+    key, _ = test_hparam_search_set(BATCH_AAC_LunarLander_hparam)
+    assert key is None, "There is still a hparam search list present in the hparam dict. Chose one value"
+    exp_spec.set_experiment_spec(BATCH_AAC_LunarLander_hparam)
+
+    if args.testRun:
+        exp_spec.set_experiment_spec({'isTestRun': True})
+
+    warmup_agent_for_playing(run_name=run_dir, spec=exp_spec, args_=args)
+
 
 else:
     hparam = None

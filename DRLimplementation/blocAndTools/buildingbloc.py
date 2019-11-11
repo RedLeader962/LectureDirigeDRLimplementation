@@ -17,9 +17,9 @@ tf_cv1 = tf.compat.v1   # shortcut
 
 class ExperimentSpec:
     def __init__(self, algo_name=None, comment=None, batch_size_in_ts=5000, max_epoch=2, discout_factor=0.99,
-                 learning_rate=1e-2, theta_nn_hidden_layer_topology: tuple = (32, 32), random_seed=42,
+                 learning_rate=1e-2, theta_nn_hidden_layer_topology: tuple = (32, 32), random_seed=0,
                  discounted_reward_to_go=True, environment_name='CartPole-v1', expected_reward_goal=None,
-                 print_metric_every_what_epoch=5, isTestRun=False, show_plot=True):
+                 print_metric_every_what_epoch=5, isTestRun=False, show_plot=False):
         """
         Gather the specification for a experiement regarding NN and algo training hparam plus some environment detail
         
@@ -55,7 +55,7 @@ class ExperimentSpec:
         self.theta_nn_h_layer_topo = theta_nn_hidden_layer_topology
         self.random_seed = random_seed
         self.theta_hidden_layers_activation: tf.Tensor = tf.nn.tanh
-        self.theta_output_layers_activation: tf.Tensor = tf.nn.sigmoid
+        self.theta_output_layers_activation: tf.Tensor = None
 
         self.render_env_every_What_epoch = 100
         self.log_every_step = 1000

@@ -115,7 +115,7 @@ def training_loop(epoch_generator, env_max_return):
 
     return epoch_stats, agent_learned
 
-
+@pytest.mark.skip(reason="Good to go")
 def test_integration_REINFORCEagent_train_PASS(setup_REINFORCE_train_algo_generator_with_PASSING_spec):
     epoch_generator, nb_of_try, env_max_return, exp_spec = setup_REINFORCE_train_algo_generator_with_PASSING_spec
 

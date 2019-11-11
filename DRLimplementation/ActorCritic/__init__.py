@@ -1,10 +1,5 @@
 # coding=utf-8
-"""
-Invoke Actor-Critic agent using
 
-    python -m ActorCritic [--help] [--trainMC] [trainBootstap] [--render_training] [--discounted] [--play_for] [--test_run]
-
-"""
 import sys
 import os
 

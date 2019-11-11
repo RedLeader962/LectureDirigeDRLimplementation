@@ -45,22 +45,81 @@ def set_up_PWD_to_project_root():
     return_to_initial_working_directory(initial_CWD)
 
 
-def test_ActorCritic_agent_discrete_TRAIN_command_line_invocation(set_up_PWD_to_project_root):
+def test_ActorCritic_agent_discrete_PLAY_CARTPOLE_command_line_invocation(set_up_PWD_to_project_root):
     from os import system
 
-    out = system("python -m ActorCritic --trainMC"
-                 " --test_run")
+    out = system("python -m ActorCritic --playCartpole --play_for=6 --testRun")
+
+    # Note: exit(0) <==> clean exit without any errors/problems
+    assert 0 == out, "Agent invocated from command line exited with error {}".format(out)
+
+def test_ActorCritic_agent_discrete_PLAY_LUNAR_command_line_invocation(set_up_PWD_to_project_root):
+    from os import system
+
+    out = system("python -m ActorCritic --playLunar --play_for=6 --testRun")
 
     # Note: exit(0) <==> clean exit without any errors/problems
     assert 0 == out, "Agent invocated from command line exited with error {}".format(out)
 
 
-def test_ActorCritic_agent_discrete_PLAY_command_line_invocation(set_up_PWD_to_project_root):
+def test_ActorCritic_agent_discrete_TRAIN_BATCH_SPLIT_MONTECARLO_command_line_invocation(set_up_PWD_to_project_root):
     from os import system
 
-    out = system("python -m ActorCritic"
-                 " --play_for=6"
-                 " --test_run")
+    out = system("python -m ActorCritic --trainSplitMC --testRun")
 
     # Note: exit(0) <==> clean exit without any errors/problems
     assert 0 == out, "Agent invocated from command line exited with error {}".format(out)
+
+def test_ActorCritic_agent_discrete_TRAIN_BATCH_SPLIT_BOOTSTRAP_command_line_invocation(set_up_PWD_to_project_root):
+    from os import system
+
+    out = system("python -m ActorCritic --trainSplitBootstrap --testRun")
+
+    # Note: exit(0) <==> clean exit without any errors/problems
+    assert 0 == out, "Agent invocated from command line exited with error {}".format(out)
+
+def test_ActorCritic_agent_discrete_TRAIN_BATCH_SHARED_BOOTSTRAP_command_line_invocation(set_up_PWD_to_project_root):
+    from os import system
+
+    out = system("python -m ActorCritic --trainSharedBootstrap --testRun")
+
+    # Note: exit(0) <==> clean exit without any errors/problems
+    assert 0 == out, "Agent invocated from command line exited with error {}".format(out)
+
+
+def test_ActorCritic_agent_discrete_TRAIN_ONLINE_SPLIT_command_line_invocation(set_up_PWD_to_project_root):
+    from os import system
+
+    out = system("python -m ActorCritic --trainOnlineSplit --testRun")
+
+    # Note: exit(0) <==> clean exit without any errors/problems
+    assert 0 == out, "Agent invocated from command line exited with error {}".format(out)
+
+def test_ActorCritic_agent_discrete_TRAIN_ONLINE_SHARED_command_line_invocation(set_up_PWD_to_project_root):
+    from os import system
+
+    out = system("python -m ActorCritic --trainOnlineShared3layer --testRun")
+
+    # Note: exit(0) <==> clean exit without any errors/problems
+    assert 0 == out, "Agent invocated from command line exited with error {}".format(out)
+
+
+def test_ActorCritic_agent_discrete_TRAIN_ONLINE_SPLIT_TWO_INPUT_command_line_invocation(set_up_PWD_to_project_root):
+    from os import system
+
+    out = system("python -m ActorCritic --trainOnlineSplitTwoInputAdvantage --testRun")
+
+    # Note: exit(0) <==> clean exit without any errors/problems
+    assert 0 == out, "Agent invocated from command line exited with error {}".format(out)
+
+
+def test_ActorCritic_agent_discrete_TRAIN_BATCH_SHARED_command_line_invocation(set_up_PWD_to_project_root):
+    from os import system
+
+    out = system("python -m ActorCritic --trainSharedBootstrap --testRun")
+
+    # Note: exit(0) <==> clean exit without any errors/problems
+    assert 0 == out, "Agent invocated from command line exited with error {}".format(out)
+
+
+

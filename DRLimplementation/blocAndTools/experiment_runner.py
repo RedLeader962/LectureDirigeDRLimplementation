@@ -119,7 +119,7 @@ def warmup_agent_for_training(spec: ExperimentSpec, args_: Namespace) -> None:
     agent = spec['AgentType']
     ac_agent: Agent = agent(spec)
     ac_agent.train(render_env=args_.renderTraining)
-    ac_agent.__del__()
+    # ac_agent.__del__()
 
 
 def warmup_agent_for_playing(run_name, spec: ExperimentSpec, args_: Namespace):

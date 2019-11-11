@@ -37,6 +37,8 @@ CARTPOLE_HPARAM = {
     'discout_factor':                 0.99,
     'learning_rate':                  1e-2,
     'critic_learning_rate':           1e-2,
+    'actor_lr_decay_rate':            1,  # 9e-1,
+    'critic_lr_decay_rate':           1,  # 9e-1,
     'critique_loop_len':              80,
     'theta_nn_h_layer_topo':          (32, 32),
     'random_seed':                    0,
@@ -121,7 +123,7 @@ def training_loop(epoch_generator, env_max_return):
 
     return epoch_stats, agent_learned
 
-
+@pytest.mark.skip(reason="Good to go")
 def test_integration_ActorCriticAgent_train_PASS(setup_ActorCritic_train_algo_generator_with_PASSING_spec):
     epoch_generator, nb_of_try, env_max_return, exp_spec = setup_ActorCritic_train_algo_generator_with_PASSING_spec
 

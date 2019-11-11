@@ -50,7 +50,7 @@ Note: You can check explanation on how to use the package by using the `--help` 
 
 ```bash
 cd DRLimplementation
-python -m ActorCritic --play [--play_for]=max trajectories (default=20) 
+python -m ActorCritic --play[Lunar or Cartpole] [--play_for]=max trajectories (default=10) 
 ```
 
 #### To execute the training loop
