@@ -50,7 +50,7 @@ Note: You can check explanation on how to use the package by using the `--help` 
 
 ```bash
 cd DRLimplementation
-python -m ActorCritic --play[Lunar or Cartpole] [--play_for]=max trajectories (default=10) 
+python -m ActorCritic --play[Lunar or Cartpole] [--record] [--play_for]=max trajectories (default=10) 
 ```
 
 #### To execute the training loop
@@ -78,9 +78,7 @@ cd DRLimplementation
 tensorboard --logdir=ActorCritic/graph
 ```
 
-# TODO !!!!!
-![Trained agent in action](../../video/REINFORCE_agent_cartpole_2.gif)
+![Trained agent in action](../../video/Batch_ActorCriticBatch-AAC-Split-nn_1.gif)
 
-![Training run](../../video/training_run_3.png)
 
 ---

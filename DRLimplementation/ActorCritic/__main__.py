@@ -38,8 +38,8 @@ from ActorCritic.BatchActorCriticAgent import BatchActorCriticAgent
 from ActorCritic.OnlineActorCriticAgent import OnlineActorCriticAgent
 from ActorCritic.OnlineTwoInputAdvantageActorCriticAgent import OnlineTwoInputAdvantageActorCriticAgent
 from blocAndTools.buildingbloc import ExperimentSpec
-from blocAndTools.experiment_runner import (run_experiment, warmup_agent_for_playing, experiment_closing_message,
-                                            experiment_start_message, test_hparam_search_set, )
+from blocAndTools.experiment_runner import (run_experiment, _warmup_agent_for_playing, experiment_closing_message,
+                                            experiment_start_message, play_agent, )
 from blocAndTools.rl_vocabulary import TargetType, NetworkType
 
 # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -513,6 +513,7 @@ parser.add_argument('-rer', '--rerun', type=int, default=1,
 parser.add_argument('--renderTraining', action='store_true',
                     help='(Training option) Watch the agent execute trajectories while he is on traning duty')
 
+
 parser.add_argument('-d', '--discounted', default=None, type=bool,
                     help='(Training option) Force training execution with discounted reward-to-go')
 
@@ -523,6 +524,9 @@ parser.add_argument('--playCartpole',  action='store_true', help='Play on CartPo
 
 parser.add_argument('--play_for', type=int, default=10,
                     help='(Playing option) Max playing trajectory, default=20')
+
+parser.add_argument('--record', action='store_true',
+                    help='(Playing option) Record trained agent playing in a environment')
 
 parser.add_argument('--testRun', action='store_true', help='Flag for automated continuous integration test')
 
@@ -536,9 +540,10 @@ args = parser.parse_args()
 consol_width = 90
 
 if args.playCartpole:
+    """ ---- Play Cartpole run ---- """
 
     # (Ice-box) todo:implement --> load hparam dict from the config.txt
-    BMCSPL_B_G2_hparam = {
+    BMCSPL_B_G2_freezed_hparam = {
         'paramameter_set_name':           'Batch-AAC-Split-nn',
         'rerun_tag':                      'BMCSPL-B-G2',
         'algo_name':                      'Batch ActorCritic',
@@ -568,19 +573,12 @@ if args.playCartpole:
         'note':                           ''
         }
 
-    """ ---- Play Cartpole run ---- """
-    exp_spec = ExperimentSpec()
-    exp_spec.set_experiment_spec(BMCSPL_B_G2_hparam)
-
-    if args.testRun:
-        exp_spec.set_experiment_spec({'isTestRun': True})
-
     run_dir = "Run-BMCSPL-B-G2-4-Batch-AAC-Split-nn-d9h15m37s39/checkpoint/Batch_ActorCritic_agent-200-29"
-    warmup_agent_for_playing(run_name=run_dir, spec=exp_spec, args_=args)
+    play_agent(run_dir, BMCSPL_B_G2_freezed_hparam, args, record=args.record)
 
 elif args.playLunar:
-
-    BATCH_AAC_LunarLander_hparam = {
+    """ ---- Play LunarLander run ---- """
+    BATCH_AAC_LunarLander_freezed_hparam = {
         'rerun_tag':                      'BBOOT-Lunar-T',
         'paramameter_set_name':           'Batch-AAC-Split-nn',
         'comment':                        '',
@@ -609,20 +607,11 @@ elif args.playLunar:
                                           'History: BBOOT-Lunar-K-critic_learning_rate=(0.001) --> Reached avg return ~156 for 30/80 epoch'
         }
 
-    """ ---- Play LunarLander run ---- """
-    run_dir = "Run-BBOOT-Lunar-T-max_epoch=220-0-Batch-AAC-Split-nn()-d10h18m15s22/checkpoint/Batch_ActorCritic_agent-211-116"
+    chekpoint_dir = "Run-BBOOT-Lunar-T-max_epoch=220-0-Batch-AAC-Split-nn()-d10h18m15s22/checkpoint/"
+    # run_dir = chekpoint_dir + "Batch_ActorCritic_agent-211-116"
+    run_dir = chekpoint_dir + "Batch_ActorCritic_agent-210-78"
 
-    exp_spec = ExperimentSpec()
-
-    key, _ = test_hparam_search_set(BATCH_AAC_LunarLander_hparam)
-    assert key is None, "There is still a hparam search list present in the hparam dict. Chose one value"
-    exp_spec.set_experiment_spec(BATCH_AAC_LunarLander_hparam)
-
-    if args.testRun:
-        exp_spec.set_experiment_spec({'isTestRun': True})
-
-    warmup_agent_for_playing(run_name=run_dir, spec=exp_spec, args_=args)
-
+    play_agent(run_dir, BATCH_AAC_LunarLander_freezed_hparam, args, record=args.record)
 
 else:
     hparam = None

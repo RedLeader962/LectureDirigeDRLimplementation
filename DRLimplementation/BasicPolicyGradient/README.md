@@ -25,7 +25,7 @@ Note: You can check explanation on how to use the package by using the `--help` 
 
 ```bash
 cd DRLimplementation
-python -m BasicPolicyGradient [--play_for]    # optional argument --play_for=max trajectories (default=20) 
+python -m BasicPolicyGradient [--record] [--play_for]=max trajectories (default=10)  
 ```
 
 ##### To execute the training loop
@@ -42,6 +42,5 @@ tensorboard --logdir=DRLimplementation/BasicPolicyGradient/graph/runs
 
 ![Trained agent in action](../../video/REINFORCE_agent_cartpole_2.gif)
 
-![Training run](../../video/training_run_3.png)
 
 ---

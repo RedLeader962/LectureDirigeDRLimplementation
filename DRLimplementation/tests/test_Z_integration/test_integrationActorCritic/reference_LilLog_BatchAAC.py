@@ -395,12 +395,6 @@ if __name__ == '__main__':
         ac_agent.train(render_env=args.renderTraining)
 
 
-    def warmup_agent_for_playing(agent: Type[Agent], spec: ExperimentSpec):
-        raise NotImplementedError  # todo: implement select and PLAY agent
-        ac_agent = agent(spec)
-        ac_agent.play(run_name='todo --> CHANGE_TO_My_TrainedAgent', max_trajectories=args.play_for)
-
-
     # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * * *
     # *                                                                                                                    *
     # *                             Configure selected experiment specification & warmup agent                             *

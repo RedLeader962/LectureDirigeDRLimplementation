@@ -31,9 +31,6 @@ class ExperimentSpec:
         """
         # todo: add a param for the neural net configuration via a dict fed as a argument
         # (nice to have) todo:implement --> set_experiment_spec_JSON (taking json as argument):
-        # (nice to have) todo:implement --> string representation for consol and command line reference:
-        # (nice to have) todo --> add any NN usefull param:
-        # (Ice-Boxed) todo:refactor --> self.paramameter_set_name as a mandatory param if class receive any arg on init:
 
         self.algo_name = algo_name
         self.comment = comment
@@ -94,40 +91,6 @@ class ExperimentSpec:
         """
         return self.__dict__[item]
 
-    def get_agent_training_spec(self):
-        """
-        Return specification related to the agent training
-        (!) is non exhaustive
-        :return: ( batch_size_in_ts, max_epoch, timestep_max_per_trajectorie )
-        :rtype: (int, int, int)
-        """
-        return {
-            'batch_size_in_ts': self.batch_size_in_ts,
-            'max_epoch': self.max_epoch,
-            'discout_factor': self.discout_factor,
-            'learning_rate': self.learning_rate,
-            'isTestRun': self.isTestRun
-        }
-
-    def get_neural_net_spec(self):
-        """
-        Return the specification related to the neural net construction
-        (!) is non exhaustive
-        :return:
-        :rtype:
-        """
-        return {
-            'theta_nn_h_layer_topo': self.theta_nn_h_layer_topo,
-            'random_seed': self.random_seed,
-            'theta_hidden_layers_activation': self.theta_hidden_layers_activation,
-            'theta_output_layers_activation': self.theta_output_layers_activation,
-        }
-
-    def __repr__(self):
-        class_name = "ExperimentSpec"
-        repr_str = data_container_class_representation(self, class_name, space_from_margin=3)
-        return repr_str
-
     def set_experiment_spec(self, dict_param: dict, print_change=True) -> None:
         """
         Change any spec value and/or append aditional spec with value
@@ -147,6 +110,40 @@ class ExperimentSpec:
             print("\n\n:: Switching to parameter: {}\n".format(self.paramameter_set_name))
             print(self.__repr__())
         return None
+
+    def __repr__(self):
+        class_name = "ExperimentSpec"
+        repr_str = data_container_class_representation(self, class_name, space_from_margin=3)
+        return repr_str
+
+    def get_agent_training_spec(self):
+        """
+        Utility fct: Return specification related to the agent training
+        (!) is non exhaustive.
+        :return: ( batch_size_in_ts, max_epoch, timestep_max_per_trajectorie )
+        :rtype: (int, int, int)
+        """
+        # (Ice-Boxed) todo:assessment --> is it still usefull?: remove if not
+        return {
+            'batch_size_in_ts': self.batch_size_in_ts,
+            'max_epoch': self.max_epoch,
+            'discout_factor': self.discout_factor,
+            'learning_rate': self.learning_rate,
+            'isTestRun': self.isTestRun
+        }
+
+    def get_neural_net_spec(self):
+        """
+        Utility fct: Return the specification related to the neural net construction
+        (!) is non exhaustive.
+        """
+        # (Ice-Boxed) todo:assessment --> is it still usefull?: remove if not
+        return {
+            'theta_nn_h_layer_topo': self.theta_nn_h_layer_topo,
+            'random_seed': self.random_seed,
+            'theta_hidden_layers_activation': self.theta_hidden_layers_activation,
+            'theta_output_layers_activation': self.theta_output_layers_activation,
+            }
 
 def data_container_class_representation(class_instance, class_name: str, space_from_margin=0) -> str:
     m_sp = " " * space_from_margin
@@ -485,24 +482,6 @@ def format_single_step_observation(observation: np.ndarray):
     return batch_size_one_observation
 
 def to_scalar(action_array: np.ndarray):
-    # # todo --> unitest
-    # action = None
-    # try:
-    #     action = action_array[0]
-    # except Exception as e:
-    #     # Note: The catched Exception is broad and not re-raised volontarly
-    #
-    #     if isinstance(action_array, np.ndarray):
-    #         assert action_array.ndim == 1, "action_array is of dimension > 1: {}".format(action_array.ndim)
-    #         action = np.squeeze(action_array)
-    #     else:
-    #         action = action_array
-    #
-    #     assert isinstance(action, int), ("something is wrong with the 'to_scalar'. "
-    #                                      "Should output a int instead of {}".format(action))
-    # finally:
-    #     return action
-
     return action_array.item()
 
 def setup_commented_run_dir_str(exp_spec: ExperimentSpec, agent_root_dir: str) -> str:

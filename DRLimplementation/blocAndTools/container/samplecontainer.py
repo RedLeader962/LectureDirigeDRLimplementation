@@ -87,6 +87,12 @@ class TrajectoryCollector(object):
         self._playground_spec = playground.get_environment_spec()
         self.discounted = discounted
 
+        # (nice to have) todo:refactor --> to a speed optimized version:
+        #                                                       - init list with max env trj lentgh and value 0.
+        #                                                       - Write collected observation with a running index
+        #   Check benchmark and proof of concept:
+        #         - exploration_and_benchmarking/data_structure/data_structure_prof_of_concept_benchmark.py
+        #         - exploration_and_benchmarking/data_structure/list_vs_array_data_structure_benchmark.py
         self.observations = []
         self.actions = []
         self.rewards = []

@@ -28,7 +28,7 @@ def run_experiment(hparam: dict, args_: Namespace, test_hparam, rerun_nb=1) -> T
 
     exp_spec = ExperimentSpec()
 
-    hparam_search_list, key, values_search_set = configure_experiment_hparam_search(hparam)
+    hparam_search_list, key, values_search_set = _configure_experiment_hparam_search(hparam)
 
     exp_hparam_search_str = values_search_list_to_regex_compatible_str(key, values_search_set)
     exp_rerun_tag = init_hparam['rerun_tag']
@@ -38,12 +38,12 @@ def run_experiment(hparam: dict, args_: Namespace, test_hparam, rerun_nb=1) -> T
     for hparam in hparam_search_list:
         for run_idx in range(rerun_nb):
             print(":: Starting rerun experiment no {}".format(run_idx))
-            exp_spec = prep_exp_spec_for_run(hparam, run_idx, args_=args_, exp_spec=exp_spec)
-            warmup_agent_for_training(exp_spec, args_)
+            exp_spec = _prep_exp_spec_for_run(hparam, run_idx, args_=args_, exp_spec=exp_spec)
+            _warmup_agent_for_training(exp_spec, args_)
 
     return init_hparam, key, values_search_set
 
-def configure_experiment_hparam_search(hparam: dict) -> Tuple[List[dict], Any, Any]:
+def _configure_experiment_hparam_search(hparam: dict) -> Tuple[List[dict], Any, Any]:
     """
     Build a list of hyperparameter dict
         1- search the hparam dict for a field with a list of values;
@@ -69,7 +69,7 @@ def configure_experiment_hparam_search(hparam: dict) -> Tuple[List[dict], Any, A
         return hparam_search_list, aKey, values
 
 
-def prep_exp_spec_for_run(hparam: dict, run_idx, args_, exp_spec) -> ExperimentSpec:
+def _prep_exp_spec_for_run(hparam: dict, run_idx, args_, exp_spec) -> ExperimentSpec:
     exp_spec.set_experiment_spec(hparam)
 
     exp_spec.rerun_idx = run_idx
@@ -115,17 +115,17 @@ def test_hparam_search_set(hparam: dict) -> Tuple[str, list] or Tuple[None, None
     return None, None
 
 
-def warmup_agent_for_training(spec: ExperimentSpec, args_: Namespace) -> None:
+def _warmup_agent_for_training(spec: ExperimentSpec, args_: Namespace) -> None:
     agent = spec['AgentType']
     ac_agent: Agent = agent(spec)
     ac_agent.train(render_env=args_.renderTraining)
     # ac_agent.__del__()
 
 
-def warmup_agent_for_playing(run_name, spec: ExperimentSpec, args_: Namespace):
+def _warmup_agent_for_playing(run_name, spec: ExperimentSpec, args_: Namespace, record):
     agent = spec['AgentType']
     ac_agent: Agent = agent(spec)
-    ac_agent.play(run_name=run_name, max_trajectories=args_.play_for)
+    ac_agent.play(run_name=run_name, max_trajectories=args_.play_for, record=record)
 
 
 def experiment_start_message(consol_width, rerun_nb) -> None:
@@ -164,3 +164,12 @@ def experiment_closing_message(initial_hparam, nb_of_rerun, key, values_search_s
     for _ in range(3):
         print("/" * consol_width)
 
+
+def play_agent(run_dir, hparam, args_, record=False):
+    exp_spec = ExperimentSpec()
+    key, _ = test_hparam_search_set(hparam)
+    assert key is None, "There is still a hparam search list present in the hparam dict. Chose one value"
+    exp_spec.set_experiment_spec(hparam)
+    if args_.testRun:
+        exp_spec.set_experiment_spec({'isTestRun': True})
+    _warmup_agent_for_playing(run_name=run_dir, spec=exp_spec, args_=args_, record=record)

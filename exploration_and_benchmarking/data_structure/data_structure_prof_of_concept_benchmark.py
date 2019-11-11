@@ -5,7 +5,8 @@ import numpy as np
 import sys
 import time
 
-
+# (nice to have) todo:assessment --> redo the experiment with EpisodeData and EpisodeDataFixSizeList
+#                                               refactored using __slot__ magic fct:
 """
 LESSON LEARNED: 
     - numpy array indexing (READ) is 2X slower compare to (READ) on same size list
@@ -191,7 +192,6 @@ def populate_EpisodeData(the_dataclass):
             dataclass_container.append(dataclass_instance)
             dataclass_instance = the_dataclass()
             episode_step_idx = 0
-
 
     return dataclass_container
 

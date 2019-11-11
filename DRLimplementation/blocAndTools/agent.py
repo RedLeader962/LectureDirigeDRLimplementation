@@ -6,6 +6,7 @@ import json
 import tensorflow as tf
 import tensorflow.python.util.deprecation as deprecation
 import numpy as np
+from gym.wrappers.monitoring.video_recorder import VideoRecorder
 
 from blocAndTools import buildingbloc as bloc
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground, setup_commented_run_dir_str
@@ -52,7 +53,7 @@ class Agent(object, metaclass=ABCMeta):
 
     @abstractmethod
     def _use_hardcoded_agent_root_directory(self):
-        raise NotImplementedError  # todo: implement
+        raise NotImplementedError
         pass
 
     @abstractmethod
@@ -66,13 +67,13 @@ class Agent(object, metaclass=ABCMeta):
         they are required for Agent.play() methode
 
         """
-        raise NotImplementedError  # todo: implement
+        raise NotImplementedError
         pass
 
     @abstractmethod
     def _instantiate_data_collector(self):
         """ Data collector utility """
-        raise NotImplementedError  # todo: implement
+        raise NotImplementedError
         pass
 
     def train(self, render_env: bool = False) -> None:
@@ -124,7 +125,7 @@ class Agent(object, metaclass=ABCMeta):
         :type render_env: bool
         :yield: (epoch, epoch_loss, batch_average_trjs_return, batch_average_trjs_lenght)
         """
-        raise NotImplementedError  # todo: implement
+        raise NotImplementedError
         pass
 
     def _render_trajectory_on_condition(self, epoch, render_env, trj_collected_so_far):
@@ -144,11 +145,11 @@ class Agent(object, metaclass=ABCMeta):
                         global_step=epoch)
         print("    ↳ {} network parameters were saved\n".format(algo_name))
 
-    def play(self, run_name: str, max_trajectories=20) -> None:
+    def play(self, run_name: str, max_trajectories=20, record=False) -> None:
+        # todo:implement --> hparam loading functionality : Required to make experiment management clean and bug free
+        #
         with tf_cv1.Session() as sess:
 
-            # todo:implement --> hparam loading functionality : Required to make experiment management
-            #                                                                                   clean and bug free
             # note: Check my past implementation as ref
             #   |       - Store: Deep_RL/DQN/DQN_OpenAI_Baseline/FalconX_env/train_2_DQN_OpenAi_baseline_FalconX.py
             #   |       - Load: Deep_RL/DQN/DQN_OpenAI_Baseline/FalconX_env/enjoy_2_DQN_OpenAI_baseline_FalconX.py
@@ -174,14 +175,18 @@ class Agent(object, metaclass=ABCMeta):
                 print(run + 1, end=" ", flush=True)
 
                 obs = self.playground.env.reset()  # <-- fetch initial observation
-                # recorder = VideoRecorder(playground.env, '../video/cartpole_{}.mp4'.format(run))
+                if record:
+                    agent_name = self.exp_spec.algo_name + self.exp_spec.paramameter_set_name
+                    agent_name = agent_name.replace(" ", "_")
+                    recorder = VideoRecorder(self.playground.env, '../video/{}_{}.mp4'.format(agent_name, run))
 
                 """ ---- Simulator: time-steps ---- """
                 while True:
 
-                    if not self.exp_spec.isTestRun:  # keep environment rendering turned OFF during unit test
+                    if record:
+                        recorder.capture_frame()
+                    elif not self.exp_spec.isTestRun:  # keep environment rendering turned OFF during unit test
                         self.playground.env.render()
-                        # recorder.capture_frame()
 
                     """ ---- Agent: act in the environment ---- """
                     step_observation = bloc.format_single_step_observation(obs)
@@ -195,8 +200,10 @@ class Agent(object, metaclass=ABCMeta):
                     if done:
                         break
 
+            if record:
+                recorder.close()
+
             print("END")
-        # recorder.close()
 
     def load_selected_trained_agent(self, sess: tf_cv1.Session, run_name: str):
         # (nice to have) todo:implement --> capability to load the last trained agent:

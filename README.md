@@ -49,7 +49,7 @@ Québec, QC, Canada,
     
 3) **Enjoy** DRL script
 
-![Trained agent in action](video/REINFORCE_agent_cartpole_2.gif)
+![Trained agent in action](video/Batch_ActorCriticBatch-AAC-Split-nn_1.gif)
 
 ---
 
