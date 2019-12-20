@@ -264,7 +264,7 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, output_dim, hidden
     The last layer is called the 'logits' (aka: the raw output of the MLP)
 
     In the context of deep learning, 'logits' is the equivalent of 'raw output' of our prediction.
-    It will later be transform into probabilies using the 'softmax function'
+    It will later be transform into probabilities using the 'softmax function'
 
 
     :return: a well construct computation graph

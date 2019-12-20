@@ -29,7 +29,6 @@ _rl_vocab_list = [
     'shared_network', 'split_network', 'two_input_network',
     'actor_network', 'theta_NeuralNet',
     'critic_network', 'phi_NeuralNet',  'critic_t', 'critic_tPrime',
-    'sampled_action', 'sampled_action_log_pr', 'action_space_log_pr',
     'pseudo_loss', 'actor_loss', 'critic_loss',
     'likelihood', 'negative_likelihood',
     'discout_factor',
@@ -41,7 +40,9 @@ _rl_vocab_list = [
     'Multi_Layer_Perceptron',
     'graph_input', 'obs_ph', 'obs_t_ph', 'obs_tPrime_ph',
     'act_ph', 'rew_ph', 'Qvalues_ph', 'advantage_ph', 'target_ph',
-    'input_layer', 'hidden_', 'output_layer', 'logits'
+    'input_layer', 'hidden_', 'output_layer', 'logits',
+    'sampled_action', 'sampled_action_log_pr', 'action_space_log_pr',
+    'policy_mu', 'policy_log_std', 'sampled_action_logLikelihood',
 ]
 
 """
