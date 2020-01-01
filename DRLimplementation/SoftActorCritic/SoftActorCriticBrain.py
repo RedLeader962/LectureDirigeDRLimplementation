@@ -1,6 +1,7 @@
 # coding=utf-8
 import gym
 import tensorflow as tf
+import tensorflow_probability as tfp
 
 from blocAndTools.buildingbloc import (ExperimentSpec, GymPlayground, build_MLP_computation_graph,
                                        policy_theta_discrete_space, discrete_pseudo_loss, policy_optimizer,
@@ -10,43 +11,34 @@ from blocAndTools.rl_vocabulary import rl_name
 tf_cv1 = tf.compat.v1  # shortcut
 vocab = rl_name()
 
+POLICY_LOG_STD_CAP_MAX = 2
+POLICY_LOG_STD_CAP_MIN = -20
+NUM_STABILITY_CORRECTION = 1e-6
+
 
 def build_gaussian_policy_graph(observation_placeholder: tf.Tensor, experiment_spec: ExperimentSpec,
                                 playground: GymPlayground) -> (tf.Tensor, tf.Tensor, tf.Tensor):
-    # todo:comment --> task:
-    # """
-    # The ACTOR graph(aka the policy network)
-    #
-    #     1. Actor network theta
-    #         input: the observations collected
-    #         output: the logits of each action in the action space
-    #
-    #     2. Policy
-    #         input: the actor network
-    #         output: a selected action & the probabilities of each action in the action space
-    #
-    # :return: sampled_action, log_pi_all, theta_mlp
-    # """
+    """
+    The ACTOR graph(aka the policy network)
+    A gaussian policy with state-dependent learnable mean and variance
+
+        1. Actor network phi
+            input: the observations collected
+            output:
+                - policy_mu layer --> the logits of each action in the action space as the mean of the Multivariate Normal distribution
+                - policy_log_std layer --> the log standard deviation for the Multivariate Normal distribution
+
+        2. Policy
+            input: the actor network policy_mu and policy_log_std layers
+            output: the sampled actions in the action space + corresponding log likelihood
+
+    :return: sampled_action, sampled_action_logLikelihood, policy_mu
+    """
     with tf.name_scope(vocab.actor_network) as scope:
 
         # ::Discrete case
         if isinstance(playground.env.action_space, gym.spaces.Discrete):
             raise ValueError("Discrete environment are not compatible with this Soft Actor-Critic implementation")
-            # """ ---- Assess the input shape compatibility ---- """
-            # are_compatible = observation_placeholder.shape.as_list()[-1] == playground.OBSERVATION_SPACE.shape[0]
-            # assert are_compatible, ("the observation_placeholder is incompatible with environment, "
-            #                         "{} != {}").format(observation_placeholder.shape.as_list()[-1],
-            #                                            playground.OBSERVATION_SPACE.shape[0])
-            #
-            # """ ---- Build parameter THETA as a multilayer perceptron ---- """
-            # theta_mlp = build_MLP_computation_graph(observation_placeholder, playground.ACTION_CHOICES,
-            #                                         experiment_spec.theta_nn_h_layer_topo,
-            #                                         hidden_layers_activation=experiment_spec.theta_hidden_layers_activation,
-            #                                         output_layers_activation=experiment_spec.theta_output_layers_activation,
-            #                                         name=vocab.theta_NeuralNet)
-            #
-            # """ ---- Build the policy for discrete space ---- """
-            # sampled_action, log_pi_all = policy_theta_discrete_space(theta_mlp, playground)
 
         # ::Continuous case
         elif isinstance(playground.env.action_space, gym.spaces.Box):
@@ -61,33 +53,25 @@ def build_gaussian_policy_graph(observation_placeholder: tf.Tensor, experiment_s
                                                     experiment_spec.phi_nn_h_layer_topo,
                                                     hidden_layers_activation=experiment_spec.phi_hidden_layers_activation,
                                                     output_layers_activation=experiment_spec.phi_output_layers_activation,
-                                                    name=vocab.phi_NeuralNet)
+                                                    name=vocab.policy_network_phi)
 
             policy_mu = tf_cv1.layers.dense(phi_mlp,
                                             playground.ACTION_CHOICES,
                                             activation=experiment_spec.phi_output_layers_activation,
-                                            name=vocab.phi_NeuralNet + '/' + vocab.policy_mu)
+                                            name=vocab.policy_network_phi + '/' + vocab.policy_mu)
+
             policy_log_std = tf_cv1.layers.dense(phi_mlp,
                                                  playground.ACTION_CHOICES,
                                                  activation=tf_cv1.tanh,
-                                                 name=vocab.phi_NeuralNet + '/' + vocab.policy_log_std)
+                                                 name=vocab.policy_network_phi + '/' + vocab.policy_log_std)
 
-            # (Priority) todo:implement --> gausian distribution for policy:
-            # gausian_noise = tf_cv1.
-            # sampled_action = policy_mu +
-
-            """
-            policy_mu
-            policy_log_std
-            sampled_action
-            sampled_action_logLikelihood
-            """
-
-
+            # Note: clip log standard deviation as in the sac_original_paper/sac/distributions/normal.py
+            policy_log_std = tf_cv1.clip_by_value(policy_log_std, POLICY_LOG_STD_CAP_MIN, POLICY_LOG_STD_CAP_MAX)
 
             """ ---- Build the policy for continuous space ---- """
-            # todo --> task:
-            # sampled_action, log_pi_all = policy_theta_discrete_space(theta_mlp, playground)
+            policy_distribution = tfp.distributions.MultivariateNormalDiag(loc=policy_mu, scale_diag=tf_cv1.exp(policy_log_std))
+            sampled_action = policy_distribution.sample(name=vocab.sampled_action)
+            sampled_action_logLikelihood = policy_distribution.log_prob(sampled_action, name=vocab.sampled_action_logLikelihood)
 
         # ::Other gym environment
         else:
@@ -95,50 +79,76 @@ def build_gaussian_policy_graph(observation_placeholder: tf.Tensor, experiment_s
                   "{} yet.\n\n".format(playground.env.action_space))
             raise NotImplementedError
 
-    # return sampled_action, log_pi_all, theta_mlp
+    return sampled_action, sampled_action_logLikelihood, policy_mu
 
 
-def build_critic_graph(obs_t_ph: tf.Tensor, exp_spec: ExperimentSpec) -> tf.Tensor:
+def apply_action_bound(sampled_action: tf_cv1.Tensor, sampled_action_logLikelihood: tf_cv1.Tensor) -> (tf_cv1.Tensor, tf_cv1.Tensor):
     """
-    Critic network phi
-            input: the observations collected
-            output: the logits of each action in the action space
+    Apply a invertible squashing function (tanh) to bound the actions sampled from the policy distribution in a finite interval
+    See the Soft Actor-Critic paper: appendice C
 
-    :return: critic
+        Sum_i log(1-tanh^2(z_i))
+
+        with z_i = squashed_sampled_action
+
+    In the limit as z_i --> inf, the 1-tanh^2(z_i) goes to 0
+    ==>
+    this can cause numerical instability that we mitigate by adding a small constant NUM_STABILITY_CORRECTION
+
+    :param sampled_action:
+    :param sampled_action_logLikelihood:
+    :return: sampled_action, sampled_action_logLikelihood
+    """
+    # (nice to have) todo:implement --> a numericaly stable version : see p8 HW5c Sergey Levine DRL course
+    squashed_sampled_action = tf_cv1.tanh(sampled_action)
+    corr = tf_cv1.reduce_sum(tf_cv1.log(1-tf_cv1.tanh(squashed_sampled_action)**2 + NUM_STABILITY_CORRECTION), axis=1)
+    squashed_sampled_action_logLikelihood = sampled_action_logLikelihood - corr
+    return squashed_sampled_action, squashed_sampled_action_logLikelihood
+
+
+def build_critic_graph_V_psi(obs_t_ph: tf.Tensor, exp_spec: ExperimentSpec) -> tf.Tensor:
+    """
+    Critic network psi
+            input: the observations 's_t'
+            output: the logits of V
+
+    :return: critic_V_psi
     """
 
     with tf.name_scope(vocab.critic_network) as scope:
-        """ ---- Build parameter PHI as a multilayer perceptron ---- """
-        critic = build_MLP_computation_graph(obs_t_ph, 1, exp_spec.theta_nn_h_layer_topo,
-                                             hidden_layers_activation=exp_spec.theta_hidden_layers_activation,
-                                             output_layers_activation=exp_spec.theta_output_layers_activation,
-                                             name=vocab.phi_NeuralNet)
+        """ ---- Build parameter '_psi' as a multilayer perceptron ---- """
+        critic_V_psi = build_MLP_computation_graph(obs_t_ph, 1, exp_spec.theta_nn_h_layer_topo,
+                                                   hidden_layers_activation=exp_spec.psi_hidden_layers_activation,
+                                                   output_layers_activation=exp_spec.psi_output_layers_activation,
+                                                   name=vocab.critic_network_V_psi)
+    return critic_V_psi
 
-    return critic
 
-# def build_two_input_critic_graph(obs_t_ph: tf.Tensor, obs_tPrime_ph: tf.Tensor, exp_spec: ExperimentSpec) -> tf.Tensor:
-#     """
-#     Critic network phi
-#             input: the observations collected for timestep t and tPrime
-#             output: the logits of each action in the action space
-#
-#     :return: critic
-#     """
-#
-#     with tf.name_scope(vocab.critic_network) as scope:
-#         """ ---- Build parameter PHI as a multilayer perceptron ---- """
-#         critic_t = build_MLP_computation_graph(obs_t_ph, 1, exp_spec.theta_nn_h_layer_topo,
-#                                                hidden_layers_activation=exp_spec.theta_hidden_layers_activation,
-#                                                output_layers_activation=exp_spec.theta_output_layers_activation,
-#                                                name=vocab.phi_NeuralNet)
-#
-#         critic_tPrime = build_MLP_computation_graph(obs_tPrime_ph, 1, exp_spec.theta_nn_h_layer_topo,
-#                                                     hidden_layers_activation=exp_spec.theta_hidden_layers_activation,
-#                                                     output_layers_activation=exp_spec.theta_output_layers_activation,
-#                                                     reuse=True,
-#                                                     name=vocab.phi_NeuralNet)
-#
-#     return critic_t, critic_tPrime
+def build_critic_graph_Q_theta(obs_t_ph: tf.Tensor, act_t_ph: tf_cv1.Tensor, exp_spec: ExperimentSpec) -> (tf.Tensor, tf.Tensor):
+    """
+    Critic network theta 1 & 2
+            input: the observations collected 's_t' & the executed action 'a_t' at timestep t
+            output: the logits of Q_1 and Q_2
+
+    :return: critic_Q_theta_1, critic_Q_theta_2
+    """
+
+    with tf.name_scope(vocab.critic_network) as scope:
+        inputs = tf_cv1.concat([obs_t_ph, act_t_ph], axis=-1)
+
+        """ ---- Build parameter '_theta_1' as a multilayer perceptron ---- """
+        critic_Q_theta_1 = build_MLP_computation_graph(inputs, 1, exp_spec.theta_nn_h_layer_topo,
+                                                       hidden_layers_activation=exp_spec.theta_hidden_layers_activation,
+                                                       output_layers_activation=exp_spec.theta_output_layers_activation,
+                                                       name=vocab.critic_network_Q_theta + '_1')
+
+        """ ---- Build parameter '_theta_2' as a multilayer perceptron ---- """
+        critic_Q_theta_2 = build_MLP_computation_graph(inputs, 1, exp_spec.theta_nn_h_layer_topo,
+                                                       hidden_layers_activation=exp_spec.theta_hidden_layers_activation,
+                                                       output_layers_activation=exp_spec.theta_output_layers_activation,
+                                                       name=vocab.critic_network_Q_theta + '_2')
+
+    return critic_Q_theta_1, critic_Q_theta_2
 
 
 def actor_train(action_placeholder: tf_cv1.Tensor, log_pi, advantage: tf_cv1.Tensor, experiment_spec: ExperimentSpec,

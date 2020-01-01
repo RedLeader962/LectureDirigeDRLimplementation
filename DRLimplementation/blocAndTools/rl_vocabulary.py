@@ -43,6 +43,7 @@ _rl_vocab_list = [
     'input_layer', 'hidden_', 'output_layer', 'logits',
     'sampled_action', 'sampled_action_log_pr', 'action_space_log_pr',
     'policy_mu', 'policy_log_std', 'sampled_action_logLikelihood',
+    'critic_network_Q_theta', 'critic_network_V_psi', 'policy_network_phi',
 ]
 
 """
