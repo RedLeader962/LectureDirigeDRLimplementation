@@ -151,19 +151,25 @@ def build_critic_graph_Q_theta(obs_t_ph: tf.Tensor, act_t_ph: tf_cv1.Tensor, exp
     return critic_Q_theta_1, critic_Q_theta_2
 
 
-def actor_train(action_placeholder: tf_cv1.Tensor, log_pi, advantage: tf_cv1.Tensor, experiment_spec: ExperimentSpec,
-                playground: GymPlayground) -> (tf.Tensor, tf.Operation):
+def actor_train(sampled_action_logLikelihood: tf_cv1.Tensor, critic_graph_Q_theta: tf_cv1.Tensor,
+                experiment_spec: ExperimentSpec, playground: GymPlayground) -> (tf.Tensor, tf.Operation):
     """
     Actor loss
-        input: the probabilities of each action in the action space, the collected actions, the computed advantages
-        output: Grad_theta log pi_theta * A^pi
+        input:
+        output:
 
-    :return: actor_loss, actor_policy_optimizer_op
+    note: ExperimentSpec.temperature (hparam alpha)
+      |    Control the trade-off between exploration-exploitation
+      |    We recover a standard maximum expected return objectiv as alpha --> 0
+
+    :return: actor_KL_loss, actor_policy_optimizer_op
     """
+
+    alpha = ExperimentSpec.temperature
+
     with tf_cv1.name_scope(vocab.policy_training):
         """ ---- Build the pseudo loss function ---- """
-        actor_loss = discrete_pseudo_loss(log_pi, action_placeholder, advantage,
-                                          playground, name=vocab.actor_loss)
+        actor_KL_loss = tf_cv1.reduce_mean(alpha * sampled_action_logLikelihood - critic_graph_Q_theta)
 
         """ ---- Actor optimizer & learning rate scheduler ---- """
         actor_lr_schedule, actor_global_grad_step = learning_rate_scheduler(
@@ -172,18 +178,17 @@ def actor_train(action_placeholder: tf_cv1.Tensor, log_pi, advantage: tf_cv1.Ten
             lr_decay_rate=experiment_spec['actor_lr_decay_rate'],
             name_sufix='actor')
 
-        # actor_policy_optimizer_op = policy_optimizer(actor_loss,
+        # actor_policy_optimizer_op = policy_optimizer(actor_KL_loss,
         #                                              learning_rate=actor_lr_schedule,
         #                                              global_gradient_step=actor_global_grad_step)
 
-        # actor_policy_optimizer_op = policy_optimizer(actor_loss, experiment_spec.learning_rate)
+        # actor_policy_optimizer_op = policy_optimizer(actor_KL_loss, experiment_spec.learning_rate)
 
         actor_policy_optimizer_op = tf_cv1.train.AdamOptimizer(learning_rate=actor_lr_schedule
-                                                               ).minimize(loss=actor_loss,
+                                                               ).minimize(loss=actor_KL_loss,
                                                                           global_step=actor_global_grad_step,
                                                                           name=vocab.policy_optimizer)
-
-    return actor_loss, actor_policy_optimizer_op
+    return actor_KL_loss, actor_policy_optimizer_op
 
 
 def critic_train(advantage, experiment_spec: ExperimentSpec) -> (tf.Tensor, tf.Operation):
@@ -195,20 +200,22 @@ def critic_train(advantage, experiment_spec: ExperimentSpec) -> (tf.Tensor, tf.O
     :return: critic_loss, critic_optimizer
     """
     with tf_cv1.name_scope(vocab.critic_training):
+        pass  # (Priority) todo:implement --> task:
+
         """ ---- Build the Mean Square Error loss function ---- """
-        with tf.name_scope(vocab.critic_loss):
-            critic_loss = tf.reduce_mean(advantage ** 2)
-
-        """ ---- Critic optimizer & learning rate scheduler ---- """
-        critic_lr_schedule, critic_global_grad_step = learning_rate_scheduler(
-            max_gradient_step_expected=experiment_spec['critique_loop_len'] * experiment_spec.max_epoch,
-            learning_rate=experiment_spec['critic_learning_rate'],
-            lr_decay_rate=experiment_spec['critic_lr_decay_rate'],
-            name_sufix='critic')
-
-        critic_optimizer = tf_cv1.train.AdamOptimizer(learning_rate=critic_lr_schedule
-                                                      ).minimize(critic_loss,
-                                                                 global_step=critic_global_grad_step,
-                                                                 name=vocab.critic_optimizer)
-        # critic_optimizer = tf_cv1.train.AdamOptimizer(learning_rate=experiment_spec['critic_learning_rate']).minimize(critic_loss, name=vocab.critic_optimizer)
-    return critic_loss, critic_optimizer
+    #     with tf.name_scope(vocab.critic_loss):
+    #         critic_loss = tf.reduce_mean(advantage ** 2)
+    #
+    #     """ ---- Critic optimizer & learning rate scheduler ---- """
+    #     critic_lr_schedule, critic_global_grad_step = learning_rate_scheduler(
+    #         max_gradient_step_expected=experiment_spec['critique_loop_len'] * experiment_spec.max_epoch,
+    #         learning_rate=experiment_spec['critic_learning_rate'],
+    #         lr_decay_rate=experiment_spec['critic_lr_decay_rate'],
+    #         name_sufix='critic')
+    #
+    #     critic_optimizer = tf_cv1.train.AdamOptimizer(learning_rate=critic_lr_schedule
+    #                                                   ).minimize(critic_loss,
+    #                                                              global_step=critic_global_grad_step,
+    #                                                              name=vocab.critic_optimizer)
+    #     # critic_optimizer = tf_cv1.train.AdamOptimizer(learning_rate=experiment_spec['critic_learning_rate']).minimize(critic_loss, name=vocab.critic_optimizer)
+    # return critic_loss, critic_optimizer
