@@ -1,0 +1,5 @@
+# Default ignored files
+/workspace.xml
+/webResources.xml
+/sonarlint/
+/sonarlint/issuestore

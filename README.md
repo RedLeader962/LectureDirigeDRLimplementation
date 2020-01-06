@@ -1,3 +1,5 @@
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=RedLeader962_LectureDirigeDRLimplementation&metric=alert_status)](https://sonarcloud.io/dashboard?id=RedLeader962_LectureDirigeDRLimplementation)
+
 Repository for the course IFT-7014: Directed reading on
 # Deep Reinforcement Learning 
 

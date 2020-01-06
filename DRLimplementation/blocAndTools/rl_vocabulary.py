@@ -20,15 +20,15 @@ _rl_vocab_list = [
     'Trajectory_lenght',
     'observation', 'action', 'policy', 'transition_dynamic',
     'obs_t', 'obs_tPrime'
-    'Qvalues', 'Vvalues'
-    'reward', 'reward_to_go', 'G',
+             'Qvalues', 'Vvalues'
+                        'reward', 'reward_to_go', 'G',
     'V_estimate', 'Advantage',
     'TD_target', 'TD_error',
     'V_pi', 'Q_pi', 'A_pi',
     'policy_theta', 'policy_theta_D', 'policy_theta_C',
     'shared_network', 'split_network', 'two_input_network',
     'actor_network', 'theta_NeuralNet',
-    'critic_network', 'phi_NeuralNet',  'critic_t', 'critic_tPrime',
+    'critic_network', 'phi_NeuralNet', 'critic_t', 'critic_tPrime',
     'pseudo_loss', 'actor_loss', 'critic_loss',
     'likelihood', 'negative_likelihood',
     'discout_factor',
@@ -42,9 +42,10 @@ _rl_vocab_list = [
     'act_ph', 'rew_ph', 'Qvalues_ph', 'advantage_ph', 'target_ph',
     'input_layer', 'hidden_', 'output_layer', 'logits',
     'sampled_action', 'sampled_action_log_pr', 'action_space_log_pr',
-    'policy_mu', 'policy_log_std', 'sampled_action_logLikelihood',
-    'critic_network_Q_theta', 'critic_network_V_psi', 'policy_network_phi',
-]
+    'policy_mu', 'policy_log_std', 'sampled_action_log_likelihood',
+    'policy_phi', 'Q_theta_1', 'Q_theta_2', 'V_psi', 'V_psi_frozen',
+    'actor_kl_loss', 'Q_theta_1_loss', 'Q_theta_2_loss', 'V_psi_loss', 'v_psi_frozen_update_ops',
+    ]
 
 """
 A standardize vocabulary to use when refering node in a computation graph
