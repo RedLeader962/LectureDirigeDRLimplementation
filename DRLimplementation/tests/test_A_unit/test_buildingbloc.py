@@ -122,10 +122,12 @@ def test_Playground_continuous():
     assert play.ACTION_SPACE.shape == (2,)
     assert play.ACTION_CHOICES == 2
     assert play.OBSERVATION_SPACE.shape == (8,)
+    assert play.OBSERVATION_DIM == 8
 
 def test_Playground_discreet():
     play = bloc.GymPlayground('LunarLander-v2')
     assert play.ACTION_CHOICES == 4
+    assert play.OBSERVATION_DIM == 8
 
 
 # ---- gym_playground_to_tensorflow_graph_adapter --------------------------------------------------------------------

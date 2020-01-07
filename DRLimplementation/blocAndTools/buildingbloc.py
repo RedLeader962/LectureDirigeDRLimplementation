@@ -222,7 +222,12 @@ class GymPlayground(object):
             self.ACTION_SPACE = self._env.action_space
             self.ACTION_CHOICES = self.ACTION_SPACE.n
 
-        self.OBSERVATION_SPACE = self._env.observation_space
+        if isinstance(self._env.observation_space, gym.spaces.Box):
+            self.OBSERVATION_SPACE = self._env.observation_space
+            obs_dimension = self.OBSERVATION_SPACE.shape
+            self.OBSERVATION_DIM = [*obs_dimension][-1]
+        else:
+            raise NotImplementedError("GymPlayground does not support non continuous observation space yet!")
 
         # (nice to have) todo:fixme!! --> update folder path:
         # if print_env_info:
@@ -230,8 +235,10 @@ class GymPlayground(object):
         #         action_space_doc = "\tAction is two floats [main engine, left-right engines].\n" \
         #                        "\tMain engine: -1..0 off, 0..+1 throttle from 50% to 100% power.\n" \
         #                        "\t\t\t\t(!) Engine can't work with less than 50% power.\n" \
-        #                        "\tLeft-right:  -1.0..-0.5 fire left engine, +0.5..+1.0 fire right engine, -0.5..0.5 off\n\n"
-        #         info_str += env_spec_pretty_printing.environnement_doc_str(self._env, action_space_doc=action_space_doc)
+        #                        "\tLeft-right:  -1.0..-0.5 fire left engine, +0.5..+1.0 fire right engine,
+        #                        -0.5..0.5 off\n\n"
+        #         info_str += env_spec_pretty_printing.environnement_doc_str(self._env,
+        #         action_space_doc=action_space_doc)
         #     else:
         #         info_str += env_spec_pretty_printing.environnement_doc_str(self._env)
         #

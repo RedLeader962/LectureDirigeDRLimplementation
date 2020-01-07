@@ -19,9 +19,9 @@ _rl_vocab_list = [
     'trajectorie', 'timestep', 'epoch', 'horizon',
     'Trajectory_lenght',
     'observation', 'action', 'policy', 'transition_dynamic',
-    'obs_t', 'obs_tPrime'
-             'Qvalues', 'Vvalues'
-                        'reward', 'reward_to_go', 'G',
+    'obs_t', 'obs_tPrime',
+    'Qvalues', 'Vvalues',
+    'reward', 'reward_to_go', 'G',
     'V_estimate', 'Advantage',
     'TD_target', 'TD_error',
     'V_pi', 'Q_pi', 'A_pi',
@@ -38,7 +38,7 @@ _rl_vocab_list = [
     'learning_rate',
     'entropy', 'KL',
     'Multi_Layer_Perceptron',
-    'graph_input', 'obs_ph', 'obs_t_ph', 'obs_tPrime_ph',
+    'graph_input', 'obs_ph', 'obs_t_ph', 'obs_tPrime_ph', 'trj_done_ph',
     'act_ph', 'rew_ph', 'Qvalues_ph', 'advantage_ph', 'target_ph',
     'input_layer', 'hidden_', 'output_layer', 'logits',
     'sampled_action', 'sampled_action_log_pr', 'action_space_log_pr',

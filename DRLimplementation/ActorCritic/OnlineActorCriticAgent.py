@@ -113,7 +113,7 @@ class OnlineActorCriticAgent(Agent):
         # *                                                                                                            *
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
 
-        """ ---- Episode summary ---- """
+        """ ---- By Epoch summary ---- """
         self.summary_stage_avg_trjs_actor_loss_ph = tf_cv1.placeholder(tf.float32, name='Actor_loss_ph')
         self.summary_stage_avg_trjs_critic_loss_ph = tf_cv1.placeholder(tf.float32, name='Critic_loss_ph')
         tf_cv1.summary.scalar('Actor_loss', self.summary_stage_avg_trjs_actor_loss_ph, family=vocab.loss)
@@ -124,7 +124,7 @@ class OnlineActorCriticAgent(Agent):
 
         self.summary_epoch_op = tf_cv1.summary.merge_all()
 
-        """ ---- Trajectory summary ---- """
+        """ ---- By Trajectory summary ---- """
         self.Summary_trj_return_ph = tf_cv1.placeholder(tf.float32, name='Summary_trj_return_ph')
         self.summary_trj_return_op = tf_cv1.summary.scalar('Trajectory return', self.Summary_trj_return_ph,
                                                            family=vocab.G)

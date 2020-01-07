@@ -118,7 +118,7 @@ class BatchActorCriticAgent(Agent):
         # *                                                                                                            *
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
 
-        """ ---- Episode summary ---- """
+        """ ---- By Epoch summary ---- """
         tf_cv1.summary.scalar('Actor_loss', self.actor_loss, family=vocab.loss)
         tf_cv1.summary.scalar('Critic_loss', self.V_phi_loss, family=vocab.loss)
 
@@ -127,7 +127,7 @@ class BatchActorCriticAgent(Agent):
 
         self.summary_epoch_op = tf_cv1.summary.merge_all()
 
-        """ ---- Trajectory summary ---- """
+        """ ---- By Trajectory summary ---- """
         self.Summary_trj_return_ph = tf_cv1.placeholder(tf.float32, name='Summary_trj_return_ph')
         self.summary_trj_return_op = tf_cv1.summary.scalar('Trajectory return', self.Summary_trj_return_ph, family=vocab.G)
 
