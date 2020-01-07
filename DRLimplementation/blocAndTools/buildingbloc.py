@@ -146,8 +146,24 @@ class ExperimentSpec:
             }
 
 def data_container_class_representation(class_instance, class_name: str, space_from_margin=0) -> str:
+    """
+    Utility function for automatic representation of container type class
+    Handle dynamically property added at run time
+    
+    .. Example::
+    
+        def __repr__(self):
+            repr_str = data_container_class_representation(self, class_name='ExperimentSpec', space_from_margin=3)
+            return repr_str
+        
+    
+    :param class_instance:
+    :param class_name:
+    :param space_from_margin:
+    :return:
+    """
     m_sp = " " * space_from_margin
-    item_space = " "*3
+    item_space = " " * 3
     repr_str = m_sp + class_name + "{\n"
     for k, v in class_instance.__dict__.items():
         repr_str += m_sp + item_space + "\'{}\': {}\n".format(k, v)
@@ -206,10 +222,7 @@ class GymPlayground(object):
 
         self.ENVIRONMENT_NAME = environment_name
 
-        try:
-            self._env = gym.make(self.ENVIRONMENT_NAME)
-        except gym.error.Error as e:
-            raise gym.error.Error("GymPlayground did not find the specified Gym environment.") from e
+        self._env = self._make_gym_env()
 
         info_str = ""
         if isinstance(self._env.action_space, gym.spaces.Box):
@@ -244,9 +257,18 @@ class GymPlayground(object):
         #
         #     print(info_str)
 
+
+    def _make_gym_env(self):
+        try:
+            return gym.make(self.ENVIRONMENT_NAME)
+        except gym.error.Error as e:
+            raise gym.error.Error("GymPlayground did not find the specified Gym environment.") from e
+
+
     @property
     def env(self) -> Union[TimeLimit, Any]:
         return self._env
+
 
     def get_environment_spec(self):
         """

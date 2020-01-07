@@ -43,7 +43,7 @@ class OnlineActorCriticAgent(Agent):
             print(":: Random seed control is turned ON")
 
         """ ---- Placeholder ---- """
-        self.observation_ph, self.action_ph, self.Qvalues_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
+        self.obs_t_ph, self.action_ph, self.Qvalues_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
             self.playground, obs_shape_constraint=None, action_shape_constraint=None, Q_name=vocab.Qvalues_ph)
 
         if self.exp_spec['Network'] is NetworkType.Split:
@@ -53,7 +53,7 @@ class OnlineActorCriticAgent(Agent):
             # *                                              (Split network)                                          *
             # *                                                                                                       *
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-            self.V_phi_estimator = build_critic_graph(self.observation_ph, self.exp_spec)
+            self.V_phi_estimator = build_critic_graph(self.obs_t_ph, self.exp_spec)
 
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
             # *                                                                                                       *
@@ -61,7 +61,7 @@ class OnlineActorCriticAgent(Agent):
             # *                                             (Split network)                                           *
             # *                                                                                                       *
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-            self.policy_action_sampler, log_pi, _ = build_actor_policy_graph(self.observation_ph, self.exp_spec,
+            self.policy_action_sampler, log_pi, _ = build_actor_policy_graph(self.obs_t_ph, self.exp_spec,
                                                                              self.playground)
 
             print(":: SPLIT network constructed")
@@ -73,7 +73,7 @@ class OnlineActorCriticAgent(Agent):
             # *                                                                                                       *
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
             self.policy_action_sampler, log_pi, _, self.V_phi_estimator = build_actor_critic_shared_graph(
-                self.observation_ph, self.exp_spec, self.playground)
+                self.obs_t_ph, self.exp_spec, self.playground)
 
             print(":: SHARED network constructed")
 
@@ -205,7 +205,7 @@ class OnlineActorCriticAgent(Agent):
                         """ ---- Run Graph computation ---- """
                         obs_t_flat = bloc.format_single_step_observation(obs_t)
                         action, V_t = self.sess.run([self.policy_action_sampler, self.V_phi_estimator],
-                                                    feed_dict={self.observation_ph: obs_t_flat})
+                                                    feed_dict={self.obs_t_ph: obs_t_flat})
 
                         action = bloc.to_scalar(action)
                         V_t = bloc.to_scalar(V_t)
@@ -285,7 +285,7 @@ class OnlineActorCriticAgent(Agent):
         self.trjCOLLECTOR.compute_Qvalues_as_BootstrapEstimate()
         minibatch = self.trjCOLLECTOR.get_minibatch()
 
-        minibatch_feed_dictionary = bloc.build_feed_dictionary([self.observation_ph, self.action_ph, self.Qvalues_ph],
+        minibatch_feed_dictionary = bloc.build_feed_dictionary([self.obs_t_ph, self.action_ph, self.Qvalues_ph],
                                                                [minibatch.obs_t, minibatch.act_t, minibatch.q_values_t])
 
         """ ---- Compute metric and collect ---- """
@@ -306,7 +306,7 @@ class OnlineActorCriticAgent(Agent):
 
         """ ---- Train critic ---- """
         critic_feed_dictionary = bloc.build_feed_dictionary(
-            [self.observation_ph, self.Qvalues_ph],
+            [self.obs_t_ph, self.Qvalues_ph],
             [minibatch.obs_t, minibatch.q_values_t])
 
         for c_loop in range(self.exp_spec['critique_loop_len']):      # <-- (!) most likely 1 iteration

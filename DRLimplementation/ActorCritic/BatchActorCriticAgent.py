@@ -46,7 +46,7 @@ class BatchActorCriticAgent(Agent):
             print(":: Random seed control is turned ON")
 
         """ ---- Placeholder ---- """
-        self.observation_ph, self.action_ph, self.Qvalues_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
+        self.obs_t_ph, self.action_ph, self.Qvalues_ph = bloc.gym_playground_to_tensorflow_graph_adapter(
             self.playground, obs_shape_constraint=None, action_shape_constraint=None, Q_name=vocab.Qvalues_ph)
 
         if self.exp_spec['Network'] is NetworkType.Split:
@@ -56,7 +56,7 @@ class BatchActorCriticAgent(Agent):
             # *                                              (Split network)                                          *
             # *                                                                                                       *
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-            self.V_phi_estimator = build_critic_graph(self.observation_ph, self.exp_spec)
+            self.V_phi_estimator = build_critic_graph(self.obs_t_ph, self.exp_spec)
 
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
             # *                                                                                                       *
@@ -64,7 +64,7 @@ class BatchActorCriticAgent(Agent):
             # *                                             (Split network)                                           *
             # *                                                                                                       *
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-            self.policy_action_sampler, log_pi, _ = build_actor_policy_graph(self.observation_ph, self.exp_spec,
+            self.policy_action_sampler, log_pi, _ = build_actor_policy_graph(self.obs_t_ph, self.exp_spec,
                                                                              self.playground)
 
             print(":: SPLIT network constructed")
@@ -76,7 +76,7 @@ class BatchActorCriticAgent(Agent):
             # *                                                                                                       *
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
             self.policy_action_sampler, log_pi, _, self.V_phi_estimator = build_actor_critic_shared_graph(
-                self.observation_ph, self.exp_spec, self.playground)
+                self.obs_t_ph, self.exp_spec, self.playground)
 
             print(":: SHARED network constructed")
 
@@ -196,11 +196,11 @@ class BatchActorCriticAgent(Agent):
                         obs_t_flat = bloc.format_single_step_observation(obs_t)
                         if self.exp_spec['Target'] is TargetType.MonteCarlo:
                             action = sess.run(self.policy_action_sampler,
-                                              feed_dict={self.observation_ph: obs_t_flat})
+                                              feed_dict={self.obs_t_ph: obs_t_flat})
                             action = bloc.to_scalar(action)
                         elif self.exp_spec['Target'] is TargetType.Bootstrap:
                             action, V_t = sess.run([self.policy_action_sampler, self.V_phi_estimator],
-                                                   feed_dict={self.observation_ph: obs_t_flat})
+                                                   feed_dict={self.obs_t_ph: obs_t_flat})
                             action = bloc.to_scalar(action)
                             V_t = bloc.to_scalar(V_t)
 
@@ -264,7 +264,7 @@ class BatchActorCriticAgent(Agent):
 
                 """ ---- Agent: Compute gradient & update policy ---- """
                 epoch_feed_dictionary = bloc.build_feed_dictionary(
-                    [self.observation_ph, self.action_ph, self.Qvalues_ph, self.Summary_batch_avg_trjs_return_ph],
+                    [self.obs_t_ph, self.action_ph, self.Qvalues_ph, self.Summary_batch_avg_trjs_return_ph],
                     [batch_observations, batch_actions, batch_Qvalues, batch_average_trjs_return])
 
                 e_actor_loss, e_V_phi_loss, epoch_summary = sess.run([self.actor_loss,
@@ -278,7 +278,7 @@ class BatchActorCriticAgent(Agent):
                 sess.run(self.actor_policy_optimizer, feed_dict=epoch_feed_dictionary)
 
                 critic_feed_dictionary = bloc.build_feed_dictionary(
-                    [self.observation_ph, self.Qvalues_ph],
+                    [self.obs_t_ph, self.Qvalues_ph],
                     [batch_observations, batch_Qvalues])
 
                 """ ---- Train critic ---- """

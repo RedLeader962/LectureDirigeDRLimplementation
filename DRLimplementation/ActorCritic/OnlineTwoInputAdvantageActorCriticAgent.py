@@ -43,7 +43,7 @@ class OnlineTwoInputAdvantageActorCriticAgent(Agent):
             print(":: Random seed control is turned ON")
 
         """ ---- Placeholder ---- """
-        self.observation_ph, self.action_ph, _ = bloc.gym_playground_to_tensorflow_graph_adapter(
+        self.obs_t_ph, self.action_ph, _ = bloc.gym_playground_to_tensorflow_graph_adapter(
             self.playground, Q_name=vocab.Qvalues_ph)
 
         self.obs_tPrime_ph = bloc.continuous_space_placeholder(space=self.playground.OBSERVATION_SPACE,
@@ -58,7 +58,7 @@ class OnlineTwoInputAdvantageActorCriticAgent(Agent):
             # *                                              (Split network)                                          *
             # *                                                                                                       *
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-            self.V_phi_estimator, self.V_phi_estimator_tPrime = build_two_input_critic_graph(self.observation_ph,
+            self.V_phi_estimator, self.V_phi_estimator_tPrime = build_two_input_critic_graph(self.obs_t_ph,
                                                                                              self.obs_tPrime_ph,
                                                                                              self.exp_spec)
 
@@ -68,7 +68,7 @@ class OnlineTwoInputAdvantageActorCriticAgent(Agent):
             # *                                             (Split network)                                           *
             # *                                                                                                       *
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-            self.policy_action_sampler, log_pi, _ = build_actor_policy_graph(self.observation_ph, self.exp_spec,
+            self.policy_action_sampler, log_pi, _ = build_actor_policy_graph(self.obs_t_ph, self.exp_spec,
                                                                              self.playground)
 
             print(":: SPLIT network (two input advantage) constructed")
@@ -83,7 +83,7 @@ class OnlineTwoInputAdvantageActorCriticAgent(Agent):
             raise NotImplementedError   # todo: implement
 
             self.policy_action_sampler, log_pi, _, self.V_phi_estimator = build_actor_critic_shared_graph(
-                self.observation_ph, self.exp_spec, self.playground)
+                self.obs_t_ph, self.exp_spec, self.playground)
 
             print(":: SHARED network constructed")
 
@@ -213,7 +213,7 @@ class OnlineTwoInputAdvantageActorCriticAgent(Agent):
 
                         """ ---- Run Graph computation ---- """
                         obs_t_flat = bloc.format_single_step_observation(obs_t)
-                        action = self.sess.run(self.policy_action_sampler, feed_dict={self.observation_ph: obs_t_flat})
+                        action = self.sess.run(self.policy_action_sampler, feed_dict={self.obs_t_ph: obs_t_flat})
 
                         action = bloc.to_scalar(action)
 
@@ -290,7 +290,7 @@ class OnlineTwoInputAdvantageActorCriticAgent(Agent):
     def _train_on_minibatch(self, consol_print_learning_stats, local_step_t):
         minibatch = self.trjCOLLECTOR.get_minibatch()
 
-        minibatch_feed_dictionary = bloc.build_feed_dictionary([self.observation_ph, self.action_ph,
+        minibatch_feed_dictionary = bloc.build_feed_dictionary([self.obs_t_ph, self.action_ph,
                                                                 self.obs_tPrime_ph, self.reward_t_ph],
                                                                [minibatch.obs_t, minibatch.act_t,
                                                                 minibatch.obs_tPrime, minibatch.rew_t])
@@ -309,7 +309,7 @@ class OnlineTwoInputAdvantageActorCriticAgent(Agent):
         # consol_print_learning_stats.track_progress(progress=local_step_t, message="Agent training")
 
         """ ---- Train critic ---- """
-        critic_feed_dictionary = bloc.build_feed_dictionary([self.observation_ph, self.obs_tPrime_ph, self.reward_t_ph],
+        critic_feed_dictionary = bloc.build_feed_dictionary([self.obs_t_ph, self.obs_tPrime_ph, self.reward_t_ph],
                                                             [minibatch.obs_t, minibatch.obs_tPrime, minibatch.rew_t])
 
         for c_loop in range(self.exp_spec['critique_loop_len']):

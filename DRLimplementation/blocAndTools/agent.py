@@ -1,11 +1,8 @@
 # coding=utf-8
 from abc import ABCMeta, abstractmethod
-from datetime import datetime
-import json
 
 import tensorflow as tf
 import tensorflow.python.util.deprecation as deprecation
-import numpy as np
 from gym.wrappers.monitoring.video_recorder import VideoRecorder
 
 from blocAndTools import buildingbloc as bloc
@@ -37,13 +34,13 @@ class Agent(object, metaclass=ABCMeta):
 
         """ ---- Init computation graph ---- """
         # required placeholder for Agent.play() methode
-        self.observation_ph = None
+        self.obs_t_ph = None
         self.policy_action_sampler = None
 
         self._build_computation_graph()
 
         not_implemented_msg = "must be set by _build_computation_graph()"
-        assert self.observation_ph is not None, "self.observation_ph {}".format(not_implemented_msg)
+        assert self.obs_t_ph is not None, "self.obs_t_ph {}".format(not_implemented_msg)
         assert self.policy_action_sampler is not None, "self.policy_action_sampler {}".format(not_implemented_msg)
 
         """ ---- Setup parameters saving ---- """
@@ -54,7 +51,6 @@ class Agent(object, metaclass=ABCMeta):
     @abstractmethod
     def _use_hardcoded_agent_root_directory(self):
         raise NotImplementedError
-        pass
 
     @abstractmethod
     def _build_computation_graph(self):
@@ -62,19 +58,17 @@ class Agent(object, metaclass=ABCMeta):
         Build the Policy_theta computation graph with theta as multi-layer perceptron
 
         Must implement property:
-                self.observation_ph
+                self.obs_t_ph
                 self.policy_action_sampler
         they are required for Agent.play() methode
 
         """
         raise NotImplementedError
-        pass
 
     @abstractmethod
     def _instantiate_data_collector(self):
         """ Data collector utility """
         raise NotImplementedError
-        pass
 
     def train(self, render_env: bool = False) -> None:
         """
@@ -126,7 +120,6 @@ class Agent(object, metaclass=ABCMeta):
         :yield: (epoch, epoch_loss, batch_average_trjs_return, batch_average_trjs_lenght)
         """
         raise NotImplementedError
-        pass
 
     def _render_trajectory_on_condition(self, epoch, render_env, trj_collected_so_far):
         if (render_env and (epoch % self.exp_spec.render_env_every_What_epoch == 0)
@@ -182,21 +175,18 @@ class Agent(object, metaclass=ABCMeta):
 
                 """ ---- Simulator: time-steps ---- """
                 while True:
-
+    
                     if record:
                         recorder.capture_frame()
                     elif not self.exp_spec.isTestRun:  # keep environment rendering turned OFF during unit test
                         self.playground.env.render()
-
+    
                     """ ---- Agent: act in the environment ---- """
-                    step_observation = bloc.format_single_step_observation(obs)
-                    action_array = sess.run(self.policy_action_sampler,
-                                            feed_dict={self.observation_ph: step_observation})
-
-                    action = bloc.to_scalar(action_array)
-                    obs_prime, reward, done, _ = self.playground.env.step(action)
+                    act_t = self.select_action_given_policy(sess, obs)
+                    obs_prime, reward, done, _ = self.playground.env.step(act_t)
+    
                     obs = obs_prime  # <-- (!)
-
+    
                     if done:
                         break
 
@@ -205,15 +195,22 @@ class Agent(object, metaclass=ABCMeta):
 
             print("END")
 
+
+    def select_action_given_policy(self, sess, obs, **kwargs):
+        obs_t_flat = bloc.format_single_step_observation(obs)
+        act_t = sess.run(self.policy_action_sampler,
+                         feed_dict={self.obs_t_ph: obs_t_flat})
+        act_t = bloc.to_scalar(act_t)
+        return act_t
+
+
     def load_selected_trained_agent(self, sess: tf_cv1.Session, run_name: str):
         # (nice to have) todo:implement --> capability to load the last trained agent:
         path = "{}/saved_training".format(self.agent_root_dir)
         self.saver.restore(sess, "{}/{}".format(path, run_name))
 
+
     def __del__(self):
         tf_cv1.reset_default_graph()
         self.playground.env.env.close()
         print(":: Agent >>> CLOSED")
-
-
-

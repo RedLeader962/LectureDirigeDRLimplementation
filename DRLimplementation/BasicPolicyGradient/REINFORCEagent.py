@@ -70,7 +70,7 @@ class REINFORCEagent(Agent):
         observation_ph, action_ph, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(self.playground,
                                                                                                  obs_shape_constraint=None,
                                                                                                  action_shape_constraint=None)
-        self.observation_ph = observation_ph
+        self.obs_t_ph = observation_ph
         self.action_ph = action_ph
         self.Q_values_ph = Q_values_ph
 
@@ -139,7 +139,7 @@ class REINFORCEagent(Agent):
                         """ ---- Agent: act in the environment ---- """
                         step_observation = bloc.format_single_step_observation(current_observation)
                         action_array = sess.run(self.policy_action_sampler,
-                                                feed_dict={self.observation_ph: step_observation})
+                                                feed_dict={self.obs_t_ph: step_observation})
 
                         action = bloc.to_scalar(action_array)
                         observe_reaction, reward, done, _ = self.playground.env.step(action)
@@ -189,7 +189,7 @@ class REINFORCEagent(Agent):
                 # self._data_shape_is_compatibility_with_graph(batch_Q_values, batch_actions, batch_observations)
 
                 """ ---- Agent: Compute gradient & update policy ---- """
-                feed_dictionary = bloc.build_feed_dictionary([self.observation_ph, self.action_ph, self.Q_values_ph],
+                feed_dictionary = bloc.build_feed_dictionary([self.obs_t_ph, self.action_ph, self.Q_values_ph],
                                                              [batch_observations, batch_actions, batch_Q_values])
                 epoch_loss, _ = sess.run([self.pseudo_loss, self.policy_optimizer_op],
                                          feed_dict=feed_dictionary)
@@ -212,8 +212,8 @@ class REINFORCEagent(Agent):
     # def _data_shape_is_compatibility_with_graph(self, batch_Q_values: list, batch_actions: list,
     #                                             batch_observations: list):
     #     """ Tensor/ndarray shape compatibility assessment """
-    #     assert self.observation_ph.shape.is_compatible_with(np.array(batch_observations).shape), \
-    #         "Obs: {} != {}".format(self.observation_ph.shape, np.array(batch_observations).shape)
+    #     assert self.obs_t_ph.shape.is_compatible_with(np.array(batch_observations).shape), \
+    #         "Obs: {} != {}".format(self.obs_t_ph.shape, np.array(batch_observations).shape)
     #     assert self.action_ph.shape.is_compatible_with(np.array(batch_actions).shape), \
     #         "Act: {} != {}".format(self.action_ph.shape, np.array(batch_actions).shape)
     #     assert self.Q_values_ph.shape.is_compatible_with(np.array(batch_Q_values).shape), \

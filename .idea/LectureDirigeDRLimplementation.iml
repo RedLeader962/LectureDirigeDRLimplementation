@@ -10,9 +10,6 @@
     <orderEntry type="jdk" jdkName="Python 3.7 (TF114_Gym_Ray_Python37)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
-  <component name="PyDocumentationSettings">
-    <option name="renderExternalDocumentation" value="true" />
-  </component>
   <component name="TemplatesService">
     <option name="TEMPLATE_FOLDERS">
       <list>
@@ -21,7 +18,6 @@
     </option>
   </component>
   <component name="TestRunnerService">
-    <option name="projectConfiguration" value="pytest" />
     <option name="PROJECT_TEST_RUNNER" value="pytest" />
   </component>
 </module>

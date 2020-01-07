@@ -9,7 +9,7 @@ import tensorflow as tf
 
 tf_cv1 = tf.compat.v1  # shortcut
 
-from blocAndTools.buildingbloc import GymPlayground, ExperimentSpec
+from blocAndTools.buildingbloc import GymPlayground, ExperimentSpec, data_container_class_representation
 
 
 class TimestepSample:
@@ -31,15 +31,20 @@ class TimestepSample:
         self.obs_t_prime = obs_t_prime
         self.rew_t = rew_t
         self.done_t = done_t
-    
+
+
     def __repr__(self):
-        myRep = "\n::TimestepSample/\n"
-        myRep += ".obs_t=\n{}\n\n".format(self.obs_t)
-        myRep += ".act_t=\n{}\n\n".format(self.act_t)
-        myRep += ".obs_t_prime=\n{}\n\n".format(self.obs_t_prime)
-        myRep += ".rew_t=\n{}\n\n".format(self.rew_t)
-        myRep += ".done_t=\n{}\n\n".format(self.done_t)
+        myRep = data_container_class_representation(self, class_name='TimestepSample')
         return myRep
+
+    # def __repr__(self):
+    #     myRep = "\n::TimestepSample/\n"
+    #     myRep += ".obs_t=\n{}\n\n".format(self.obs_t)
+    #     myRep += ".act_t=\n{}\n\n".format(self.act_t)
+    #     myRep += ".obs_t_prime=\n{}\n\n".format(self.obs_t_prime)
+    #     myRep += ".rew_t=\n{}\n\n".format(self.rew_t)
+    #     myRep += ".done_t=\n{}\n\n".format(self.done_t)
+    #     return myRep
 
 
 class SampleBatch:
@@ -61,21 +66,27 @@ class SampleBatch:
         self.obs_t_prime[key] = value.obs_t_prime
         self.rew_t[key] = value.rew_t
         self.done_t[key] = value.done_t
-    
+
+
     def swap_with_selected_sample(self, samples: List[TimestepSample, ...]):
         assert len(samples) == self._BATCH_SIZE
         for i, v in enumerate(samples):
             self.__setitem__(i, v)
         return self
-    
+
+
     def __repr__(self):
-        myRep = "\n::SampleBatch/\n"
-        myRep += ".obs_t=\n{}\n\n".format(self.obs_t)
-        myRep += ".act_t=\n{}\n\n".format(self.act_t)
-        myRep += ".obs_t_prime=\n{}\n\n".format(self.obs_t_prime)
-        myRep += ".rew_t=\n{}\n\n".format(self.rew_t)
-        myRep += ".done_t=\n{}\n\n".format(self.done_t)
+        myRep = data_container_class_representation(self, class_name='SampleBatch')
         return myRep
+
+    # def __repr__(self):
+    #     myRep = "\n::SampleBatch/\n"
+    #     myRep += ".obs_t=\n{}\n\n".format(self.obs_t)
+    #     myRep += ".act_t=\n{}\n\n".format(self.act_t)
+    #     myRep += ".obs_t_prime=\n{}\n\n".format(self.obs_t_prime)
+    #     myRep += ".rew_t=\n{}\n\n".format(self.rew_t)
+    #     myRep += ".done_t=\n{}\n\n".format(self.done_t)
+    #     return myRep
 
 
 class TrajectoriesPool(object):

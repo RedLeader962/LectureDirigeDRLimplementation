@@ -80,14 +80,16 @@ def build_gaussian_policy_graph(observation_placeholder: tf.Tensor, experiment_s
             
             """ ---- Build parameter PHI as a multilayer perceptron ---- """
             phi_mlp = build_MLP_computation_graph(observation_placeholder, playground.ACTION_CHOICES,
-                                                  experiment_spec.phi_nn_h_layer_topo,
-                                                  hidden_layers_activation=experiment_spec.phi_hidden_layers_activation,
-                                                  output_layers_activation=experiment_spec.phi_output_layers_activation,
+                                                  experiment_spec['phi_nn_h_layer_topo'],
+                                                  hidden_layers_activation=experiment_spec[
+                                                      'phi_hidden_layers_activation'],
+                                                  output_layers_activation=experiment_spec[
+                                                      'phi_output_layers_activation'],
                                                   name=vocab.policy_phi)
             
             policy_mu = tf_cv1.layers.dense(phi_mlp,
                                             playground.ACTION_CHOICES,
-                                            activation=experiment_spec.phi_output_layers_activation,
+                                            activation=experiment_spec['phi_output_layers_activation'],
                                             name=vocab.policy_phi + '/' + vocab.policy_mu)
             
             policy_log_std = tf_cv1.layers.dense(phi_mlp,
@@ -126,15 +128,15 @@ def build_critic_graph_v_psi(obs_t_ph: tf.Tensor, obs_t_prime_ph: tf.Tensor, exp
     
     with tf.name_scope(vocab.critic_network):
         """ ---- Build parameter '_psi' as a multilayer perceptron ---- """
-        v_psi = build_MLP_computation_graph(obs_t_ph, 1, exp_spec.psi_nn_h_layer_topo,
-                                            hidden_layers_activation=exp_spec.psi_hidden_layers_activation,
-                                            output_layers_activation=exp_spec.psi_output_layers_activation,
+        v_psi = build_MLP_computation_graph(obs_t_ph, 1, exp_spec['psi_nn_h_layer_topo'],
+                                            hidden_layers_activation=exp_spec['psi_hidden_layers_activation'],
+                                            output_layers_activation=exp_spec['psi_output_layers_activation'],
                                             name=vocab.V_psi)
-        
+    
         """ ---- Build frozen parameter '_psi' as a multilayer perceptron ---- """
-        v_psi_frozen = build_MLP_computation_graph(obs_t_prime_ph, 1, exp_spec.psi_nn_h_layer_topo,
-                                                   hidden_layers_activation=exp_spec.psi_hidden_layers_activation,
-                                                   output_layers_activation=exp_spec.psi_output_layers_activation,
+        v_psi_frozen = build_MLP_computation_graph(obs_t_prime_ph, 1, exp_spec['psi_nn_h_layer_topo'],
+                                                   hidden_layers_activation=exp_spec['psi_hidden_layers_activation'],
+                                                   output_layers_activation=exp_spec['psi_output_layers_activation'],
                                                    name=vocab.V_psi_frozen)
     return v_psi, v_psi_frozen
 
@@ -174,20 +176,20 @@ def actor_train(sampled_action_log_likelihood: tf_cv1.Tensor, q_theta_1: tf_cv1.
         input:
         output:
 
-    note: ExperimentSpec.temperature (hparam hp_alpha)
+    note: ExperimentSpec.temperature (hparam alpha)
       |    Control the trade-off between exploration-exploitation
-      |    We recover a standard maximum expected return objectiv as hp_alpha --> 0
+      |    We recover the standard maximum expected return objective (the Q-fct) as alpha --> 0
 
     :return: actor_kl_loss, actor_policy_optimizer_op
     """
     
-    hp_alpha = experiment_spec.temperature
+    alpha = experiment_spec['temperature']
     
     min_q_theta = tf_cv1.minimum(q_theta_1, q_theta_2)
     
     with tf_cv1.name_scope(vocab.policy_training):
         """ ---- Build the Kullback-Leibler divergence loss function ---- """
-        actor_kl_loss = tf_cv1.reduce_mean(hp_alpha * sampled_action_log_likelihood - min_q_theta,
+        actor_kl_loss = tf_cv1.reduce_mean(alpha * sampled_action_log_likelihood - min_q_theta,
                                            name=vocab.actor_kl_loss)
         
         """ ---- Actor optimizer & learning rate scheduler ---- """
@@ -210,17 +212,17 @@ def critic_v_psi_train(v_psi: tf_cv1.Tensor, v_psi_frozen: tf_cv1.Tensor,
                        experiment_spec: ExperimentSpec) -> Tuple[tf_cv1.Tensor, tf_cv1.Operation, tf_cv1.Operation]:
     """
     Critic v_psi loss
-                input: the target y (either Monte Carlo target or Bootstraped estimate target)
+                input:
                 output: the Mean Squared Error (MSE)
 
     :return: v_loss, v_psi_optimizer, v_psi_frozen_update_ops
     """
-    hp_alpha = experiment_spec.temperature
-    hp_update_rate = experiment_spec.target_update_rate
+    alpha = experiment_spec['temperature']
+    tau = experiment_spec['target_smoothing_coefficient']
     
     min_q_theta = tf_cv1.minimum(q_theta_1, q_theta_2)
     
-    v_psi_target = tf_cv1.stop_gradient(min_q_theta - hp_alpha * sampled_action_log_likelihood)
+    v_psi_target = tf_cv1.stop_gradient(min_q_theta - alpha * sampled_action_log_likelihood)
     
     with tf_cv1.name_scope(vocab.critic_training):
         """ ---- Build the Mean Square Error loss function ---- """
@@ -236,7 +238,7 @@ def critic_v_psi_train(v_psi: tf_cv1.Tensor, v_psi_frozen: tf_cv1.Tensor,
                                                                 global_step=critic_global_grad_step)
     
     v_psi_frozen_update_ops = tf_cv1.assign(v_psi_frozen,
-                                            hp_update_rate * v_psi + (1 - hp_update_rate) * v_psi_frozen,
+                                            tau * v_psi + (1 - tau) * v_psi_frozen,
                                             name=vocab.v_psi_frozen_update_ops)
     
     return v_loss, v_psi_optimizer, v_psi_frozen_update_ops
