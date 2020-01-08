@@ -24,6 +24,8 @@ Metric recommandation from OpenAI SpiningUp:
 class EpochMetricLogger:
     trjs_return: List[float] = list
     trjs_lenght: List[float] = list
+    eval_trjs_return: List[float] = list
+    eval_trjs_lenght: List[float] = list
     v_loss: List[float] = list
     q1_loss: List[float] = list
     q2_loss: List[float] = list
@@ -36,20 +38,27 @@ class EpochMetricLogger:
     q2_values: List[float] = list
     _epoch_id: int = None
     _trj_collected: int = 0
-    
+    _eval_trj_collected: int = 0
+
     def append_trajectory_metric(self, trj_return, trj_lenght) -> None:
         self.trjs_return.append(trj_return)
         self.trjs_lenght.append(trj_lenght)
         self._trj_collected += 1
         return None
-    
+
+    def append_eval_trj_metric(self, eval_trj_return, eval_trj_lenght) -> None:
+        self.eval_trjs_return.append(eval_trj_return)
+        self.eval_trjs_lenght.append(eval_trj_lenght)
+        self._eval_trj_collected += 1
+        return None
+
     def append_loss(self, critic_v_loss, critic_q1_loss, critic_q2_loss, actor_kl_loss) -> None:
         self.v_loss.append(critic_v_loss)
         self.q1_loss.append(critic_q1_loss)
         self.q2_loss.append(critic_q2_loss)
         self.pi_loss.append(actor_kl_loss)
         return None
-    
+
     def append_policy_metric(self, pi_log_likelihood, policy_pi, policy_mu) -> None:
         self.pi_log_likelihood.append(pi_log_likelihood)
         self.policy_pi.append(policy_pi)
@@ -69,27 +78,35 @@ class EpochMetricLogger:
         self.append_policy_metric(pi_log_likelihood, policy_pi, policy_mu)
         self.append_approximator_values(v_value, q1_value, q2_value)
         return None
-    
+
     @property
-    def total_timestep_colected(self):
+    def total_training_timestep_collected(self):
         return np.asarray(self.trjs_lenght).sum()
-    
+
     @property
     def mean_trjs_return(self):
         return np.asarray(self.trjs_return).mean()
-    
+
     @property
     def mean_trjs_lenght(self):
-        return np.asarray(self.trjs_lenght).mean()
-    
+        return np.asarray(self.trjs_lenght).mean() \
+ \
+    @property
+    def mean_eval_trjs_return(self):
+        return np.asarray(self.eval_trjs_return).mean()
+
+    @property
+    def mean_eval_trjs_lenght(self):
+        return np.asarray(self.eval_trjs_lenght).mean()
+
     @property
     def mean_v_loss(self):
         return np.asarray(self.v_loss).mean()
-    
+
     @property
     def mean_q1_loss(self):
         return np.asarray(self.q1_loss).mean()
-    
+
     @property
     def mean_q2_loss(self):
         return np.asarray(self.q2_loss).mean()
@@ -121,9 +138,9 @@ class EpochMetricLogger:
     @property
     def mean_q2_values(self):
         return np.asarray(self.q2_values).mean()
-    
+
     @property
-    def trajectory_collected(self):
+    def nb_trj_collected(self):
         return self._trj_collected
     
     def new_epoch(self, epoch_id):
@@ -133,6 +150,8 @@ class EpochMetricLogger:
     def reset(self):
         self.trjs_return.clear()
         self.trjs_lenght.clear()
+        self.eval_trjs_return.clear()
+        self.eval_trjs_lenght.clear()
         self.v_loss.clear()
         self.q1_loss.clear()
         self.q2_loss.clear()
@@ -145,3 +164,4 @@ class EpochMetricLogger:
         self.q2_values.clear()
         self._epoch_id = None
         self._trj_collected = 0
+        self._eval_trj_collected = 0

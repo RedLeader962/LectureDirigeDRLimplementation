@@ -147,15 +147,17 @@ class Agent(object, metaclass=ABCMeta):
             # note: Check my past implementation as ref
             #   |       - Store: Deep_RL/DQN/DQN_OpenAI_Baseline/FalconX_env/train_2_DQN_OpenAi_baseline_FalconX.py
             #   |       - Load: Deep_RL/DQN/DQN_OpenAI_Baseline/FalconX_env/enjoy_2_DQN_OpenAI_baseline_FalconX.py
-            # Loading code:
-            #    import ast
-            #    try:
-            #        config = None
-            #        with open("{}/{}/config.txt".format(EXPERIMENT_ROOT, run_directory), "r") as f:
-            #            s = f.readline()
-            #            config = ast.literal_eval(s)
-            #    except IOError as e:
-            #        raise IOError("The config file cannot be found in the run directory!") from e
+            #
+            #   Loading code::
+            #   ''' import ast
+            #          try:
+            #              config = None
+            #              with open("{}/{}/config.txt".format(EXPERIMENT_ROOT, run_directory), "r") as f:
+            #                  s = f.readline()
+            #                  config = ast.literal_eval(s)
+            #          except IOError as e:
+            #              raise IOError("The config file cannot be found in the run directory!") from e
+            #   '''
 
             self.load_selected_trained_agent(sess, run_name)
 
@@ -183,7 +185,7 @@ class Agent(object, metaclass=ABCMeta):
                         self.playground.env.render()
     
                     """ ---- Agent: act in the environment ---- """
-                    act_t = self.select_action_given_policy(sess, obs)
+                    act_t = self._select_action_given_policy(sess, obs)
                     obs_prime, reward, done, _ = self.playground.env.step(act_t)
 
                     obs = obs_prime  # <-- (!)
@@ -196,7 +198,7 @@ class Agent(object, metaclass=ABCMeta):
 
             print("END")
 
-    def select_action_given_policy(self, sess: tf_cv1.Session, obs_t: Any, **kwargs):
+    def _select_action_given_policy(self, sess: tf_cv1.Session, obs_t: Any, **kwargs):
         obs_t_flat = bloc.format_single_step_observation(obs_t)
         act_t = sess.run(self.policy_pi,
                          feed_dict={self.obs_t_ph: obs_t_flat})

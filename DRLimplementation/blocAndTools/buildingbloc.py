@@ -1,7 +1,6 @@
 # coding=utf-8
-from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Union, Tuple, Type
+from typing import Any, Union, Tuple
 import gym
 from gym.wrappers import TimeLimit
 import tensorflow as tf
@@ -635,46 +634,3 @@ def he_initialization(input_op: tf.Tensor, nb_of_neuron: int, seed=None) -> tf.T
     stddev = 2 / np.sqrt(nb_of_input_unit + nb_of_neuron)
     initialized_tensor = tf.truncated_normal((nb_of_input_unit, nb_of_neuron), stddev=stddev, seed=seed)
     return initialized_tensor
-
-
-class DiscreteTimeCounter(object):
-    """ A discrete time counter """
-    
-    def __init__(self):
-        self._local_step_idx = 0
-        self._global_step_idx = 0
-    
-    """ ---- Global & local ---- """
-    
-    def local_and_global_step(self) -> None:
-        self._global_step_idx += 1
-        self._local_step_idx += 1
-        return None
-    
-    """ ---- Global step ---- """
-    
-    def global_step(self) -> None:
-        self._global_step_idx += 1
-        return None
-    
-    def reset_global_count(self) -> None:
-        self._global_step_idx = 0
-        return None
-    
-    @property
-    def global_count(self):
-        return self._global_step_idx
-    
-    """ ---- Local step ---- """
-    
-    def local_step(self) -> None:
-        self._local_step_idx += 1
-        return None
-    
-    def reset_local_count(self) -> None:
-        self._local_step_idx = 0
-        return None
-    
-    @property
-    def local_count(self):
-        return self._local_step_idx
