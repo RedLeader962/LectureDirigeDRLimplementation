@@ -15,9 +15,9 @@ from SoftActorCritic.SoftActorCriticBrain import (
     )
 from blocAndTools import ConsolPrintLearningStats, buildingbloc as bloc
 from blocAndTools.agent import Agent
-from blocAndTools.container.basic_trajectory_logger import BasicTrajectoryLogger
-from blocAndTools.container.discrete_time_counter import DiscreteTimeCounter
-from blocAndTools.container.epoch_metric_logger import EpochMetricLogger
+from blocAndTools.logger.basic_trajectory_logger import BasicTrajectoryLogger
+from blocAndTools.discrete_time_counter import DiscreteTimestepCounter
+from blocAndTools.logger.epoch_metric_logger import EpochMetricLogger
 from blocAndTools.container.trajectories_pool import PoolManager
 from blocAndTools.rl_vocabulary import rl_name
 
@@ -188,9 +188,9 @@ class SoftActorCriticAgent(Agent):
         :param render_env:
         :yield: (epoch, epoch_loss, stage_stochas_pi_mean_trjs_return, stage_average_trjs_lenght)
         """
-        
+
         self.pool_manager = self._instantiate_data_collector()
-        timecounter = DiscreteTimeCounter()
+        timecounter = DiscreteTimestepCounter()
         self.epoch_metric_logger = EpochMetricLogger()
         
         # (Priority) todo:implement --> agent evaluation functionality:
@@ -375,28 +375,27 @@ class SoftActorCriticAgent(Agent):
         :return: None
         """
         trajectory_logger = BasicTrajectoryLogger()
-    
+
         print(":: Agent evaluation >>> LOCK & LOAD\n"
               "           ↳ Execute {} run\n           ↳ Test run={}".format(max_trajectories,
                                                                              self.exp_spec.isTestRun))
-    
-        print(":: Running agent >>> ", end=" ", flush=True)
+
+        print(":: Running agent evaluation>>> ", end=" ", flush=True)
+
         for run in range(max_trajectories):
             print(run + 1, end=" ", flush=True)
-        
-            obs_t = self.evaluation_playground.env.reset()  # fetch initial observation
-        
+            observation = self.evaluation_playground.env.reset()  # fetch initial observation
+    
             """ ---- Simulator: time-steps ---- """
             while True:
-                act_t = self._select_action_given_policy(sess, obs_t, deterministic=True)
-                obs_t_prime, rew_t, done, _ = self.evaluation_playground.env.step(act_t)
-            
-                trajectory_logger.push(rew_t)
-            
-                obs_t = obs_t_prime
-
+                act_t = self._select_action_given_policy(sess, observation, deterministic=True)
+                observation, reward, done, _ = self.evaluation_playground.env.step(act_t)
+        
+                trajectory_logger.push(reward)
+        
                 if done:
                     self.epoch_metric_logger.append_agent_eval_trj_metric(trajectory_logger.the_return,
                                                                           trajectory_logger.lenght)
+                    trajectory_logger.reset()
                     break
         return None

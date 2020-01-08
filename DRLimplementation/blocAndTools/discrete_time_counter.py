@@ -1,6 +1,6 @@
 # coding=utf-8
 
-class DiscreteTimeCounter(object):
+class DiscreteTimestepCounter(object):
     """
     A time step counter for tracking discrete time evolution
     2 level: GLOBAL timestep & LOCAL timestep

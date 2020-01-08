@@ -3,8 +3,15 @@
 import sys
 import os
 
+from SoftActorCritic.SoftActorCriticAgent import SoftActorCriticAgent
+from SoftActorCritic.SoftActorCriticBrain import (
+    apply_action_bound, build_gaussian_policy_graph,
+    build_critic_graph_q_theta, build_critic_graph_v_psi,
+    actor_train, critic_q_theta_train, critic_v_psi_train,
+    )
 
 name = "SoftActorCritic"
+
 
 def solve_PYTHONPATH():
     """Solve: broken import path problem occuring when script are invocated from command line
