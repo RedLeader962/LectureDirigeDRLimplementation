@@ -1,5 +1,6 @@
 # coding=utf-8
 from abc import ABCMeta, abstractmethod
+from typing import Any
 
 import tensorflow as tf
 import tensorflow.python.util.deprecation as deprecation
@@ -35,13 +36,13 @@ class Agent(object, metaclass=ABCMeta):
         """ ---- Init computation graph ---- """
         # required placeholder for Agent.play() methode
         self.obs_t_ph = None
-        self.policy_action_sampler = None
+        self.policy_pi = None
 
         self._build_computation_graph()
 
         not_implemented_msg = "must be set by _build_computation_graph()"
         assert self.obs_t_ph is not None, "self.obs_t_ph {}".format(not_implemented_msg)
-        assert self.policy_action_sampler is not None, "self.policy_action_sampler {}".format(not_implemented_msg)
+        assert self.policy_pi is not None, "self.policy_pi {}".format(not_implemented_msg)
 
         """ ---- Setup parameters saving ---- """
         self.saver = tf_cv1.train.Saver()
@@ -59,7 +60,7 @@ class Agent(object, metaclass=ABCMeta):
 
         Must implement property:
                 self.obs_t_ph
-                self.policy_action_sampler
+                self.policy_pi
         they are required for Agent.play() methode
 
         """
@@ -184,9 +185,9 @@ class Agent(object, metaclass=ABCMeta):
                     """ ---- Agent: act in the environment ---- """
                     act_t = self.select_action_given_policy(sess, obs)
                     obs_prime, reward, done, _ = self.playground.env.step(act_t)
-    
+
                     obs = obs_prime  # <-- (!)
-    
+
                     if done:
                         break
 
@@ -195,14 +196,12 @@ class Agent(object, metaclass=ABCMeta):
 
             print("END")
 
-
-    def select_action_given_policy(self, sess, obs, **kwargs):
-        obs_t_flat = bloc.format_single_step_observation(obs)
-        act_t = sess.run(self.policy_action_sampler,
+    def select_action_given_policy(self, sess: tf_cv1.Session, obs_t: Any, **kwargs):
+        obs_t_flat = bloc.format_single_step_observation(obs_t)
+        act_t = sess.run(self.policy_pi,
                          feed_dict={self.obs_t_ph: obs_t_flat})
         act_t = bloc.to_scalar(act_t)
         return act_t
-
 
     def load_selected_trained_agent(self, sess: tf_cv1.Session, run_name: str):
         # (nice to have) todo:implement --> capability to load the last trained agent:

@@ -12,10 +12,11 @@ from blocAndTools.rl_vocabulary import rl_name
 
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 vocab = rl_name()
-tf_cv1 = tf.compat.v1   # shortcut
+tf_cv1 = tf.compat.v1  # shortcut
 
 
 class ExperimentSpec:
+    
     def __init__(self, algo_name=None, comment=None, batch_size_in_ts=5000, max_epoch=2, discout_factor=0.99,
                  learning_rate=1e-2, theta_nn_hidden_layer_topology: tuple = (32, 32), random_seed=0,
                  discounted_reward_to_go=True, environment_name='CartPole-v1', expected_reward_goal=None,
@@ -59,21 +60,21 @@ class ExperimentSpec:
         self.print_metric_every_what_epoch = print_metric_every_what_epoch
 
         self._assert_param()
-
+    
     def _assert_param(self):
-
+        
         if isinstance(self.discout_factor, list):
             for each in self.discout_factor:
                 assert (0 <= each) and (each <= 1)
         else:
             assert (0 <= self.discout_factor) and (self.discout_factor <= 1)
-
+        
         if isinstance(self.theta_nn_h_layer_topo, list):
             for each in self.theta_nn_h_layer_topo:
                 assert isinstance(each, tuple)
         else:
             assert isinstance(self.theta_nn_h_layer_topo, tuple)
-
+    
     def __getitem__(self, item: str):
         """
         Use ExperimentSpecification instance like a dictionary
@@ -90,7 +91,7 @@ class ExperimentSpec:
         :return: the specification value
         """
         return self.__dict__[item]
-
+    
     def set_experiment_spec(self, dict_param: dict, print_change=True) -> None:
         """
         Change any spec value and/or append aditional spec with value
@@ -110,12 +111,12 @@ class ExperimentSpec:
             print("\n\n:: Switching to parameter: {}\n".format(self.paramameter_set_name))
             print(self.__repr__())
         return None
-
+    
     def __repr__(self):
         class_name = "ExperimentSpec"
         repr_str = data_container_class_representation(self, class_name, space_from_margin=3)
         return repr_str
-
+    
     def get_agent_training_spec(self):
         """
         Utility fct: Return specification related to the agent training
@@ -126,12 +127,12 @@ class ExperimentSpec:
         # (Ice-Boxed) todo:assessment --> is it still usefull?: remove if not
         return {
             'batch_size_in_ts': self.batch_size_in_ts,
-            'max_epoch': self.max_epoch,
-            'discout_factor': self.discout_factor,
-            'learning_rate': self.learning_rate,
-            'isTestRun': self.isTestRun
-        }
-
+            'max_epoch':        self.max_epoch,
+            'discout_factor':   self.discout_factor,
+            'learning_rate':    self.learning_rate,
+            'isTestRun':        self.isTestRun
+            }
+    
     def get_neural_net_spec(self):
         """
         Utility fct: Return the specification related to the neural net construction
@@ -139,11 +140,12 @@ class ExperimentSpec:
         """
         # (Ice-Boxed) todo:assessment --> is it still usefull?: remove if not
         return {
-            'theta_nn_h_layer_topo': self.theta_nn_h_layer_topo,
-            'random_seed': self.random_seed,
+            'theta_nn_h_layer_topo':          self.theta_nn_h_layer_topo,
+            'random_seed':                    self.random_seed,
             'theta_hidden_layers_activation': self.theta_hidden_layers_activation,
             'theta_output_layers_activation': self.theta_output_layers_activation,
             }
+
 
 def data_container_class_representation(class_instance, class_name: str, space_from_margin=0) -> str:
     """
@@ -170,7 +172,9 @@ def data_container_class_representation(class_instance, class_name: str, space_f
     repr_str += m_sp + "}"
     return repr_str
 
+
 class GymPlayground(object):
+    
     def __init__(self, environment_name='LunarLanderContinuous-v2', print_env_info=False):
         """
         Setup the learning playground for the agent (the environment in witch he will play) and gather relevant spec
@@ -254,22 +258,19 @@ class GymPlayground(object):
         #         action_space_doc=action_space_doc)
         #     else:
         #         info_str += env_spec_pretty_printing.environnement_doc_str(self._env)
-        #
-        #     print(info_str)
 
-
+        print(info_str)
+    
     def _make_gym_env(self):
         try:
             return gym.make(self.ENVIRONMENT_NAME)
         except gym.error.Error as e:
             raise gym.error.Error("GymPlayground did not find the specified Gym environment.") from e
-
-
+    
     @property
     def env(self) -> Union[TimeLimit, Any]:
         return self._env
-
-
+    
     def get_environment_spec(self):
         """
         Return specification related to the gym environment
@@ -336,13 +337,14 @@ def continuous_space_placeholder(space: gym.spaces.Box, shape_constraint: tuple 
     return tf_cv1.placeholder(dtype=tf.float32, shape=shape, name=name)
 
 
-def discrete_space_placeholder(space: gym.spaces.Discrete, shape_constraint: tuple = None, dtype=tf.int32, name=None) -> tf.Tensor:
+def discrete_space_placeholder(space: gym.spaces.Discrete, shape_constraint: tuple = None, dtype=tf.int32,
+                               name=None) -> tf.Tensor:
     assert isinstance(space, gym.spaces.Discrete), "{}".format(space)
     if shape_constraint is not None:
         shape = (*shape_constraint,)
     else:
         shape = (None,)
-
+    
     return tf_cv1.placeholder(dtype=dtype, shape=shape, name=name)
 
 
@@ -371,10 +373,10 @@ def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground, obs_sh
 
     if isinstance(playground.env.action_space, gym.spaces.Box):
         """action space is continuous"""
-        act_ph = continuous_space_placeholder(playground.ACTION_SPACE, action_shape_constraint,name=vocab.act_ph)
+        act_ph = continuous_space_placeholder(playground.ACTION_SPACE, action_shape_constraint, name=vocab.act_ph)
     elif isinstance(playground.env.action_space, gym.spaces.Discrete):
         """action space is discrete"""
-        act_ph = discrete_space_placeholder(playground.ACTION_SPACE, action_shape_constraint,name=vocab.act_ph)
+        act_ph = discrete_space_placeholder(playground.ACTION_SPACE, action_shape_constraint, name=vocab.act_ph)
     else:
         raise NotImplementedError
 
@@ -388,7 +390,8 @@ def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground, obs_sh
     return obs_ph, act_ph, Q_values_ph
 
 
-def policy_theta_discrete_space(logits_layer: tf.Tensor, playground: GymPlayground, name=vocab.policy_theta_D) -> (tf.Tensor, tf.Tensor):
+def policy_theta_discrete_space(logits_layer: tf.Tensor, playground: GymPlayground, name=vocab.policy_theta_D) -> (
+        tf.Tensor, tf.Tensor):
     """Policy theta for discrete space --> actions are sampled from a categorical distribution
 
     :param logits_layer:
@@ -403,21 +406,22 @@ def policy_theta_discrete_space(logits_layer: tf.Tensor, playground: GymPlaygrou
     assert isinstance(playground.env.action_space, gym.spaces.Discrete)
     assert isinstance(logits_layer, tf.Tensor)
     assert logits_layer.shape.as_list()[-1] == playground.ACTION_CHOICES
-
+    
     with tf.name_scope(name=name) as scope:
         # convert the logits layer (aka: raw output) to probabilities
         log_p_all = tf.nn.log_softmax(logits_layer)
         oversize_policy_theta = tf.random.categorical(logits_layer, num_samples=1)
-
-        # Remove single-dimensional entries from the shape of the array since we only take one sample from the distribution
+        
+        # Remove single-dimensional entries from the shape of the array since we only take one sample from the
+        # distribution
         sampled_action = tf.squeeze(oversize_policy_theta, axis=1, )
-
+        
         # (Ice-Boxed) todo:implement --> sampled_action_log_probability unit test:
         # # Compute the log probabilitie from sampled action
         # sampled_action_mask = tf.one_hot(sampled_action, depth=playground.ACTION_CHOICES)
         # log_probabilities_matrix = tf.multiply(sampled_action_mask, log_p_all)
         # sampled_action_log_probability = tf.reduce_sum(log_probabilities_matrix, axis=1)
-
+        
         return sampled_action, log_p_all
 
 
@@ -434,8 +438,8 @@ def policy_theta_continuous_space(logits_layer: tf.Tensor, playground: GymPlaygr
     with tf.name_scope(name=name) as scope:
         # convert the logits layer (aka: raw output) to probabilities
         logits_layer = tf.identity(logits_layer, name='mu')
-
-        raise NotImplementedError   # todo: implement
+    
+        raise NotImplementedError  # todo: implement
         # log_standard_deviation = NotImplemented  # (!) todo
         # standard_deviation = NotImplemented  # (!) todo --> compute standard_deviation
         # logit_layer_shape = tf.shape(logits_layer)
@@ -449,7 +453,6 @@ def discrete_pseudo_loss(log_p_all, action_placeholder: tf.Tensor, Q_values_plac
     Pseudo loss for discrete action space
     """
     with tf.name_scope(name) as scope:
-
         # Step 1: Compute the log probabilitie of the current policy over the action space
         action_mask = tf.one_hot(action_placeholder, playground.ACTION_CHOICES)
         log_probabilities_matrix = tf.multiply(action_mask, log_p_all)
@@ -465,11 +468,13 @@ def discrete_pseudo_loss(log_p_all, action_placeholder: tf.Tensor, Q_values_plac
         return pseudo_loss
 
 
-def policy_optimizer(pseudo_loss: tf.Tensor, learning_rate: list or tf_cv1.Tensor, global_gradient_step=None, name=vocab.policy_optimizer) -> tf.Operation:
+def policy_optimizer(pseudo_loss: tf.Tensor, learning_rate: list or tf_cv1.Tensor, global_gradient_step=None,
+                     name=vocab.policy_optimizer) -> tf.Operation:
     """
     Define the optimizing methode for training the REINFORE agent
     """
-    return tf_cv1.train.AdamOptimizer(learning_rate=learning_rate).minimize(pseudo_loss, global_step=global_gradient_step, name=name)
+    return tf_cv1.train.AdamOptimizer(learning_rate=learning_rate).minimize(pseudo_loss,
+                                                                            global_step=global_gradient_step, name=name)
 
 
 def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
@@ -510,8 +515,10 @@ def format_single_step_observation(observation: np.ndarray):
     batch_size_one_observation = np.expand_dims(observation, axis=0)
     return batch_size_one_observation
 
+
 def to_scalar(action_array: np.ndarray):
     return action_array.item()
+
 
 def setup_commented_run_dir_str(exp_spec: ExperimentSpec, agent_root_dir: str) -> str:
     date_now = datetime.now()
@@ -533,10 +540,12 @@ def setup_commented_run_dir_str(exp_spec: ExperimentSpec, agent_root_dir: str) -
         exp_str = "Exp-{}-{}".format(tag, cleaned_comment)
         runs_dir = "{}/graph/{}".format(agent_root_dir, exp_str)
         tag_i = "{}-{}".format(tag, exp_spec.rerun_idx)
-        run_str = "Run-{}-{}-d{}h{}m{}s{}".format(tag_i, cleaned_name, date_now.day, date_now.hour, date_now.minute, date_now.second)
+        run_str = "Run-{}-{}-d{}h{}m{}s{}".format(tag_i, cleaned_name, date_now.day, date_now.hour, date_now.minute,
+                                                  date_now.second)
     else:
         runs_dir = "{}/graph".format(agent_root_dir)
-        run_str = "Run--{}-d{}h{}m{}s{}".format(cleaned_name, date_now.day, date_now.hour, date_now.minute, date_now.second)
+        run_str = "Run--{}-d{}h{}m{}s{}".format(cleaned_name, date_now.day, date_now.hour, date_now.minute,
+                                                date_now.second)
 
     run_dir = "{}/{}".format(runs_dir, run_str)
     return run_dir
@@ -592,7 +601,8 @@ def learning_rate_scheduler(max_gradient_step_expected: int, learning_rate: floa
 
 def _gradient_step_counter_op(name=None) -> tf_cv1.Variable:
     """
-    Create a gradient step counter variable that keep track of how much training step as elapse since begining of training.
+    Create a gradient step counter variable that keep track of how much training step as elapse since begining of
+    training.
     Usage: Pass a _gradient_step_counter_op instance to a TF optimizer minimize(). It will incremente it at each update.
 
     usage:
@@ -612,7 +622,8 @@ def he_initialization(input_op: tf.Tensor, nb_of_neuron: int, seed=None) -> tf.T
             Weight = tf.get_variable(name='W', initializer=he_initialization(input_op, nb_of_neuron, seed))
             bias   = tf.get_variable(name='b', shape=(nb_of_neuron), initializer=tf.initializers.zeros)
 
-    Code from my project Study_on_Deep_Reinforcement_Learning/TensorFlow_exploration/multilayer_perceptron/LowLevel_TF_multilayer_perceptron.py
+    Code from my project Study_on_Deep_Reinforcement_Learning/TensorFlow_exploration/multilayer_perceptron
+    /LowLevel_TF_multilayer_perceptron.py
 
     ** Important: the weight random initializer choice make a big difference on the learning performance
     :param input_op: a tensorFlow operation
@@ -625,3 +636,45 @@ def he_initialization(input_op: tf.Tensor, nb_of_neuron: int, seed=None) -> tf.T
     initialized_tensor = tf.truncated_normal((nb_of_input_unit, nb_of_neuron), stddev=stddev, seed=seed)
     return initialized_tensor
 
+
+class DiscreteTimeCounter(object):
+    """ A discrete time counter """
+    
+    def __init__(self):
+        self._local_step_idx = 0
+        self._global_step_idx = 0
+    
+    """ ---- Global & local ---- """
+    
+    def local_and_global_step(self) -> None:
+        self._global_step_idx += 1
+        self._local_step_idx += 1
+        return None
+    
+    """ ---- Global step ---- """
+    
+    def global_step(self) -> None:
+        self._global_step_idx += 1
+        return None
+    
+    def reset_global_count(self) -> None:
+        self._global_step_idx = 0
+        return None
+    
+    @property
+    def global_count(self):
+        return self._global_step_idx
+    
+    """ ---- Local step ---- """
+    
+    def local_step(self) -> None:
+        self._local_step_idx += 1
+        return None
+    
+    def reset_local_count(self) -> None:
+        self._local_step_idx = 0
+        return None
+    
+    @property
+    def local_count(self):
+        return self._local_step_idx

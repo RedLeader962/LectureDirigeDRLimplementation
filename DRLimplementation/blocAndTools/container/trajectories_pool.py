@@ -1,10 +1,8 @@
 # coding=utf-8
-from typing import List, Tuple, Any, Iterable, Union
-
 import random
+from typing import List, Tuple
+
 import numpy as np
-from collections import namedtuple
-from dataclasses import dataclass
 import tensorflow as tf
 
 tf_cv1 = tf.compat.v1  # shortcut
@@ -32,10 +30,9 @@ class TimestepSample:
         self.rew_t = rew_t
         self.done_t = done_t
 
-
     def __repr__(self):
-        myRep = data_container_class_representation(self, class_name='TimestepSample')
-        return myRep
+        my_rep = data_container_class_representation(self, class_name='TimestepSample')
+        return my_rep
 
     # def __repr__(self):
     #     myRep = "\n::TimestepSample/\n"
@@ -74,10 +71,9 @@ class SampleBatch:
             self.__setitem__(i, v)
         return self
 
-
     def __repr__(self):
-        myRep = data_container_class_representation(self, class_name='SampleBatch')
-        return myRep
+        my_rep = data_container_class_representation(self, class_name='SampleBatch')
+        return my_rep
 
     # def __repr__(self):
     #     myRep = "\n::SampleBatch/\n"
@@ -132,7 +128,7 @@ class TrajectoriesPool(object):
 
 class PoolManager(object):
     def __init__(self, exp_spec: ExperimentSpec, playground: GymPlayground):
-        self._trajectories_pool = TrajectoriesPool(exp_spec.pool_capacity, exp_spec.batch_size_in_ts, playground)
+        self._trajectories_pool = TrajectoriesPool(exp_spec['pool_capacity'], exp_spec.batch_size_in_ts, playground)
         self._rewards = []
         self._curent_trj_lenght = 0
         self._step_count_since_begining_of_training = 0
@@ -160,11 +156,11 @@ class PoolManager(object):
         self._curent_trj_lenght += 1
         self._step_count_since_begining_of_training += 1
         return None
-    
+
     def sample_from_pool(self) -> SampleBatch:
-        self._trajectories_pool.sample_from_pool()
-    
-    def trajectory_ended(self) -> float:
+        return self._trajectories_pool.sample_from_pool()
+
+    def trajectory_ended(self) -> Tuple[float, int]:
         """ Must be called at each trajectory end
 
         Compute:
@@ -187,3 +183,4 @@ class PoolManager(object):
         self._rewards = 0.0
         self._curent_trj_lenght = 0
         return None
+

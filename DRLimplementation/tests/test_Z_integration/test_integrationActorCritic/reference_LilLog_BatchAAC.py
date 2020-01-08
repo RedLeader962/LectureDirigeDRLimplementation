@@ -50,23 +50,33 @@ class ReferenceActorCriticAgent(Agent):
 
         # \\\\\\    My bloc    \\\\\\
         # self.Advantage_ph = tf_cv1.placeholder(tf.float32, shape=self.Qvalues_ph.shape, name=vocab.advantage_ph)
-        # # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-        # # *                                                                                                           *
-        # # *                                         Actor computation graph                                           *
-        # # *                                                                                                           *
+        # # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+        # * *
+        # # *
+        # *
+        # # *                                         Actor computation graph
+        # *
+        # # *
+        # *
         # # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
         # * *
         # actor_graph = build_actor_policy_graph(self.obs_t_ph, self.action_ph, self.Advantage_ph,
         #                                        self.exp_spec, self.playground)
-        # self.policy_action_sampler, _, self.actor_loss, self.actor_policy_optimizer = actor_graph
-        # # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-        # # *                                                                                                           *
-        # # *                                         Critic computation graph                                          *
-        # # *                                                                                                           *
-        # # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+        # self.policy_pi, _, self.actor_loss, self.actor_policy_optimizer = actor_graph
+        # # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+        # * *
+        # # *
+        # *
+        # # *                                         Critic computation graph
+        # *
+        # # *
+        # *
+        # # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+        # * *
         # """ ---- The value function estimator ---- """
         # self.V_phi_estimator, self.V_phi_loss, self.V_phi_optimizer = build_critic_graph(self.obs_t_ph,
-        #                                                                                  self.Qvalues_ph, self.exp_spec)
+        #                                                                                  self.Qvalues_ph,
+        #                                                                                  self.exp_spec)
 
         # ////// Original bloc //////
         def dense_nn(inputs, layers_sizes, name):
@@ -97,7 +107,7 @@ class ReferenceActorCriticAgent(Agent):
         actor = dense_nn(self.obs_t_ph, [32, 32, self.playground.env.action_space.n],  # ////// Original bloc //////
                          name=vocab.theta_NeuralNet)
 
-        self.policy_action_sampler = tf.squeeze(tf.multinomial(actor, 1))                            # ////// Original bloc //////
+        self.policy_pi = tf.squeeze(tf.multinomial(actor, 1))  # ////// Original bloc //////
 
         # Critic: action value (Q-value)
         self.V_phi_estimator = dense_nn(self.obs_t_ph, [32, 32, 1],  # ////// Original bloc //////
@@ -204,7 +214,7 @@ class ReferenceActorCriticAgent(Agent):
 
                         """ ---- Agent: act in the environment ---- """
                         obs_t_flat = bloc.format_single_step_observation(obs_t)
-                        action_array = sess.run(self.policy_action_sampler,
+                        action_array = sess.run(self.policy_pi,
                                                 feed_dict={self.obs_t_ph: obs_t_flat})
 
                         action = bloc.to_scalar(action_array)

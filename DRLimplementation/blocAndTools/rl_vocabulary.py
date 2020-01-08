@@ -20,7 +20,7 @@ _rl_vocab_list = [
     'Trajectory_lenght',
     'observation', 'action', 'policy', 'transition_dynamic',
     'obs_t', 'obs_tPrime',
-    'Qvalues', 'Vvalues',
+    'Qvalues', 'Vvalues', 'values',
     'reward', 'reward_to_go', 'G',
     'V_estimate', 'Advantage',
     'TD_target', 'TD_error',
@@ -41,9 +41,9 @@ _rl_vocab_list = [
     'graph_input', 'obs_ph', 'obs_t_ph', 'obs_tPrime_ph', 'trj_done_ph',
     'act_ph', 'rew_ph', 'Qvalues_ph', 'advantage_ph', 'target_ph',
     'input_layer', 'hidden_', 'output_layer', 'logits',
-    'sampled_action', 'sampled_action_log_pr', 'action_space_log_pr',
-    'policy_mu', 'policy_log_std', 'sampled_action_log_likelihood',
-    'policy_phi', 'Q_theta_1', 'Q_theta_2', 'V_psi', 'V_psi_frozen',
+    'policy_pi', 'sampled_action_log_pr', 'action_space_log_pr',
+    'policy_mu', 'policy_log_std', 'policy_pi_log_likelihood',
+    'phi', 'Q_theta_1', 'Q_theta_2', 'V_psi', 'V_psi_frozen',
     'actor_kl_loss', 'Q_theta_1_loss', 'Q_theta_2_loss', 'V_psi_loss', 'v_psi_frozen_update_ops',
     ]
 

@@ -64,8 +64,8 @@ class BatchActorCriticAgent(Agent):
             # *                                             (Split network)                                           *
             # *                                                                                                       *
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-            self.policy_action_sampler, log_pi, _ = build_actor_policy_graph(self.obs_t_ph, self.exp_spec,
-                                                                             self.playground)
+            self.policy_pi, log_pi, _ = build_actor_policy_graph(self.obs_t_ph, self.exp_spec,
+                                                                 self.playground)
 
             print(":: SPLIT network constructed")
 
@@ -75,7 +75,7 @@ class BatchActorCriticAgent(Agent):
             # *                                   Shared Actor-Critic computation graph                               *
             # *                                                                                                       *
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-            self.policy_action_sampler, log_pi, _, self.V_phi_estimator = build_actor_critic_shared_graph(
+            self.policy_pi, log_pi, _, self.V_phi_estimator = build_actor_critic_shared_graph(
                 self.obs_t_ph, self.exp_spec, self.playground)
 
             print(":: SHARED network constructed")
@@ -195,11 +195,11 @@ class BatchActorCriticAgent(Agent):
                         """ ---- Run Graph computation ---- """
                         obs_t_flat = bloc.format_single_step_observation(obs_t)
                         if self.exp_spec['Target'] is TargetType.MonteCarlo:
-                            action = sess.run(self.policy_action_sampler,
+                            action = sess.run(self.policy_pi,
                                               feed_dict={self.obs_t_ph: obs_t_flat})
                             action = bloc.to_scalar(action)
                         elif self.exp_spec['Target'] is TargetType.Bootstrap:
-                            action, V_t = sess.run([self.policy_action_sampler, self.V_phi_estimator],
+                            action, V_t = sess.run([self.policy_pi, self.V_phi_estimator],
                                                    feed_dict={self.obs_t_ph: obs_t_flat})
                             action = bloc.to_scalar(action)
                             V_t = bloc.to_scalar(V_t)

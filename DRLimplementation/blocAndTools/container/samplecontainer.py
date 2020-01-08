@@ -278,9 +278,9 @@ class UniformeBatchContainer(object):
         return None
 
     def _compute_batch_stats(self):
-        stats = BatchStats(batch_id=self.batch_id, step_collected=self.__len__(),
-                           trajectory_collected=self.trajectories_count(), batch_trjs_returns=self.batch_returns,
-                           batch_trjs_lenghts=self.batch_trjs_lenghts)
+        stats = BatchStats(batch_id=self.batch_id, batch_trjs_returns=self.batch_returns,
+                           batch_trjs_lenghts=self.batch_trjs_lenghts, trajectory_collected=self.trajectories_count(),
+                           step_collected=self.__len__())
         return stats
 
     def get_batch_stats(self) -> BatchStats:

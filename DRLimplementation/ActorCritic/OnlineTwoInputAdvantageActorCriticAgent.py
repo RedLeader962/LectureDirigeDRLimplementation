@@ -68,8 +68,8 @@ class OnlineTwoInputAdvantageActorCriticAgent(Agent):
             # *                                             (Split network)                                           *
             # *                                                                                                       *
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-            self.policy_action_sampler, log_pi, _ = build_actor_policy_graph(self.obs_t_ph, self.exp_spec,
-                                                                             self.playground)
+            self.policy_pi, log_pi, _ = build_actor_policy_graph(self.obs_t_ph, self.exp_spec,
+                                                                 self.playground)
 
             print(":: SPLIT network (two input advantage) constructed")
 
@@ -82,7 +82,7 @@ class OnlineTwoInputAdvantageActorCriticAgent(Agent):
 
             raise NotImplementedError   # todo: implement
 
-            self.policy_action_sampler, log_pi, _, self.V_phi_estimator = build_actor_critic_shared_graph(
+            self.policy_pi, log_pi, _, self.V_phi_estimator = build_actor_critic_shared_graph(
                 self.obs_t_ph, self.exp_spec, self.playground)
 
             print(":: SHARED network constructed")
@@ -213,7 +213,7 @@ class OnlineTwoInputAdvantageActorCriticAgent(Agent):
 
                         """ ---- Run Graph computation ---- """
                         obs_t_flat = bloc.format_single_step_observation(obs_t)
-                        action = self.sess.run(self.policy_action_sampler, feed_dict={self.obs_t_ph: obs_t_flat})
+                        action = self.sess.run(self.policy_pi, feed_dict={self.obs_t_ph: obs_t_flat})
 
                         action = bloc.to_scalar(action)
 

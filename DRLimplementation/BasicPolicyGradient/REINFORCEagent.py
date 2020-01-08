@@ -77,7 +77,7 @@ class REINFORCEagent(Agent):
         """ ---- The policy and is neural net theta ---- """
         reinforce_policy = REINFORCE_policy(observation_ph, action_ph, Q_values_ph, self.exp_spec, self.playground)
         (policy_action_sampler, theta_mlp, pseudo_loss) = reinforce_policy
-        self.policy_action_sampler = policy_action_sampler
+        self.policy_pi = policy_action_sampler
         self.theta_mlp = theta_mlp
         self.pseudo_loss = pseudo_loss
 
@@ -138,7 +138,7 @@ class REINFORCEagent(Agent):
 
                         """ ---- Agent: act in the environment ---- """
                         step_observation = bloc.format_single_step_observation(current_observation)
-                        action_array = sess.run(self.policy_action_sampler,
+                        action_array = sess.run(self.policy_pi,
                                                 feed_dict={self.obs_t_ph: step_observation})
 
                         action = bloc.to_scalar(action_array)
