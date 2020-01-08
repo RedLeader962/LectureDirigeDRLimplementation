@@ -266,18 +266,18 @@ class SoftActorCriticAgent(Agent):
                             consol_print_learning_stats.trajectory_training_stat(the_trajectory_return=trj_return,
                                                                                  timestep=trj_lenght)
                             break
-        
+
                 # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
                 # /// Epoch end ////////////////////////////////////////////////////////////////////////////////////////
-        
+
                 """ ---- Evaluate trainning of the agent policy ---- """
                 self._run_agent_evaluation(sess, max_trajectories=self.exp_spec['max_eval_trj'])
-        
+
                 """ ---- Simulator: epoch as ended, fetch training stats and evaluate agent ---- """
                 epoch_mean_policy_loss = self.epoch_metric_logger.mean_pi_loss
-                epoch_eval_mean_trjs_return = self.epoch_metric_logger.mean_eval_trjs_return
-                epoch_eval_mean_trjs_lenght = self.epoch_metric_logger.mean_eval_trjs_lenght
-        
+                epoch_eval_mean_trjs_return = self.epoch_metric_logger.agent_eval_mean_trjs_return
+                epoch_eval_mean_trjs_lenght = self.epoch_metric_logger.agent_eval_mean_trjs_lenght
+
                 epoch_metric = [
                     epoch_eval_mean_trjs_return,
                     epoch_eval_mean_trjs_lenght,
@@ -394,9 +394,9 @@ class SoftActorCriticAgent(Agent):
                 trajectory_logger.push(rew_t)
             
                 obs_t = obs_t_prime
-            
+
                 if done:
-                    self.epoch_metric_logger.append_eval_trj_metric(trajectory_logger.the_return,
-                                                                    trajectory_logger.lenght)
+                    self.epoch_metric_logger.append_agent_eval_trj_metric(trajectory_logger.the_return,
+                                                                          trajectory_logger.lenght)
                     break
         return None

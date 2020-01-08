@@ -24,8 +24,8 @@ Metric recommandation from OpenAI SpiningUp:
 class EpochMetricLogger:
     trjs_return: List[float] = list
     trjs_lenght: List[float] = list
-    eval_trjs_return: List[float] = list
-    eval_trjs_lenght: List[float] = list
+    agent_eval_trjs_return: List[float] = list
+    agent_eval_trjs_lenght: List[float] = list
     v_loss: List[float] = list
     q1_loss: List[float] = list
     q2_loss: List[float] = list
@@ -46,9 +46,9 @@ class EpochMetricLogger:
         self._trj_collected += 1
         return None
 
-    def append_eval_trj_metric(self, eval_trj_return, eval_trj_lenght) -> None:
-        self.eval_trjs_return.append(eval_trj_return)
-        self.eval_trjs_lenght.append(eval_trj_lenght)
+    def append_agent_eval_trj_metric(self, eval_trj_return, eval_trj_lenght) -> None:
+        self.agent_eval_trjs_return.append(eval_trj_return)
+        self.agent_eval_trjs_lenght.append(eval_trj_lenght)
         self._eval_trj_collected += 1
         return None
 
@@ -89,15 +89,15 @@ class EpochMetricLogger:
 
     @property
     def mean_trjs_lenght(self):
-        return np.asarray(self.trjs_lenght).mean() \
- \
-    @property
-    def mean_eval_trjs_return(self):
-        return np.asarray(self.eval_trjs_return).mean()
+        return np.asarray(self.trjs_lenght).mean()
 
     @property
-    def mean_eval_trjs_lenght(self):
-        return np.asarray(self.eval_trjs_lenght).mean()
+    def agent_eval_mean_trjs_return(self):
+        return np.asarray(self.agent_eval_trjs_return).mean()
+
+    @property
+    def agent_eval_mean_trjs_lenght(self):
+        return np.asarray(self.agent_eval_trjs_lenght).mean()
 
     @property
     def mean_v_loss(self):
@@ -150,8 +150,8 @@ class EpochMetricLogger:
     def reset(self):
         self.trjs_return.clear()
         self.trjs_lenght.clear()
-        self.eval_trjs_return.clear()
-        self.eval_trjs_lenght.clear()
+        self.agent_eval_trjs_return.clear()
+        self.agent_eval_trjs_lenght.clear()
         self.v_loss.clear()
         self.q1_loss.clear()
         self.q2_loss.clear()
