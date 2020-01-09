@@ -1,21 +1,5 @@
 # coding=utf-8
-"""
-  
-   .|'''.|            .'|.   .       |               .                   '   ..|'''.|          ||    .    ||
-   ||..  '    ...   .||.   .||.     |||      ....  .||.    ...   ... ..    .|'     '  ... ..  ...  .||.  ...    ....
-    ''|||.  .|  '|.  ||     ||     |  ||   .|   ''  ||   .|  '|.  ||' ''   ||          ||' ''  ||   ||    ||  .|   ''
-  .     '|| ||   ||  ||     ||    .''''|.  ||       ||   ||   ||  ||       '|.      .  ||      ||   ||    ||  ||
-  |'....|'   '|..|' .||.    '|.' .|.  .||.  '|...'  '|.'  '|..|' .||.       ''|....'  .||.    .||.  '|.' .||.  '|...'
-  
-                                        '||                       ||
-                                         || ...  ... ..   ....   ...  .. ...
-                                         ||'  ||  ||' '' '' .||   ||   ||  ||
-                                         ||    |  ||     .|' ||   ||   ||  ||
-                                         '|...'  .||.    '|..'|' .||. .||. ||.
-                                       
-                                                                                                         
-                                                                                                         +--- kban style
-"""
+
 from typing import Tuple
 
 import gym
@@ -35,6 +19,23 @@ POLICY_LOG_STD_CAP_MAX = 2
 POLICY_LOG_STD_CAP_MIN = -20
 NUM_STABILITY_CORRECTION = 1e-6
 
+"""
+
+   .|'''.|            .'|.   .       |               .                   '   ..|'''.|          ||    .    ||
+   ||..  '    ...   .||.   .||.     |||      ....  .||.    ...   ... ..    .|'     '  ... ..  ...  .||.  ...    ....
+    ''|||.  .|  '|.  ||     ||     |  ||   .|   ''  ||   .|  '|.  ||' ''   ||          ||' ''  ||   ||    ||  .|   ''
+  .     '|| ||   ||  ||     ||    .''''|.  ||       ||   ||   ||  ||       '|.      .  ||      ||   ||    ||  ||
+  |'....|'   '|..|' .||.    '|.' .|.  .||.  '|...'  '|.'  '|..|' .||.       ''|....'  .||.    .||.  '|.' .||.  '|...'
+
+                                        '||                       ||
+                                         || ...  ... ..   ....   ...  .. ...
+                                         ||'  ||  ||' '' '' .||   ||   ||  ||
+                                         ||    |  ||     .|' ||   ||   ||  ||
+                                         '|...'  .||.    '|..'|' .||. .||. ||.
+
+
+                                                                                                         +--- kban style
+"""
 
 def apply_action_bound(policy_pi: tf.Tensor, policy_pi_log_likelihood: tf.Tensor) -> Tuple[tf.Tensor, ...]:
     """
@@ -80,7 +81,7 @@ def build_gaussian_policy_graph(obs_t_ph: tf.Tensor, exp_spec: ExperimentSpec,
 
     :return: policy_pi, policy_pi_log_likelihood, policy_mu
     """
-    with tf.variable_scope(vocab.actor_network):
+    with tf_cv1.variable_scope(vocab.actor_network):
     
         # ::Discrete case
         if isinstance(playground.env.action_space, gym.spaces.Discrete):

@@ -11,7 +11,7 @@
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
     <option name="_new_keywords" value="&quot;&quot;" />
     <option name="_new_additionalArguments" value="&quot;&quot;" />
-    <option name="_new_target" value="&quot;$PROJECT_DIR$/DRLimplementation/tests/test_C_REINFORCE/test_reinforce_from_command_line.py&quot;" />
+    <option name="_new_target" value="&quot;$PROJECT_DIR$/DRLimplementation/tests/test_C_cREINFORCE/test_reinforce_from_command_line.py&quot;" />
     <option name="_new_targetType" value="&quot;PATH&quot;" />
     <method v="2" />
   </configuration>

@@ -64,8 +64,7 @@ unit_test_hparam = {
 @pytest.fixture
 def gym_and_tf_continuous_setup():
     """
-    :return: (obs_ph, act_ph, exp_spec, playground)
-    :rtype: (tf.Tensor, tf.Tensor, ExperimentSpec, GymPlayground)
+    :return: obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground
     """
     exp_spec = bloc.ExperimentSpec()
     exp_spec.set_experiment_spec(unit_test_hparam)

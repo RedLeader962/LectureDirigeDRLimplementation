@@ -1,24 +1,5 @@
 # coding=utf-8
-# """
-#
-#    .|'''.|            .'|.   .       |               .                   '   ..|'''.|          ||    .    ||
-#    ||..  '    ...   .||.   .||.     |||      ....  .||.    ...   ... ..    .|'     '  ... ..  ...  .||.  ...    ....
-#     ''|||.  .|  '|.  ||     ||     |  ||   .|   ''  ||   .|  '|.  ||' ''   ||          ||' ''  ||   ||    ||  .|   ''
-#   .     '|| ||   ||  ||     ||    .''''|.  ||       ||   ||   ||  ||       '|.      .  ||      ||   ||    ||  ||
-#   |'....|'   '|..|' .||.    '|.' .|.  .||.  '|...'  '|.'  '|..|' .||.       ''|....'  .||.    .||.  '|.' .||.  '|...'
-#
-#                                                                                  .
-#                                              ....     ... .   ....  .. ...   .||.
-#                                             '' .||   || ||  .|...||  ||  ||   ||
-#                                             .|' ||    |''   ||       ||  ||   ||
-#                                             '|..'|'  '||||.  '|...' .||. ||.  '|.'
-#                                                     .|....'
-#
-#
-#
-#                                                                                                         +--- kban
-#                                                                                                         style
-# """
+
 # region ::Import statement ...
 from __future__ import absolute_import, division, print_function, unicode_literals
 
@@ -43,9 +24,29 @@ from blocAndTools.rl_vocabulary import rl_name
 tf_cv1 = tf.compat.v1  # shortcut
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 vocab = rl_name()
-
-
 # endregion
+
+
+"""
+
+   .|'''.|            .'|.   .       |               .                   '   ..|'''.|          ||    .    ||
+   ||..  '    ...   .||.   .||.     |||      ....  .||.    ...   ... ..    .|'     '  ... ..  ...  .||.  ...    ....
+    ''|||.  .|  '|.  ||     ||     |  ||   .|   ''  ||   .|  '|.  ||' ''   ||          ||' ''  ||   ||    ||  .|   ''
+  .     '|| ||   ||  ||     ||    .''''|.  ||       ||   ||   ||  ||       '|.      .  ||      ||   ||    ||  ||
+  |'....|'   '|..|' .||.    '|.' .|.  .||.  '|...'  '|.'  '|..|' .||.       ''|....'  .||.    .||.  '|.' .||.  '|...'
+
+                                                                                 .
+                                             ....     ... .   ....  .. ...   .||.
+                                            '' .||   || ||  .|...||  ||  ||   ||
+                                            .|' ||    |''   ||       ||  ||   ||
+                                            '|..'|'  '||||.  '|...' .||. ||.  '|.'
+                                                    .|....'
+
+
+
+                                                                                                        +--- kban style
+"""
+
 
 class SoftActorCriticAgent(Agent):
     
@@ -53,10 +54,9 @@ class SoftActorCriticAgent(Agent):
         self.agent_root_dir = 'SoftActorCritic'
         return None
     
-    @property
     def _build_computation_graph(self):
         """ Build the Policy_phi, V_psi and Q_theta computation graph as multi-layer perceptron """
-
+        
         if self.exp_spec.random_seed == 0:
             print(":: Random seed control is turned OFF")
         else:

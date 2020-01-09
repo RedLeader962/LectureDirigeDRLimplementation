@@ -8,7 +8,7 @@
   |'....|'   '|..|' .||.    '|.' .|.  .||.  '|...'  '|.'  '|..|' .||.       ''|....'  .||.    .||.  '|.' .||.  '|...'
   
                                                                                                          
-                                                                                                         +--- kban style
+                                                                                                        +--- kban style
 
 
 Invoke Soft Actor-Critic agent (SAC) using

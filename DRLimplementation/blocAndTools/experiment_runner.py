@@ -162,8 +162,9 @@ def test_hparam_search_set(hparam: dict) -> Tuple[str, list] or Tuple[None, None
 
 
 def _warmup_agent_for_training(spec: ExperimentSpec, args_: Namespace) -> None:
-    agent = spec['AgentType']
-    ac_agent: Agent = agent(spec)
+    agent_class = spec['AgentType']
+    print('[Experiment runner message] :: fetched agent_class --> ', agent_class)  # todo --> remove if resolve:
+    ac_agent: Agent = agent_class(spec)
     ac_agent.train(render_env=args_.renderTraining)
     # ac_agent.__del__()
 
