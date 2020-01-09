@@ -43,8 +43,8 @@ _rl_vocab_list = [
     'input_layer', 'hidden_', 'output_layer', 'logits',
     'policy_pi', 'sampled_action_log_pr', 'action_space_log_pr',
     'policy_mu', 'policy_log_std', 'policy_pi_log_likelihood',
-    'phi', 'Q_theta_1', 'Q_theta_2', 'V_psi', 'V_psi_frozen',
-    'actor_kl_loss', 'Q_theta_1_loss', 'Q_theta_2_loss', 'V_psi_loss', 'v_psi_frozen_update_ops',
+    'phi', 'Q_theta_1', 'Q_theta_2', 'V_psi', 'frozen_V_psi',
+    'actor_kl_loss', 'Q_theta_1_loss', 'Q_theta_2_loss', 'V_psi_loss', 'frozen_V_psi_update_ops',
     ]
 
 """

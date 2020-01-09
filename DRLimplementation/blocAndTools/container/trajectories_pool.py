@@ -55,8 +55,8 @@ class SampleBatch:
         self.rew_t = [0.0 for _ in range(batch_size)]
         self.done_t = [0 for _ in range(batch_size)]
         self._BATCH_SIZE = batch_size
-    
-    def __setitem__(self, key, value):
+
+    def __setitem__(self, key, value: TimestepSample):
         assert isinstance(value, TimestepSample)
         self.obs_t[key] = value.obs_t
         self.act_t[key] = value.act_t
@@ -64,8 +64,7 @@ class SampleBatch:
         self.rew_t[key] = value.rew_t
         self.done_t[key] = value.done_t
 
-
-    def swap_with_selected_sample(self, samples: List[TimestepSample, ...]):
+    def swap_with_selected_sample(self, samples: List[TimestepSample]):
         assert len(samples) == self._BATCH_SIZE
         for i, v in enumerate(samples):
             self.__setitem__(i, v)
@@ -86,6 +85,7 @@ class SampleBatch:
 
 
 class TrajectoriesPool(object):
+    
     def __init__(self, capacity: int, batch_size: int, playground: GymPlayground):
         """
 
@@ -194,4 +194,3 @@ class PoolManager(object):
         self._rewards = 0.0
         self._curent_trj_lenght = 0
         return None
-

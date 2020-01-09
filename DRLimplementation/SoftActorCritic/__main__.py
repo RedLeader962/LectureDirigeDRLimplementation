@@ -41,7 +41,7 @@ Invoke Soft Actor-Critic agent (SAC) using
 Note on TensorBoard usage:
     Start TensorBoard in terminal:
         cd DRLimplementation   (!)
-        tensorboard --logdir=ActorCritic/graph
+        tensorboard --logdir=SoftActorCritic/graph
 
     In browser, go to:
         http://0.0.0.0:6006/
@@ -245,6 +245,7 @@ parser = argparse.ArgumentParser(description=(
 # parser.add_argument('--env', type=str, default='CartPole-v0')
 parser.add_argument('--trainMontainCar', action='store_true',
                     help='Train on Montain Car gym env a Soft Actor-Critic agent')
+
 parser.add_argument('--trainLunarLander', action='store_true', help='Train on LunarLander a Soft Actor-Critic agent')
 
 parser.add_argument('-rer', '--rerun', type=int, default=1,
@@ -256,9 +257,8 @@ parser.add_argument('--renderTraining', action='store_true',
 parser.add_argument('-d', '--discounted', default=None, type=bool,
                     help='(Training option) Force training execution with discounted reward-to-go')
 
-# (Priority) todo:implement --> play trained agent from command line:
-# parser.add_argument('--playLunar',  action='store_true', help='Play on LunarLander-v2 a Batch Actor-Critic agent
-# trained with Bootstrap target on a split network')
+parser.add_argument('--playLunar', action='store_true', help='Play a trained Soft Actor-Critic agent on the '
+                                                             'LunarLanderContinuous-v2 environment')
 # (Ice-box) todo:implement --> select agent hparam to play by command line:
 
 parser.add_argument('--play_for', type=int, default=10,
@@ -334,6 +334,7 @@ else:
                                                         test_hparam, rerun_nb=args.rerun)
     
     elif args.trainLunarLander:
+        raise NotImplementedError  # todo: implement
         """ ---- Harderenvironment ---- """
         hparam, key, values_search_set = run_experiment(
             SAC_LunarLander_hparam, args, test_hparam, rerun_nb=args.rerun)

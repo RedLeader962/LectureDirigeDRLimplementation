@@ -1,23 +1,24 @@
 # coding=utf-8
-"""
-  
-   .|'''.|            .'|.   .       |               .                   '   ..|'''.|          ||    .    ||
-   ||..  '    ...   .||.   .||.     |||      ....  .||.    ...   ... ..    .|'     '  ... ..  ...  .||.  ...    ....
-    ''|||.  .|  '|.  ||     ||     |  ||   .|   ''  ||   .|  '|.  ||' ''   ||          ||' ''  ||   ||    ||  .|   ''
-  .     '|| ||   ||  ||     ||    .''''|.  ||       ||   ||   ||  ||       '|.      .  ||      ||   ||    ||  ||
-  |'....|'   '|..|' .||.    '|.' .|.  .||.  '|...'  '|.'  '|..|' .||.       ''|....'  .||.    .||.  '|.' .||.  '|...'
-  
-                                                                                 .
-                                             ....     ... .   ....  .. ...   .||.
-                                            '' .||   || ||  .|...||  ||  ||   ||
-                                            .|' ||    |''   ||       ||  ||   ||
-                                            '|..'|'  '||||.  '|...' .||. ||.  '|.'
-                                                    .|....'
-                                                                       
-
-
-                                                                                                        +--- kban style
-"""
+# """
+#
+#    .|'''.|            .'|.   .       |               .                   '   ..|'''.|          ||    .    ||
+#    ||..  '    ...   .||.   .||.     |||      ....  .||.    ...   ... ..    .|'     '  ... ..  ...  .||.  ...    ....
+#     ''|||.  .|  '|.  ||     ||     |  ||   .|   ''  ||   .|  '|.  ||' ''   ||          ||' ''  ||   ||    ||  .|   ''
+#   .     '|| ||   ||  ||     ||    .''''|.  ||       ||   ||   ||  ||       '|.      .  ||      ||   ||    ||  ||
+#   |'....|'   '|..|' .||.    '|.' .|.  .||.  '|...'  '|.'  '|..|' .||.       ''|....'  .||.    .||.  '|.' .||.  '|...'
+#
+#                                                                                  .
+#                                              ....     ... .   ....  .. ...   .||.
+#                                             '' .||   || ||  .|...||  ||  ||   ||
+#                                             .|' ||    |''   ||       ||  ||   ||
+#                                             '|..'|'  '||||.  '|...' .||. ||.  '|.'
+#                                                     .|....'
+#
+#
+#
+#                                                                                                         +--- kban
+#                                                                                                         style
+# """
 # region ::Import statement ...
 from __future__ import absolute_import, division, print_function, unicode_literals
 
@@ -55,7 +56,7 @@ class SoftActorCriticAgent(Agent):
     @property
     def _build_computation_graph(self):
         """ Build the Policy_phi, V_psi and Q_theta computation graph as multi-layer perceptron """
-        
+
         if self.exp_spec.random_seed == 0:
             print(":: Random seed control is turned OFF")
         else:
@@ -65,10 +66,12 @@ class SoftActorCriticAgent(Agent):
 
         """ ---- Placeholder ---- """
         self.obs_t_ph, self.act_ph, _ = bloc.gym_playground_to_tensorflow_graph_adapter(self.playground)
-        self.obs_t_prime_ph = bloc.continuous_space_placeholder(space=self.playground.OBSERVATION_SPACE,
-                                                                name=vocab.obs_tPrime_ph)
+        # self.obs_t_prime_ph = bloc.continuous_space_placeholder(space=self.playground.OBSERVATION_SPACE,
+        #                                                         name=vocab.obs_tPrime_ph)
+        self.obs_t_prime_ph, _, _ = bloc.gym_playground_to_tensorflow_graph_adapter(self.playground,
+                                                                                    obs_ph_name=vocab.obs_tPrime_ph)
         self.reward_t_ph = tf_cv1.placeholder(dtype=tf.float32, shape=(None,), name=vocab.rew_ph)
-        self.trj_done_t_ph = tf_cv1.placeholder(dtype=tf.int32, shape=(None,), name=vocab.trj_done_ph)
+        self.trj_done_t_ph = tf_cv1.placeholder(dtype=tf.float32, shape=(None,), name=vocab.trj_done_ph)
 
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         # /// Actor computation graph //////////////////////////////////////////////////////////////////////////////////
@@ -274,14 +277,14 @@ class SoftActorCriticAgent(Agent):
                             """ ---- Simulator: trajectory as ended --> compute training stats ---- """
                             trj_return, trj_lenght = self.pool_manager.trajectory_ended()
                             self.epoch_metric_logger.append_trajectory_metric(trj_return, trj_lenght)
-    
+
                             trj_summary = sess.run(self.summary_TRJ_op, {
                                 self.summary_sto_pi_TRJ_return_ph: trj_return,
                                 self.summary_sto_pi_TRJ_lenght_ph: trj_lenght
                                 })
-    
+
                             self.writer.add_summary(trj_summary, global_step=timecounter.global_count)
-    
+
                             consol_print_learning_stats.trajectory_training_stat(the_trajectory_return=trj_return,
                                                                                  timestep=trj_lenght)
                             break

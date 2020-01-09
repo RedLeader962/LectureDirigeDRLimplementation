@@ -1,6 +1,6 @@
 # coding=utf-8
 from datetime import datetime
-from typing import Any, Union, Tuple
+from typing import Any, Union, Tuple, List
 import gym
 from gym.wrappers import TimeLimit
 import tensorflow as tf
@@ -326,6 +326,34 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, output_dim, hidden
     return logits
 
 
+def get_variables_graph_key(name: str) -> List[str]:
+    """
+    Fetch the list of all parameter graph key under a specific variable name
+    
+        >>> the_V = build_MLP_computation_graph(obs_t_ph, 1, (4, 4), name='V_psi')
+        >>> the_frozen_V = build_MLP_computation_graph(obs_t_prime_ph, 1, (4, 4), name='frozen_V_psi')
+        >>> v_psy_key = get_variables_graph_key('V_psi')
+        >>> print(v_psy_key)
+        [<tf.Variable 'V_psi/hidden_1/kernel:0' shape=(4, 4) dtype=float32_ref>,
+         <tf.Variable 'V_psi/hidden_1/bias:0' shape=(4,) dtype=float32_ref>,
+         <tf.Variable 'V_psi/hidden_2/kernel:0' shape=(4, 4) dtype=float32_ref>,
+         <tf.Variable 'V_psi/hidden_2/bias:0' shape=(4,) dtype=float32_ref>,
+         <tf.Variable 'V_psi/logits/kernel:0' shape=(4, 1) dtype=float32_ref>,
+         <tf.Variable 'V_psi/logits/bias:0' shape=(1,) dtype=float32_ref>]
+    :param name: variable name
+    :return: a list of all variable parameter graph key
+    """
+    scope_name = tf_cv1.get_variable_scope().name
+    if len(scope_name) > 0:
+        scope_name += '/' + name + '/'
+    else:
+        scope_name = name + '/'
+    
+    param_key = tf_cv1.get_collection(
+        tf_cv1.GraphKeys.TRAINABLE_VARIABLES, scope=scope_name)
+    return param_key
+
+
 def continuous_space_placeholder(space: gym.spaces.Box, shape_constraint: tuple = None, name=None) -> tf.Tensor:
     assert isinstance(space, gym.spaces.Box)
     space_shape = space.shape
@@ -349,7 +377,8 @@ def discrete_space_placeholder(space: gym.spaces.Discrete, shape_constraint: tup
 
 def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground, obs_shape_constraint: tuple = None,
                                                action_shape_constraint: tuple = None,
-                                               Q_name: str = vocab.Qvalues_ph) -> (tf.Tensor, tf.Tensor, tf.Tensor):
+                                               Q_name: str = vocab.Qvalues_ph, obs_ph_name=vocab.obs_ph) -> (
+tf.Tensor, tf.Tensor, tf.Tensor):
     """
     Configure handle for feeding value to the computation graph
             Continuous space    -->     dtype=tf.float32
@@ -362,11 +391,11 @@ def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground, obs_sh
 
     if isinstance(playground.env.observation_space, gym.spaces.Box):
         """observation space is continuous"""
-        obs_ph = continuous_space_placeholder(playground.OBSERVATION_SPACE, obs_shape_constraint, name=vocab.obs_ph)
+        obs_ph = continuous_space_placeholder(playground.OBSERVATION_SPACE, obs_shape_constraint, name=obs_ph_name)
     elif isinstance(playground.env.action_space, gym.spaces.Discrete):
         """observation space is discrete"""
         obs_ph = discrete_space_placeholder(playground.OBSERVATION_SPACE, obs_shape_constraint, dtype=tf_cv1.float32,
-                                            name=vocab.obs_ph)
+                                            name=obs_ph_name)
     else:
         raise NotImplementedError
 
