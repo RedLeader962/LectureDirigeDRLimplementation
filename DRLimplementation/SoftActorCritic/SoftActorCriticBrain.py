@@ -1,4 +1,21 @@
 # coding=utf-8
+"""
+  
+   .|'''.|            .'|.   .       |               .                   '   ..|'''.|          ||    .    ||
+   ||..  '    ...   .||.   .||.     |||      ....  .||.    ...   ... ..    .|'     '  ... ..  ...  .||.  ...    ....
+    ''|||.  .|  '|.  ||     ||     |  ||   .|   ''  ||   .|  '|.  ||' ''   ||          ||' ''  ||   ||    ||  .|   ''
+  .     '|| ||   ||  ||     ||    .''''|.  ||       ||   ||   ||  ||       '|.      .  ||      ||   ||    ||  ||
+  |'....|'   '|..|' .||.    '|.' .|.  .||.  '|...'  '|.'  '|..|' .||.       ''|....'  .||.    .||.  '|.' .||.  '|...'
+  
+                                        '||                       ||
+                                         || ...  ... ..   ....   ...  .. ...
+                                         ||'  ||  ||' '' '' .||   ||   ||  ||
+                                         ||    |  ||     .|' ||   ||   ||  ||
+                                         '|...'  .||.    '|..'|' .||. .||. ||.
+                                       
+                                                                                                         
+                                                                                                         +--- kban style
+"""
 from typing import Tuple
 
 import gym
@@ -44,7 +61,7 @@ def apply_action_bound(policy_pi: tf_cv1.Tensor, policy_pi_log_likelihood: tf_cv
     return squashed_policy_pi, squashed_policy_pi_log_likelihood
 
 
-def build_gaussian_policy_graph(obs_t_ph: tf.Tensor, experiment_spec: ExperimentSpec,
+def build_gaussian_policy_graph(obs_t_ph: tf.Tensor, exp_spec: ExperimentSpec,
                                 playground: GymPlayground) -> Tuple[tf_cv1.Tensor, ...]:
     """
     The ACTOR graph(aka the policy network)
@@ -79,16 +96,16 @@ def build_gaussian_policy_graph(obs_t_ph: tf.Tensor, experiment_spec: Experiment
     
             """ ---- Build parameter PHI as a multilayer perceptron ---- """
             phi_mlp = build_MLP_computation_graph(obs_t_ph, playground.ACTION_CHOICES,
-                                                  experiment_spec['phi_nn_h_layer_topo'],
-                                                  hidden_layers_activation=experiment_spec[
+                                                  exp_spec['phi_nn_h_layer_topo'],
+                                                  hidden_layers_activation=exp_spec[
                                                       'phi_hidden_layers_activation'],
-                                                  output_layers_activation=experiment_spec[
+                                                  output_layers_activation=exp_spec[
                                                       'phi_output_layers_activation'],
                                                   name=vocab.phi)
     
             policy_mu = tf_cv1.layers.dense(phi_mlp,
                                             playground.ACTION_CHOICES,
-                                            activation=experiment_spec['phi_output_layers_activation'],
+                                            activation=exp_spec['phi_output_layers_activation'],
                                             name=vocab.phi + '/' + vocab.policy_mu)
     
             policy_log_std = tf_cv1.layers.dense(phi_mlp,
@@ -169,20 +186,20 @@ def build_critic_graph_q_theta(obs_t_ph: tf.Tensor, act_t_ph: tf_cv1.Tensor, exp
 
 
 def actor_train(policy_pi_log_likelihood: tf_cv1.Tensor, q_theta_1: tf_cv1.Tensor, q_theta_2: tf_cv1.Tensor,
-                experiment_spec: ExperimentSpec) -> Tuple[tf_cv1.Tensor, tf_cv1.Operation]:
+                exp_spec: ExperimentSpec) -> Tuple[tf_cv1.Tensor, tf_cv1.Operation]:
     """
     Actor loss
         input:
         output:
 
-    note: ExperimentSpec.temperature (hparam alpha)
+    note: Hyperparameter alpha (aka Temperature, Entropy regularization coefficient )
       |    Control the trade-off between exploration-exploitation
       |    We recover the standard maximum expected return objective (the Q-fct) as alpha --> 0
 
     :return: actor_kl_loss, actor_policy_optimizer_op
     """
     
-    alpha = experiment_spec['temperature']
+    alpha = exp_spec['alpha']
     
     min_q_theta = tf_cv1.minimum(q_theta_1, q_theta_2)
     
@@ -193,9 +210,9 @@ def actor_train(policy_pi_log_likelihood: tf_cv1.Tensor, q_theta_1: tf_cv1.Tenso
         
         """ ---- Actor optimizer & learning rate scheduler ---- """
         actor_lr_schedule, actor_global_grad_step = learning_rate_scheduler(
-            max_gradient_step_expected=experiment_spec.max_epoch,
-            learning_rate=experiment_spec.learning_rate,
-            lr_decay_rate=experiment_spec['actor_lr_decay_rate'],
+            max_gradient_step_expected=exp_spec['max_gradient_step_expected'],
+            learning_rate=exp_spec.learning_rate,
+            lr_decay_rate=exp_spec['actor_lr_decay_rate'],
             name_sufix='actor')
         
         actor_policy_optimizer_op = tf_cv1.train.AdamOptimizer(learning_rate=actor_lr_schedule
@@ -208,7 +225,7 @@ def actor_train(policy_pi_log_likelihood: tf_cv1.Tensor, q_theta_1: tf_cv1.Tenso
 def critic_v_psi_train(v_psi: tf_cv1.Tensor, v_psi_frozen: tf_cv1.Tensor,
                        q_theta_1: tf_cv1.Tensor, q_theta_2: tf_cv1.Tensor,
                        policy_pi_log_likelihood: tf_cv1.Tensor,
-                       experiment_spec: ExperimentSpec) -> Tuple[tf_cv1.Tensor, tf_cv1.Operation, tf_cv1.Operation]:
+                       exp_spec: ExperimentSpec) -> Tuple[tf_cv1.Tensor, tf_cv1.Operation, tf_cv1.Operation]:
     """
     Critic v_psi loss
                 input:
@@ -216,13 +233,13 @@ def critic_v_psi_train(v_psi: tf_cv1.Tensor, v_psi_frozen: tf_cv1.Tensor,
 
     :return: v_loss, v_psi_optimizer, v_psi_frozen_update_ops
     """
-    alpha = experiment_spec['temperature']
-    tau = experiment_spec['target_smoothing_coefficient']
-
+    alpha = exp_spec['alpha']
+    tau = exp_spec['target_smoothing_coefficient']
+    
     min_q_theta = tf_cv1.minimum(q_theta_1, q_theta_2)
-
+    
     v_psi_target = tf_cv1.stop_gradient(min_q_theta - alpha * policy_pi_log_likelihood)
-
+    
     with tf_cv1.name_scope(vocab.critic_training):
         """ ---- Build the Mean Square Error loss function ---- """
         with tf_cv1.name_scope(vocab.critic_loss):
@@ -230,7 +247,7 @@ def critic_v_psi_train(v_psi: tf_cv1.Tensor, v_psi_frozen: tf_cv1.Tensor,
                 v_loss = 1 / 2 * tf.reduce_mean((v_psi - v_psi_target) ** 2)
     
         """ ---- Critic optimizer & learning rate scheduler ---- """
-        critic_lr_schedule, critic_global_grad_step = _critic_learning_rate_scheduler(experiment_spec)
+        critic_lr_schedule, critic_global_grad_step = _critic_learning_rate_scheduler(exp_spec)
         
         v_psi_optimizer = tf_cv1.train.AdamOptimizer(learning_rate=critic_lr_schedule
                                                      ).minimize(v_loss,
@@ -245,18 +262,18 @@ def critic_v_psi_train(v_psi: tf_cv1.Tensor, v_psi_frozen: tf_cv1.Tensor,
 
 def critic_q_theta_train(v_psi_frozen: tf_cv1.Tensor, q_theta_1: tf_cv1.Tensor, q_theta_2: tf_cv1.Tensor,
                          rew_ph: tf.Tensor, trj_done_ph: tf.Tensor,
-                         experiment_spec: ExperimentSpec) -> Tuple[tf_cv1.Tensor, tf_cv1.Tensor,
-                                                                   tf_cv1.Operation, tf_cv1.Operation]:
+                         exp_spec: ExperimentSpec) -> Tuple[tf_cv1.Tensor, tf_cv1.Tensor,
+                                                            tf_cv1.Operation, tf_cv1.Operation]:
     """
     Critic q_theta {1,2} temporal difference loss
-                input: the target y (either Monte Carlo target or Bootstraped estimate target)
+                input:
                 output: the Mean Squared Error (MSE)
 
     :return: q_theta_1_loss, q_theta_2_loss, q_theta_1_optimizer, q_theta_2_optimizer
     """
     
     q_target = tf_cv1.stop_gradient(
-        rew_ph + experiment_spec.discout_factor * (1 - trj_done_ph) * tf_cv1.squeeze(v_psi_frozen))
+        rew_ph + exp_spec.discout_factor * (1 - trj_done_ph) * tf_cv1.squeeze(v_psi_frozen))
     
     with tf_cv1.name_scope(vocab.critic_training):
         """ ---- Build the Mean Square Error loss function ---- """
@@ -268,7 +285,7 @@ def critic_q_theta_train(v_psi_frozen: tf_cv1.Tensor, q_theta_1: tf_cv1.Tensor, 
                 q_theta_2_loss = 1 / 2 * tf.reduce_mean((tf_cv1.squeeze(q_theta_2) - q_target) ** 2)
         
         """ ---- Critic optimizer & learning rate scheduler ---- """
-        critic_lr_schedule, critic_global_grad_step = _critic_learning_rate_scheduler(experiment_spec)
+        critic_lr_schedule, critic_global_grad_step = _critic_learning_rate_scheduler(exp_spec)
         
         q_theta_1_optimizer = tf_cv1.train.AdamOptimizer(learning_rate=critic_lr_schedule
                                                          ).minimize(q_theta_1_loss,
@@ -281,9 +298,9 @@ def critic_q_theta_train(v_psi_frozen: tf_cv1.Tensor, q_theta_1: tf_cv1.Tensor, 
     return q_theta_1_loss, q_theta_2_loss, q_theta_1_optimizer, q_theta_2_optimizer
 
 
-def _critic_learning_rate_scheduler(experiment_spec):
+def _critic_learning_rate_scheduler(exp_spec: ExperimentSpec):
     return learning_rate_scheduler(
-        max_gradient_step_expected=experiment_spec['critique_loop_len'] * experiment_spec.max_epoch,
-        learning_rate=experiment_spec['critic_learning_rate'],
-        lr_decay_rate=experiment_spec['critic_lr_decay_rate'],
+        max_gradient_step_expected=exp_spec['max_gradient_step_expected'] * exp_spec.max_epoch,
+        learning_rate=exp_spec['critic_learning_rate'],
+        lr_decay_rate=exp_spec['critic_lr_decay_rate'],
         name_sufix='critic')

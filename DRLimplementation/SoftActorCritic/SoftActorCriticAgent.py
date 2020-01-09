@@ -1,5 +1,23 @@
 # coding=utf-8
+"""
+  
+   .|'''.|            .'|.   .       |               .                   '   ..|'''.|          ||    .    ||
+   ||..  '    ...   .||.   .||.     |||      ....  .||.    ...   ... ..    .|'     '  ... ..  ...  .||.  ...    ....
+    ''|||.  .|  '|.  ||     ||     |  ||   .|   ''  ||   .|  '|.  ||' ''   ||          ||' ''  ||   ||    ||  .|   ''
+  .     '|| ||   ||  ||     ||    .''''|.  ||       ||   ||   ||  ||       '|.      .  ||      ||   ||    ||  ||
+  |'....|'   '|..|' .||.    '|.' .|.  .||.  '|...'  '|.'  '|..|' .||.       ''|....'  .||.    .||.  '|.' .||.  '|...'
+  
+                                                                                 .
+                                             ....     ... .   ....  .. ...   .||.
+                                            '' .||   || ||  .|...||  ||  ||   ||
+                                            .|' ||    |''   ||       ||  ||   ||
+                                            '|..'|'  '||||.  '|...' .||. ||.  '|.'
+                                                    .|....'
+                                                                       
 
+
+                                                                                                        +--- kban style
+"""
 # region ::Import statement ...
 from __future__ import absolute_import, division, print_function, unicode_literals
 
@@ -203,26 +221,26 @@ class SoftActorCriticAgent(Agent):
         with tf_cv1.Session() as sess:
             self.sess = sess
             self.sess.run(tf_cv1.global_variables_initializer())  # initialize random variable in the computation graph
-    
+
             consol_print_learning_stats.start_the_crazy_experiment()
-    
+
             # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
             #    Training loop
             # //////////////////////////////////////////////////////////////////////////////////////////////////////////
-    
+
             """ ---- copy V_psi_frozen parameter to V_psi ---- """
             self.sess.run(self.V_psi_frozen_update_ops)
-    
+
             """ ---- Simulator: Epochs ---- """
             timecounter.reset_global_count()
             for epoch in range(self.exp_spec.max_epoch):
                 # (Ice-Boxed) todo:implement --> add 'global_timestep_max' to hparam:
                 # if global_timestep_idx >= self.exp_spec['global_timestep_max']:
                 #     break
-        
+
                 consol_print_learning_stats.next_glorious_epoch()
                 self.epoch_metric_logger._epoch_id = epoch
-        
+
                 """ ---- Simulator: trajectories ---- """
                 while timecounter.local_count < self.exp_spec['timestep_per_epoch']:
                     timecounter.reset_local_count()
@@ -233,36 +251,37 @@ class SoftActorCriticAgent(Agent):
                     """ ---- Simulator: time-steps ---- """
                     while True:
                         timecounter.local_and_global_step()
-    
+
                         self._render_trajectory_on_condition(epoch, render_env,
                                                              self.pool_manager.trj_collected_so_far())
-    
+
                         """ ---- Agent: act in the environment using the stochastic policy---- """
                         act_t = self._select_action_given_policy(sess, obs_t, deterministic=False)
-    
+
                         obs_t_prime, reward_t, trj_done, _ = self.playground.env.step(act_t)
-    
+
                         """ ---- Agent: collect current timestep events ---- """
                         self.pool_manager.collect_OAnORD(obs_t, act_t, obs_t_prime, reward_t, trj_done)
-    
+
                         obs_t = obs_t_prime
-    
-                        if timecounter.local_count % self.exp_spec['gradient_step_interval'] == 0:
+
+                        if (timecounter.local_count % self.exp_spec['gradient_step_interval'] == 0
+                                and self.pool_manager.current_pool_size > self.exp_spec['min_pool_size']):
                             """ ---- 'Soft Policy Evaluation' & 'Policy Improvement' step ---- """
                             self._perform_gradient_step(consol_print_learning_stats, timecounter.local_count)
-    
+
                         if trj_done:
                             """ ---- Simulator: trajectory as ended --> compute training stats ---- """
                             trj_return, trj_lenght = self.pool_manager.trajectory_ended()
                             self.epoch_metric_logger.append_trajectory_metric(trj_return, trj_lenght)
-
+    
                             trj_summary = sess.run(self.summary_TRJ_op, {
                                 self.summary_sto_pi_TRJ_return_ph: trj_return,
                                 self.summary_sto_pi_TRJ_lenght_ph: trj_lenght
                                 })
-
+    
                             self.writer.add_summary(trj_summary, global_step=timecounter.global_count)
-
+    
                             consol_print_learning_stats.trajectory_training_stat(the_trajectory_return=trj_return,
                                                                                  timestep=trj_lenght)
                             break
@@ -294,7 +313,7 @@ class SoftActorCriticAgent(Agent):
                     self.epoch_metric_logger.mean_q1_values,
                     self.epoch_metric_logger.mean_q2_values
                     ]
-        
+
                 summary_epoch_ph = [
                     self.summary_det_pi_avg_trjs_return_ph,
                     self.summary_det_pi_avg_trjs_len_ph,
@@ -311,22 +330,22 @@ class SoftActorCriticAgent(Agent):
                     self.summary_avg_Q1_value_ph,
                     self.summary_avg_Q2_value_ph
                     ]
-        
+
                 epoch_feed_dictionary = bloc.build_feed_dictionary(summary_epoch_ph, epoch_metric)
-        
+
                 epoch_summary = self.sess.run(self.summary_epoch_op, feed_dict=epoch_feed_dictionary)
-        
+
                 self.writer.add_summary(epoch_summary, global_step=timecounter.global_count)
-        
+
                 consol_print_learning_stats.epoch_training_stat(
                     epoch_loss=epoch_mean_policy_loss,
                     epoch_average_trjs_return=epoch_eval_mean_trjs_return,
                     epoch_average_trjs_lenght=epoch_eval_mean_trjs_lenght,
                     number_of_trj_collected=self.epoch_metric_logger.nb_trj_collected,
                     total_timestep_collected=self.epoch_metric_logger.total_training_timestep_collected)
-        
+
                 self._save_learned_model(epoch_eval_mean_trjs_return, epoch, self.sess)
-        
+
                 """ ---- Expose current epoch computed information for integration test ---- """
                 yield epoch, epoch_mean_policy_loss, epoch_eval_mean_trjs_return, epoch_eval_mean_trjs_lenght
             
@@ -359,7 +378,7 @@ class SoftActorCriticAgent(Agent):
         self.sess.run(self.actor_policy_optimizer_op, feed_dict=full_feed_dictionary)
 
         """ ---- Target weight update interval (see SAC original paper, apendice E for result and D for hparam) ---- """
-        if current_local_step == self.exp_spec['target_weight_update_interval']:
+        if current_local_step == self.exp_spec['target_update_interval']:
             self.sess.run(self.V_psi_frozen_update_ops)
 
         return None
@@ -385,14 +404,14 @@ class SoftActorCriticAgent(Agent):
         for run in range(max_trajectories):
             print(run + 1, end=" ", flush=True)
             observation = self.evaluation_playground.env.reset()  # fetch initial observation
-    
+
             """ ---- Simulator: time-steps ---- """
             while True:
                 act_t = self._select_action_given_policy(sess, observation, deterministic=True)
                 observation, reward, done, _ = self.evaluation_playground.env.step(act_t)
-        
+
                 trajectory_logger.push(reward)
-        
+
                 if done:
                     self.epoch_metric_logger.append_agent_eval_trj_metric(trajectory_logger.the_return,
                                                                           trajectory_logger.lenght)

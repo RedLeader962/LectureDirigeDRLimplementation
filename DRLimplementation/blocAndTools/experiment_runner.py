@@ -4,6 +4,52 @@ from typing import Tuple, List, Any
 from blocAndTools import ExperimentSpec, Agent
 from argparse import Namespace
 
+"""
+Basic set of hyperparameter used by 'run_experiment' & 'ExperimentSpec'
+
+Required:
+    - a dict of hyperparameter
+        - required key: 'AgentType', 'rerun_tag', 'paramameter_set_name', 'comment'
+    - a dict of hyperparameter for testing purpose like the folowing 'test_hparam' example
+        - required key: 'isTestRun'
+    - a argument parser
+
+Note: to trigger hyperparameter search, enclose search space values inside a list ex: [(16, 32), (64, 64), (84, 84)]
+    
+test_hparam = {
+    'rerun_tag':                      'TEST-RUN',
+    'paramameter_set_name':           'SAC',
+    'comment':                        'TestSpec',               # Comment added to training folder name (can be empty)
+    'algo_name':                      'Soft Actor Critic',
+    'AgentType':                      SoftActorCriticAgent,
+    'prefered_environment':           'MountainCarContinuous-v0',
+    
+    'expected_reward_goal':           200,                      # Note: trigger model save on reach
+    'max_epoch':                      10,
+    
+    'discout_factor':                 0.999,
+    'learning_rate':                  3e-4,
+    'critic_learning_rate':           1e-3,
+    'actor_lr_decay_rate':            1,                        # Note: set to 1 to swith OFF scheduler
+    'critic_lr_decay_rate':           1,                        # Note: set to 1 to swith OFF scheduler
+    
+    'batch_size_in_ts':               1000,
+    
+    'theta_nn_h_layer_topo':          (4, 4),                   # Note: activate parameter search ex: [(4, 4), (6, 6)]
+    'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.relu, tf.nn.tanh,
+    'theta_output_layers_activation': None,
+    
+    'render_env_every_What_epoch':    5,
+    'print_metric_every_what_epoch':  5,
+    'random_seed':                    0,                        # Note: 0 --> turned OFF (default)
+    'isTestRun':                      True,
+    'show_plot':                      False,
+    'note':                           'My note ...'
+    }
+
+"""
+
+
 def run_experiment(hparam: dict, args_: Namespace, test_hparam, rerun_nb=1) -> Tuple[dict, str, list]:
     """
     Set up and execute experirment

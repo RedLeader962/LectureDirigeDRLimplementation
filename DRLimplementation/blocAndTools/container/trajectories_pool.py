@@ -87,6 +87,12 @@ class SampleBatch:
 
 class TrajectoriesPool(object):
     def __init__(self, capacity: int, batch_size: int, playground: GymPlayground):
+        """
+
+        :param capacity: Nb of collected step to keep. Once reached, old step will start being overwriten by new one.
+        :param batch_size:
+        :param playground: the environment from which sampled step are collected
+        """
         self._pool = [TimestepSample(container_id=i, playground=playground) for i in range(capacity)]
         self._idx = 0
         self.CAPACITY = capacity
@@ -127,12 +133,17 @@ class TrajectoriesPool(object):
 
 
 class PoolManager(object):
+    
     def __init__(self, exp_spec: ExperimentSpec, playground: GymPlayground):
         self._trajectories_pool = TrajectoriesPool(exp_spec['pool_capacity'], exp_spec.batch_size_in_ts, playground)
         self._rewards = []
         self._curent_trj_lenght = 0
         self._step_count_since_begining_of_training = 0
         self._trajectories_collected = 0
+    
+    @property
+    def current_pool_size(self) -> int:
+        return self._trajectories_pool.size
     
     def timestep_collected_so_far(self) -> int:
         return self._step_count_since_begining_of_training
