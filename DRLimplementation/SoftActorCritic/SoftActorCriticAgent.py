@@ -12,7 +12,7 @@ import tensorflow.python.util.deprecation as deprecation
 import blocAndTools.tensorflowbloc
 from SoftActorCritic.SoftActorCriticBrain import (
     actor_train, apply_action_bound, build_critic_graph_q_theta, build_critic_graph_v_psi, build_gaussian_policy_graph,
-    critic_q_theta_train, critic_v_psi_train, critic_learning_rate_scheduler,
+    critic_q_theta_train, critic_v_psi_train, critic_learning_rate_scheduler, init_frozen_v_psi,
     )
 from blocAndTools import ConsolPrintLearningStats, buildingbloc as bloc
 from blocAndTools.agent import Agent
@@ -88,9 +88,9 @@ class SoftActorCriticAgent(Agent):
     
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         # /// Actor & Critic Training ops //////////////////////////////////////////////////////////////////////////////
-    
+
         critic_lr_schedule, critic_global_grad_step = critic_learning_rate_scheduler(self.exp_spec)
-    
+
         self.V_psi_loss, self.V_psi_optimizer, self.V_psi_frozen_update_ops = critic_v_psi_train(self.V_psi,
                                                                                                  self.V_psi_frozen,
                                                                                                  self.Q_theta_1,
@@ -99,13 +99,15 @@ class SoftActorCriticAgent(Agent):
                                                                                                  self.exp_spec,
                                                                                                  critic_lr_schedule,
                                                                                                  critic_global_grad_step)
-    
+
+        init_frozen_v_psi_op = init_frozen_v_psi()
+
         q_theta_train_ops = critic_q_theta_train(self.V_psi_frozen, self.Q_theta_1, self.Q_theta_2, self.reward_t_ph,
                                                  self.trj_done_t_ph, self.exp_spec,
                                                  critic_lr_schedule, critic_global_grad_step)
-    
+
         self.q_theta_1_loss, self.q_theta_2_loss, self.q_theta_1_optimizer, self.q_theta_2_optimizer = q_theta_train_ops
-    
+
         self.actor_kl_loss, self.actor_policy_optimizer_op = actor_train(self.pi_log_likelihood,
                                                                          self.Q_theta_1, self.Q_theta_2, self.exp_spec)
     
@@ -236,7 +238,7 @@ class SoftActorCriticAgent(Agent):
             # //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
             """ ---- copy V_psi_frozen parameter to V_psi ---- """
-            self.sess.run(self.V_psi_frozen_update_ops)
+            self.sess.run(self.init_frozen_v_psi_op)
 
             """ ---- Simulator: Epochs ---- """
             timecounter.reset_global_count()

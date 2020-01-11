@@ -187,7 +187,7 @@ def build_critic_graph_v_psi(obs_t_ph: tf.Tensor, obs_t_prime_ph: tf.Tensor, exp
     return v_psi, frozen_v_psi
 
 
-def init_v_psi_and_frozen_v_psi():
+def init_frozen_v_psi():
     """
     Make a exact copy
     :return:
@@ -331,7 +331,6 @@ def critic_q_theta_train(frozen_v_psi: tf.Tensor, q_theta_1: tf.Tensor, q_theta_
     :param critic_global:
     :return: q_theta_1_loss, q_theta_2_loss, q_theta_1_optimizer, q_theta_2_optimizer
     """
-    
     q_target = tf_cv1.stop_gradient(
         rew_ph + (1 - trj_done_ph) * exp_spec.discout_factor * tf_cv1.squeeze(frozen_v_psi))
     
