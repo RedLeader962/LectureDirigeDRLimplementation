@@ -123,9 +123,9 @@ class Agent(object, metaclass=ABCMeta):
         """
         raise NotImplementedError
 
-    def _render_trajectory_on_condition(self, epoch, render_env, trj_collected_so_far):
+    def _render_trajectory_on_condition(self, epoch, render_env, trj_collected_in_that_epoch):
         if (render_env and (epoch % self.exp_spec.render_env_every_What_epoch == 0)
-                and trj_collected_so_far == 0):
+                and trj_collected_in_that_epoch == 0):
             self.playground.env.env.render()  # keep environment rendering turned OFF during unit test
 
     def _save_learned_model(self, batch_average_trjs_return: float, epoch, sess: tf_cv1.Session) -> None:

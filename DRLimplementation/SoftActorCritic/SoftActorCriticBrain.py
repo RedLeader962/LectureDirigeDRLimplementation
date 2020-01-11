@@ -113,11 +113,11 @@ def build_gaussian_policy_graph(obs_t_ph: tf.Tensor, exp_spec: ExperimentSpec,
         
                 policy_mu = keras.layers.Dense(playground.ACTION_CHOICES,
                                                activation=tf_cv1.tanh,
-                                               name=vocab.vocab.policy_mu)(phi_mlp)
+                                               name=vocab.policy_mu)(phi_mlp)
         
                 policy_log_std = keras.layers.Dense(playground.ACTION_CHOICES,
                                                     activation=tf_cv1.tanh,
-                                                    name=vocab.vocab.policy_log_std)(phi_mlp)
+                                                    name=vocab.policy_log_std)(phi_mlp)
     
             else:
                 print(':: Use legacy tensorFlow Dense layer')
@@ -132,12 +132,12 @@ def build_gaussian_policy_graph(obs_t_ph: tf.Tensor, exp_spec: ExperimentSpec,
                 policy_mu = tf_cv1.layers.dense(phi_mlp,
                                                 playground.ACTION_CHOICES,
                                                 activation=tf_cv1.tanh,
-                                                name=vocab.vocab.policy_mu)
+                                                name=vocab.policy_mu)
         
                 policy_log_std = tf_cv1.layers.dense(phi_mlp,
                                                      playground.ACTION_CHOICES,
                                                      activation=tf_cv1.tanh,
-                                                     name=vocab.vocab.policy_log_std)
+                                                     name=vocab.policy_log_std)
     
             # Note: clip log standard deviation as in the sac_original_paper/sac/distributions/normal.py
             policy_log_std = tf_cv1.clip_by_value(policy_log_std, POLICY_LOG_STD_CAP_MIN, POLICY_LOG_STD_CAP_MAX)
@@ -173,7 +173,7 @@ def build_critic_graph_v_psi(obs_t_ph: tf.Tensor, obs_t_prime_ph: tf.Tensor, exp
     else:
         mlp = build_MLP_computation_graph
 
-    with tf_cv1.variable_scope(vocab.critic_network, reuse=tf.AUTO_REUSE):
+    with tf_cv1.variable_scope(vocab.critic_network, reuse=tf_cv1.AUTO_REUSE):
         """ ---- Build parameter '_psi' as a multilayer perceptron ---- """
         v_psi = mlp(obs_t_ph, 1, exp_spec['psi_nn_h_layer_topo'],
                     hidden_layers_activation=exp_spec['psi_hidden_layers_activation'],
@@ -211,7 +211,7 @@ def build_critic_graph_q_theta(obs_t_ph: tf.Tensor, act_t_ph: tf.Tensor, exp_spe
     else:
         mlp = build_MLP_computation_graph
 
-    with tf_cv1.variable_scope(vocab.critic_network, reuse=tf.AUTO_REUSE):
+    with tf_cv1.variable_scope(vocab.critic_network, reuse=tf_cv1.AUTO_REUSE):
         """ ---- Concat graph input: observation & action ---- """
         inputs = tf_cv1.concat([obs_t_ph, act_t_ph], axis=-1)
     

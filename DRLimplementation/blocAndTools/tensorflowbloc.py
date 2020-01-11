@@ -17,7 +17,7 @@ def update_nn_weights(graph_key_from: List[str], graph_key_to: List[str],
     """ Fetch all tensor in list graph_key_from and update tensor weight of those in graph_key_to
     Pre condition: Botch tensor graph key list must match
     """
-    with tf_cv1.variable_scope('update_nn_weights_op'):
+    with tf_cv1.variable_scope('update_nn_weights_op', reuse=tf_cv1.AUTO_REUSE):
         op = tf.group(
             [tf_cv1.assign(
                 updated_tensor,

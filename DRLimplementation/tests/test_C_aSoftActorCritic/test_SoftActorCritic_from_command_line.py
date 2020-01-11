@@ -64,7 +64,17 @@ def test_SoftActorCritic_agent_train_MountainCar_command_line_invocation(set_up_
     assert 0 == out, "Agent invocated from command line exited with error {}".format(out)
 
 
-# @pytest.mark.skip(reason="Mute for now")
+@pytest.mark.skip(reason="Mute for now")
+def test_SoftActorCritic_agent_train_Pendulum_command_line_invocation(set_up_PWD_to_project_root):
+    from os import system
+    
+    out = system("python -m SoftActorCritic --trainPendulum --testRun")
+    
+    # Note: exit(0) <==> clean exit without any errors/problems
+    assert 0 == out, "Agent invocated from command line exited with error {}".format(out)
+
+
+@pytest.mark.skip(reason="Problem solved")
 def test_SoftActorCritic_agent_train_Pendulum_command_line_invocation_RERUN_PASS(set_up_PWD_to_project_root):
     from os import system
     

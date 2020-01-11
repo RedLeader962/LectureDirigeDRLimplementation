@@ -174,7 +174,7 @@ SAC_MountainCar_hparam = {
     'psi_hidden_layers_activation':   tf.nn.relu,
     'psi_output_layers_activation':   None,
     
-    'render_env_every_What_epoch':    5,
+    'render_env_every_What_epoch':    2,
     'print_metric_every_what_epoch':  5,
     'note':                           ''
     }
@@ -233,10 +233,15 @@ SAC_Pendulum_hparam = {
     'psi_hidden_layers_activation':   tf.nn.relu,
     'psi_output_layers_activation':   None,
     
-    'render_env_every_What_epoch':    5,
+    'render_env_every_What_epoch':    2,
     'print_metric_every_what_epoch':  5,
     'note':                           ''
     }
+
+SAC_Pendulum_hparam_TEST_RERUN = SAC_Pendulum_hparam.copy()
+SAC_Pendulum_hparam_TEST_RERUN['max_epoch'] = 2
+SAC_Pendulum_hparam_TEST_RERUN['timestep_per_epoch'] = 200
+SAC_Pendulum_hparam_TEST_RERUN['min_pool_size'] = 100
 
 # 'LunarLanderContinuous-v2'
 # - action_space:  Box(2,) ⟶ [main engine, left-right engines]
@@ -345,6 +350,9 @@ parser.add_argument('--trainMontainCar', action='store_true',
 
 parser.add_argument('--trainPendulum', action='store_true', help='Train on Pendulum a Soft Actor-Critic agent')
 
+# todo:unit-test --> problem: rerun error
+parser.add_argument('--trainPendulumTESTrerun', action='store_true', help='Train on Pendulum a Soft Actor-Critic agent')
+
 parser.add_argument('--trainLunarLander', action='store_true', help='Train on LunarLander a Soft Actor-Critic agent')
 
 parser.add_argument('-rer', '--rerun', type=int, default=1,
@@ -436,6 +444,11 @@ else:
         """ ---- Harder environment [--trainPendulum] ---- """
         hparam, key, values_search_set = run_experiment(
             SAC_Pendulum_hparam, args, test_hparam, rerun_nb=args.rerun)
+
+    elif args.trainPendulumTESTrerun:
+        """ ---- Harder environment [--trainPendulumTESTrerun] ---- """
+        hparam, key, values_search_set = run_experiment(
+            SAC_Pendulum_hparam_TEST_RERUN, args, test_hparam, rerun_nb=args.rerun)
 
     elif args.trainLunarLander:
         raise NotImplementedError  # todo: implement

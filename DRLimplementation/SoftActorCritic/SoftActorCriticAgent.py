@@ -207,8 +207,8 @@ class SoftActorCriticAgent(Agent):
 
         obs_t_flat = bloc.format_single_step_observation(obs_t)
         act_t = self.sess.run(the_policy, feed_dict={self.obs_t_ph: obs_t_flat})
-        # act_t = blocAndTools.tensorflowbloc.to_scalar(act_t)
-        act_t = act_t.ravel()
+        act_t = act_t.ravel()  # for continuous action space.
+        # Use 'act_t = blocAndTools.tensorflowbloc.to_scalar(act_t)' for discrete action space
         return act_t
     
     def _instantiate_data_collector(self) -> PoolManager:
@@ -260,6 +260,7 @@ class SoftActorCriticAgent(Agent):
                 self.epoch_metric_logger._epoch_id = epoch
     
                 """ ---- Simulator: trajectories ---- """
+                trj_idx = 0
                 while timecounter.per_epoch_count < self.exp_spec['timestep_per_epoch']:
                     timecounter.reset_local_count()
                     consol_print_learning_stats.next_glorious_trajectory()
@@ -269,9 +270,8 @@ class SoftActorCriticAgent(Agent):
                     """ ---- Simulator: time-steps ---- """
                     while True:
                         timecounter.step_all()
-        
-                        self._render_trajectory_on_condition(epoch, render_env,
-                                                             self.pool_manager.trj_collected_so_far())
+
+                        self._render_trajectory_on_condition(epoch, render_env, trj_idx)
         
                         """ ---- Agent: act in the environment using the stochastic policy---- """
                         act_t = self._select_action_given_policy(sess, obs_t, deterministic=False)
@@ -302,6 +302,7 @@ class SoftActorCriticAgent(Agent):
 
                             consol_print_learning_stats.trajectory_training_stat(the_trajectory_return=trj_return,
                                                                                  timestep=trj_lenght)
+                            trj_idx += 1
                             break
 
                 # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
