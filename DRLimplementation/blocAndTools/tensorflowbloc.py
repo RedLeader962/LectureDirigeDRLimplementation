@@ -12,7 +12,8 @@ tf_cv1 = tf.compat.v1  # shortcut
 vocab = rl_name()
 
 
-def update_nn_weights(graph_key_from: List[str], graph_key_to: List[str], target_smoothing_coefficient: float) -> None:
+def update_nn_weights(graph_key_from: List[str], graph_key_to: List[str],
+                      target_smoothing_coefficient: float) -> tf.Operation:
     """ Fetch all tensor in list graph_key_from and update tensor weight of those in graph_key_to
     Pre condition: Botch tensor graph key list must match
     """

@@ -17,13 +17,15 @@ Invoke Soft Actor-Critic agent (SAC) using
         `python -m SoftActorCritic --play [--play_for] [--help] [--testRun]`
 
     To train:
-        `python -m SoftActorCritic --trainExperimentSpecification   [--rerun] [--renderTraining] [--discounted]
-                                                                    [--help] [--testRun]`
+        `python -m SoftActorCritic < trainExperimentSpecification >   [--rerun] [--renderTraining] [--discounted]
+                                                                        [--help] [--testRun]`
 
-        Choose `--trainExperimentSpecification` between the following:
-        - 'MountainCarContinuous-v0' environment:
+        Choose < trainExperimentSpecification > between the following:
+        - For 'MountainCarContinuous-v0' environment:
             [--trainMontainCar]: Train on Montain Car gym env a Soft Actor-Critic agent
-        - 'LunarLanderContinuous-v2' environment:
+        - For 'Pendulum-v0' environment:
+            [--trainPendulum]: Train on Pendulum gym env a Soft Actor-Critic agent
+        - For 'LunarLanderContinuous-v2' environment:
             [--trainLunarLander]: Train on LunarLander a Soft Actor-Critic agent
 
     Gym continuous environment ex:
@@ -120,7 +122,17 @@ from blocAndTools.experiment_runner import (
 
 """
 
-# (CRITICAL) todo:implement --> train agent:
+# 'MountainCarContinuous-v0'
+# - action_space:  Box(1,)
+#    - high: [1.]
+#    - low: [-1.]
+# - observation_space:  Box(3,)
+#    - high: [0.6,  0.07]
+#    - low: [-1.2,  -0.07]
+# - reward_range:  (-inf, inf)
+# - spec:
+#    - max_episode_steps: 999
+#    - reward_threshold: 90.0       #  The reward threshold before the task is considered solved
 SAC_MountainCar_hparam = {
     'rerun_tag':                      'MonCar',
     'paramameter_set_name':           'SAC',
@@ -152,13 +164,13 @@ SAC_MountainCar_hparam = {
     'min_pool_size':                  1000,
     'batch_size_in_ts':               256,  # SAC paper:256, SpinningUp:100
     
-    'theta_nn_h_layer_topo':          (256, 256),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+    'theta_nn_h_layer_topo':          (32, 32),  # SAC paper:(256, 256), SpinningUp:(400, 300)
     'theta_hidden_layers_activation': tf.nn.relu,
     'theta_output_layers_activation': None,
-    'phi_nn_h_layer_topo':            (256, 256),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+    'phi_nn_h_layer_topo':            (32, 32),  # SAC paper:(256, 256), SpinningUp:(400, 300)
     'phi_hidden_layers_activation':   tf.nn.relu,
     'phi_output_layers_activation':   None,
-    'psi_nn_h_layer_topo':            (256, 256),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+    'psi_nn_h_layer_topo':            (32, 32),  # SAC paper:(256, 256), SpinningUp:(400, 300)
     'psi_hidden_layers_activation':   tf.nn.relu,
     'psi_output_layers_activation':   None,
     
@@ -167,6 +179,89 @@ SAC_MountainCar_hparam = {
     'note':                           ''
     }
 
+# 'Pendulum-v0'
+# - action_space:  Box(1,)
+#    - high: [2.]
+#    - low: [-2.]
+# - observation_space:  Box(3,)
+#    - high: [1. 1. 8.]
+#    - low: [-1. -1. -8.]
+# - reward_range:  (-inf, inf)
+# - spec:
+#    - max_episode_steps: 200
+#    - reward_threshold: None       #  The reward threshold before the task is considered solved
+#
+# Gym: https://gym.openai.com/envs/MountainCarContinuous-v0/
+SAC_Pendulum_hparam = {
+    'rerun_tag':                      'Pendulum',
+    'paramameter_set_name':           'SAC',
+    'comment':                        '',
+    'algo_name':                      'Soft Actor Critic',
+    'AgentType':                      SoftActorCriticAgent,
+    'prefered_environment':           'Pendulum-v0',
+    
+    'expected_reward_goal':           90,  # Note: trigger model save on reach
+    'max_epoch':                      100,
+    'timestep_per_epoch':             5000,
+    
+    'discout_factor':                 0.99,  # SAC paper: 0.99
+    'learning_rate':                  0.003,  # SAC paper: 30e-4
+    'critic_learning_rate':           0.003,  # SAC paper: 30e-4
+    'max_gradient_step_expected':     500000,
+    'actor_lr_decay_rate':            0.01,  # Note: set to 1 to swith OFF scheduler
+    'critic_lr_decay_rate':           0.01,  # Note: set to 1 to swith OFF scheduler
+    
+    'target_smoothing_coefficient':   0.005,  # SAC paper: EXPONENTIAL MOVING AVERAGE ~ 0.005, 1 <==> HARD TARGET update
+    'target_update_interval':         1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
+    'gradient_step_interval':         1,
+    
+    'alpha':                          1,  # HW5: we recover a standard max expected return objective as alpha --> 0
+    
+    'max_eval_trj':                   10,  #SpiningUp: 10
+    
+    'pool_capacity':                  int(1e6),  # SAC paper: 1e6
+    'min_pool_size':                  1000,
+    'batch_size_in_ts':               100,  # SAC paper:256, SpinningUp:100
+    
+    'theta_nn_h_layer_topo':          (32, 32),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+    'theta_hidden_layers_activation': tf.nn.relu,
+    'theta_output_layers_activation': None,
+    'phi_nn_h_layer_topo':            (32, 32),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+    'phi_hidden_layers_activation':   tf.nn.relu,
+    'phi_output_layers_activation':   None,
+    'psi_nn_h_layer_topo':            (32, 32),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+    'psi_hidden_layers_activation':   tf.nn.relu,
+    'psi_output_layers_activation':   None,
+    
+    'render_env_every_What_epoch':    5,
+    'print_metric_every_what_epoch':  5,
+    'note':                           ''
+    }
+
+# 'LunarLanderContinuous-v2'
+# - action_space:  Box(2,) ⟶ [main engine, left-right engines]
+#    - high: [1. , 1.]
+#    - low: [-1. , -1.]
+# - observation_space:  Box(8,)
+#    - high: [inf inf inf inf inf inf inf inf]
+#    - low: [-inf -inf -inf -inf -inf -inf -inf -inf]
+# - reward_range:  (-inf, inf)
+# - spec:
+#    - max_episode_steps: 1000
+#    - reward_threshold: 200       #  The reward threshold before the task is considered solved
+#
+# Landing pad is always at coordinates (0,0). Coordinates are the first two numbers in state vector.
+# Reward for moving from the top of the screen to landing pad and zero speed is about 100..140 points.
+# If lander moves away from landing pad it loses reward back.
+# Episode finishes if the lander crashes or comes to rest, receiving additional -100 or +100 points.
+# Each leg ground contact is +10. Firing main engine is -0.3 points each frame. Solved is 200 points.
+# Landing outside landing pad is possible.
+# Fuel is infinite, so an agent can learn to fly and then land on its first attempt.
+# Action is two real values vector from -1 to +1.
+# First controls main engine, -1..0 off, 0..+1 throttle from 50% to 100% power.
+# Engine can't work with less than 50% power. S
+# econd value -1.0..-0.5 fire left engine, +0.5..+1.0 fire right engine, -0.5..0.5 off.
+# source: https://gym.openai.com/envs/LunarLanderContinuous-v2/
 # todo --> training:
 SAC_LunarLander_hparam = {
     'rerun_tag':            'MonCar',
@@ -237,6 +332,8 @@ parser = argparse.ArgumentParser(description=(
     "Choose --trainExperimentSpecification between the following:\n"
     "     - 'MountainCarContinuous-v0':\n"
     "          [--trainMontainCar]: Train on Montain Car gym env a Soft Actor-Critic agent\n"
+    "     - 'Pendulum-v0':\n"
+    "          [--trainPendulum]: Train on Pendulum gym env a Soft Actor-Critic agent\n"
     "     - 'LunarLanderContinuous-v2' environment:\n"
     "          [--trainLunarLander]: Train on LunarLander a Soft Actor-Critic agent\n"
 ),
@@ -245,6 +342,8 @@ parser = argparse.ArgumentParser(description=(
 # parser.add_argument('--env', type=str, default='CartPole-v0')
 parser.add_argument('--trainMontainCar', action='store_true',
                     help='Train on Montain Car gym env a Soft Actor-Critic agent')
+
+parser.add_argument('--trainPendulum', action='store_true', help='Train on Pendulum a Soft Actor-Critic agent')
 
 parser.add_argument('--trainLunarLander', action='store_true', help='Train on LunarLander a Soft Actor-Critic agent')
 
@@ -327,18 +426,23 @@ else:
     
     # --- training ----------------------------------------------------------------------------------------------------
     experiment_start_message(consol_width, args.rerun)
-    
+
     if args.trainMontainCar:
-        """ ---- Easy environment ---- """
+        """ ---- Easy environment [--trainMontainCar] ---- """
         hparam, key, values_search_set = run_experiment(SAC_MountainCar_hparam, args,
                                                         test_hparam, rerun_nb=args.rerun)
-    
+
+    elif args.trainPendulum:
+        """ ---- Harder environment [--trainPendulum] ---- """
+        hparam, key, values_search_set = run_experiment(
+            SAC_Pendulum_hparam, args, test_hparam, rerun_nb=args.rerun)
+
     elif args.trainLunarLander:
         raise NotImplementedError  # todo: implement
-        """ ---- Harder environment ---- """
+        """ ---- Harder environment [--trainLunarLander] ---- """
         hparam, key, values_search_set = run_experiment(
             SAC_LunarLander_hparam, args, test_hparam, rerun_nb=args.rerun)
-    
+
     else:
         raise NotImplementedError
     

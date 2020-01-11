@@ -211,8 +211,10 @@ class Agent(object, metaclass=ABCMeta):
         path = "{}/saved_training".format(self.agent_root_dir)
         self.saver.restore(sess, "{}/{}".format(path, run_name))
 
-
     def __del__(self):
-        # tf_cv1.reset_default_graph()
+    
+        # (nice to have) todo:assessment --> is it linked to the 'experiment_runner' rerun error (fail at second rerun)
+        tf_cv1.reset_default_graph()
+    
         self.playground.env.env.close()
         print(":: Agent >>> CLOSED")

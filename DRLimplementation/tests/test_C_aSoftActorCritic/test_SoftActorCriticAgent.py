@@ -88,13 +88,13 @@ def gym_and_tf_continuous_pendulum_setup():
 
 
 # --- ActorCritic_agent -------------------------------------------------------------------------------------------
-@pytest.mark.skip(reason="Work fine. Mute for now")
+# @pytest.mark.skip(reason="Work fine. Mute for now")
 def test_SoftActorCritic_agent_INSTANTIATE_AGENT_MontainCar_PASS(gym_and_tf_continuous_montain_car_setup):
     exp_spec = gym_and_tf_continuous_montain_car_setup
     sac_agent_montaincar = SoftActorCriticAgent(exp_spec)
 
 
-@pytest.mark.skip(reason="Work fine. Mute for now")
+# @pytest.mark.skip(reason="Work fine. Mute for now")
 def test_SoftActorCritic_agent_INSTANTIATE_AGENT_pendulum_PASS(gym_and_tf_continuous_pendulum_setup):
     exp_spec = gym_and_tf_continuous_pendulum_setup
     sac_agent_pendulum = SoftActorCriticAgent(exp_spec)
@@ -107,7 +107,7 @@ def test_SoftActorCritic_agent_TRAIN_AGENT_MontainCar_PASS(gym_and_tf_continuous
     sac_agent_montaincar.train()
 
 
-@pytest.mark.skip(reason="Work fine. Mute for now")
+# @pytest.mark.skip(reason="Work fine. Mute for now")
 def test_SoftActorCritic_agent_TRAIN_AGENT_pendulum_PASS(gym_and_tf_continuous_pendulum_setup):
     exp_spec = gym_and_tf_continuous_pendulum_setup
     sac_agent_pendulum = SoftActorCriticAgent(exp_spec)

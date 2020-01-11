@@ -12,7 +12,7 @@ import tensorflow.python.util.deprecation as deprecation
 import blocAndTools.tensorflowbloc
 from SoftActorCritic.SoftActorCriticBrain import (
     actor_train, apply_action_bound, build_critic_graph_q_theta, build_critic_graph_v_psi, build_gaussian_policy_graph,
-    critic_q_theta_train, critic_v_psi_train,
+    critic_q_theta_train, critic_v_psi_train, critic_learning_rate_scheduler,
     )
 from blocAndTools import ConsolPrintLearningStats, buildingbloc as bloc
 from blocAndTools.agent import Agent
@@ -56,118 +56,122 @@ class SoftActorCriticAgent(Agent):
     
     def _build_computation_graph(self):
         """ Build the Policy_phi, V_psi and Q_theta computation graph as multi-layer perceptron """
-        
+    
         if self.exp_spec.random_seed == 0:
             print(":: Random seed control is turned OFF")
         else:
             tf_cv1.random.set_random_seed(self.exp_spec.random_seed)
             np.random.seed(self.exp_spec.random_seed)
             print(":: Random seed control is turned ON")
-
+    
         """ ---- Placeholder ---- """
-        self.obs_t_ph, self.act_ph, _ = bloc.gym_playground_to_tensorflow_graph_adapter(self.playground)
-        # self.obs_t_prime_ph = bloc.continuous_space_placeholder(space=self.playground.OBSERVATION_SPACE,
-        #                                                         name=vocab.obs_tPrime_ph)
+        self.obs_t_ph, self.act_ph, _ = bloc.gym_playground_to_tensorflow_graph_adapter(self.playground,
+                                                                                        obs_ph_name=vocab.obs_t_ph)
         self.obs_t_prime_ph, _, _ = bloc.gym_playground_to_tensorflow_graph_adapter(self.playground,
                                                                                     obs_ph_name=vocab.obs_tPrime_ph)
         self.reward_t_ph = tf_cv1.placeholder(dtype=tf.float32, shape=(None,), name=vocab.rew_ph)
         self.trj_done_t_ph = tf_cv1.placeholder(dtype=tf.float32, shape=(None,), name=vocab.trj_done_ph)
-
+    
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         # /// Actor computation graph //////////////////////////////////////////////////////////////////////////////////
-
+    
         pi, pi_log_p, self.policy_mu = build_gaussian_policy_graph(self.obs_t_ph, self.exp_spec, self.playground)
 
         self.policy_pi, self.pi_log_likelihood = apply_action_bound(pi, pi_log_p)
-
+    
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         # /// Critic computation graph /////////////////////////////////////////////////////////////////////////////////
-
+    
         self.V_psi, self.V_psi_frozen = build_critic_graph_v_psi(self.obs_t_ph, self.obs_t_prime_ph, self.exp_spec)
-
+    
         self.Q_theta_1, self.Q_theta_2 = build_critic_graph_q_theta(self.obs_t_ph, self.act_ph, self.exp_spec)
-
+    
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         # /// Actor & Critic Training ops //////////////////////////////////////////////////////////////////////////////
-
+    
+        critic_lr_schedule, critic_global_grad_step = critic_learning_rate_scheduler(self.exp_spec)
+    
         self.V_psi_loss, self.V_psi_optimizer, self.V_psi_frozen_update_ops = critic_v_psi_train(self.V_psi,
                                                                                                  self.V_psi_frozen,
                                                                                                  self.Q_theta_1,
                                                                                                  self.Q_theta_2,
                                                                                                  self.pi_log_likelihood,
-                                                                                                 self.exp_spec)
-
-        q_theta_train_ops = critic_q_theta_train(self.V_psi_frozen, self.Q_theta_1, self.Q_theta_2,
-                                                 self.reward_t_ph, self.trj_done_t_ph, self.exp_spec)
-
+                                                                                                 self.exp_spec,
+                                                                                                 critic_lr_schedule,
+                                                                                                 critic_global_grad_step)
+    
+        q_theta_train_ops = critic_q_theta_train(self.V_psi_frozen, self.Q_theta_1, self.Q_theta_2, self.reward_t_ph,
+                                                 self.trj_done_t_ph, self.exp_spec,
+                                                 critic_lr_schedule, critic_global_grad_step)
+    
         self.q_theta_1_loss, self.q_theta_2_loss, self.q_theta_1_optimizer, self.q_theta_2_optimizer = q_theta_train_ops
-
+    
         self.actor_kl_loss, self.actor_policy_optimizer_op = actor_train(self.pi_log_likelihood,
                                                                          self.Q_theta_1, self.Q_theta_2, self.exp_spec)
-
+    
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         # /// Summary ops //////////////////////////////////////////////////////////////////////////////////////////////
-
+    
         """ ---- By Epoch summary: RETURNS & LENGHT ---- """
         self.summary_sto_pi_avg_trjs_return_ph = tf_cv1.placeholder(tf.float32,
                                                                     name='summary_stoPi_stage_avg_trjs_return_ph')
-        tf_cv1.summary.scalar('Epoch average trj return (stochastic pi)', self.summary_sto_pi_avg_trjs_return_ph,
+        tf_cv1.summary.scalar('Epoch_average_trj_return_stochastic_pi)', self.summary_sto_pi_avg_trjs_return_ph,
                               family=vocab.G)
 
         self.summary_sto_pi_avg_trjs_len_ph = tf_cv1.placeholder(tf.float32, name='summary_stoPi_stage_avg_trjs_len_ph')
-        tf_cv1.summary.scalar('Epoch average trj lenght (stochastic pi)', self.summary_sto_pi_avg_trjs_len_ph,
+        tf_cv1.summary.scalar('Epoch_average_trj_lenght_stochastic_pi)', self.summary_sto_pi_avg_trjs_len_ph,
                               family=vocab.Trajectory_lenght)
 
         self.summary_det_pi_avg_trjs_return_ph = tf_cv1.placeholder(tf.float32,
                                                                     name='summary_detPi_stage_avg_trjs_return_ph')
-        tf_cv1.summary.scalar('Epoch average trj return (deterministic pi)', self.summary_det_pi_avg_trjs_return_ph,
+        tf_cv1.summary.scalar('Epoch_average_trj_return_deterministic_pi)', self.summary_det_pi_avg_trjs_return_ph,
                               family=vocab.G)
 
         self.summary_det_pi_avg_trjs_len_ph = tf_cv1.placeholder(tf.float32, name='summary_detPi_stage_avg_trjs_len_ph')
-        tf_cv1.summary.scalar('Epoch average trj lenght (deterministic pi)', self.summary_det_pi_avg_trjs_len_ph,
+        tf_cv1.summary.scalar('Epoch_average_trj_lenght_deterministic_pi)', self.summary_det_pi_avg_trjs_len_ph,
                               family=vocab.Trajectory_lenght)
 
         """ ---- By Epoch summary: LOSS ---- """
         self.summary_avg_trjs_Vloss_ph = tf_cv1.placeholder(tf.float32, name='Critic_V_loss_ph')
-        tf_cv1.summary.scalar('Critic V loss', self.summary_avg_trjs_Vloss_ph, family=vocab.loss)
+        tf_cv1.summary.scalar('critic_v_loss', self.summary_avg_trjs_Vloss_ph, family=vocab.loss)
 
         self.summary_avg_trjs_Q1loss_ph = tf_cv1.placeholder(tf.float32, name='Critic_Q1_loss_ph')
-        tf_cv1.summary.scalar('Critic Q1 loss', self.summary_avg_trjs_Q1loss_ph, family=vocab.loss)
+        tf_cv1.summary.scalar('critic_q_1_loss', self.summary_avg_trjs_Q1loss_ph, family=vocab.loss)
 
         self.summary_avg_trjs_Q2loss_ph = tf_cv1.placeholder(tf.float32, name='Critic_Q2_loss_ph')
-        tf_cv1.summary.scalar('Critic Q2 loss', self.summary_avg_trjs_Q2loss_ph, family=vocab.loss)
+        tf_cv1.summary.scalar('critic_q_2_loss', self.summary_avg_trjs_Q2loss_ph, family=vocab.loss)
         
         self.summary_avg_trjs_pi_loss_ph = tf_cv1.placeholder(tf.float32, name='policy_loss_ph')
-        tf_cv1.summary.scalar('Policy loss', self.summary_avg_trjs_pi_loss_ph, family=vocab.loss)
+        tf_cv1.summary.scalar('policy_loss', self.summary_avg_trjs_pi_loss_ph, family=vocab.loss)
         
         """ ---- By Epoch summary: POLICY & VALUE fct ---- """
         self.summary_avg_pi_log_likelihood_ph = tf_cv1.placeholder(tf.float32, name='pi_log_p_ph')
-        tf_cv1.summary.scalar('policy log likelihood', self.summary_avg_pi_log_likelihood_ph, family=vocab.policy)
+        tf_cv1.summary.scalar('policy_log_likelihood', self.summary_avg_pi_log_likelihood_ph, family=vocab.policy)
         
         self.summary_avg_policy_pi_ph = tf_cv1.placeholder(tf.float32, name='policy_pi_ph')
-        tf_cv1.summary.scalar('policy py', self.summary_avg_policy_pi_ph, family=vocab.policy)
+        tf_cv1.summary.scalar('policy_py', self.summary_avg_policy_pi_ph, family=vocab.policy)
         
         self.summary_avg_policy_mu_ph = tf_cv1.placeholder(tf.float32, name='policy_mu_ph')
-        tf_cv1.summary.scalar('policy mu', self.summary_avg_policy_mu_ph, family=vocab.policy)
+        tf_cv1.summary.scalar('policy_mu', self.summary_avg_policy_mu_ph, family=vocab.policy)
         
         self.summary_avg_V_value_ph = tf_cv1.placeholder(tf.float32, name='V_values_ph')
-        tf_cv1.summary.scalar('V values', self.summary_avg_V_value_ph, family=vocab.values)
+        tf_cv1.summary.scalar('V_values', self.summary_avg_V_value_ph, family=vocab.values)
         
         self.summary_avg_Q1_value_ph = tf_cv1.placeholder(tf.float32, name='Q1_values_ph')
-        tf_cv1.summary.scalar('Q1 values', self.summary_avg_Q1_value_ph, family=vocab.values)
+        tf_cv1.summary.scalar('Q1_values', self.summary_avg_Q1_value_ph, family=vocab.values)
         
         self.summary_avg_Q2_value_ph = tf_cv1.placeholder(tf.float32, name='Q2_values_ph')
-        tf_cv1.summary.scalar('Q2 values', self.summary_avg_Q2_value_ph, family=vocab.values)
+        tf_cv1.summary.scalar('Q2_values', self.summary_avg_Q2_value_ph, family=vocab.values)
         
         self.summary_epoch_op = tf_cv1.summary.merge_all()
         
         """ ---- By Trajectory summary ---- """
         self.summary_sto_pi_TRJ_return_ph = tf_cv1.placeholder(tf.float32, name='summary_stoPi_trj_return_ph')
-        self.summary_sto_pi_TRJ_return_op = tf_cv1.summary.scalar('Trajectory return (stochastic pi)',
+        self.summary_sto_pi_TRJ_return_op = tf_cv1.summary.scalar('Trajectory_return_stochastic_pi',
                                                                   self.summary_sto_pi_TRJ_return_ph, family=vocab.G)
-        
+    
         self.summary_sto_pi_TRJ_lenght_ph = tf_cv1.placeholder(tf.float32, name='summary_stoPi_trj_lenght_ph')
-        self.summary_sto_pi_TRJ_lenght_op = tf_cv1.summary.scalar('Trajectory lenght (stochastic pi)',
+        self.summary_sto_pi_TRJ_lenght_op = tf_cv1.summary.scalar('Trajectory_lenght_stochastic_pi',
                                                                   self.summary_sto_pi_TRJ_lenght_ph,
                                                                   family=vocab.Trajectory_lenght)
         
@@ -215,7 +219,6 @@ class SoftActorCriticAgent(Agent):
         timecounter = DiscreteTimestepCounter()
         self.epoch_metric_logger = EpochMetricLogger()
         
-        # (Priority) todo:implement --> agent evaluation functionality:
         # Note: Second environment for policy evaluation
         self.evaluation_playground = bloc.GymPlayground(environment_name=self.exp_spec.prefered_environment)
         
@@ -251,20 +254,20 @@ class SoftActorCriticAgent(Agent):
                 """ ---- Simulator: trajectories ---- """
                 while timecounter.per_epoch_count < self.exp_spec['timestep_per_epoch']:
                     timecounter.reset_local_count()
-        
-                    obs_t = self.playground.env.reset()
                     consol_print_learning_stats.next_glorious_trajectory()
         
+                    obs_t = self.playground.env.reset()
+        
                     """ ---- Simulator: time-steps ---- """
-                    while timecounter.per_epoch_count < self.exp_spec['timestep_per_epoch']:
+                    while True:
                         timecounter.step_all()
-            
+        
                         self._render_trajectory_on_condition(epoch, render_env,
                                                              self.pool_manager.trj_collected_so_far())
-            
+        
                         """ ---- Agent: act in the environment using the stochastic policy---- """
                         act_t = self._select_action_given_policy(sess, obs_t, deterministic=False)
-            
+        
                         obs_t_prime, reward_t, trj_done, _ = self.playground.env.step(act_t)
             
                         """ ---- Agent: collect current timestep events ---- """
@@ -276,23 +279,23 @@ class SoftActorCriticAgent(Agent):
                                 and self.pool_manager.current_pool_size > self.exp_spec['min_pool_size']):
                             """ ---- 'Soft Policy Evaluation' & 'Policy Improvement' step ---- """
                             self._perform_gradient_step(consol_print_learning_stats, timecounter.local_count)
-
-                        if trj_done:
+        
+                        if trj_done or timecounter.per_epoch_count > self.exp_spec['timestep_per_epoch']:
                             """ ---- Simulator: trajectory as ended --> compute training stats ---- """
                             trj_return, trj_lenght = self.pool_manager.trajectory_ended()
                             self.epoch_metric_logger.append_trajectory_metric(trj_return, trj_lenght)
-
+            
                             trj_summary = sess.run(self.summary_TRJ_op, {
                                 self.summary_sto_pi_TRJ_return_ph: trj_return,
                                 self.summary_sto_pi_TRJ_lenght_ph: trj_lenght
                                 })
-
+            
                             self.writer.add_summary(trj_summary, global_step=timecounter.global_count)
 
                             consol_print_learning_stats.trajectory_training_stat(the_trajectory_return=trj_return,
                                                                                  timestep=trj_lenght)
                             break
-    
+
                 # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
                 # /// Epoch end ////////////////////////////////////////////////////////////////////////////////////////
     
