@@ -58,12 +58,13 @@ def apply_action_bound(policy_pi: tf.Tensor, policy_pi_log_likelihood: tf.Tensor
     :param policy_pi_log_likelihood:
     :return: squashed_policy_pi, squashed_policy_pi_log_likelihood
     """
-    # (nice to have) todo:implement --> a numericaly stable version : see p8 HW5c Sergey Levine DRL course
-    squashed_policy_pi = tf_cv1.tanh(policy_pi)
-    num_corr = tf_cv1.reduce_sum(tf_cv1.log(1 - tf_cv1.tanh(squashed_policy_pi) ** 2 + NUM_STABILITY_CORRECTION),
-                                 axis=1)
-    squashed_policy_pi_log_likelihood = policy_pi_log_likelihood - num_corr
-    return squashed_policy_pi, squashed_policy_pi_log_likelihood
+    with tf_cv1.variable_scope(vocab.squashing_fct):
+        # (nice to have) todo:implement --> a numericaly stable version : see p8 HW5c Sergey Levine DRL course
+        squashed_policy_pi = tf_cv1.tanh(policy_pi)
+        num_corr = tf_cv1.reduce_sum(tf_cv1.log(1 - tf_cv1.tanh(squashed_policy_pi) ** 2 + NUM_STABILITY_CORRECTION),
+                                     axis=1)
+        squashed_policy_pi_log_likelihood = policy_pi_log_likelihood - num_corr
+        return squashed_policy_pi, squashed_policy_pi_log_likelihood
 
 
 def build_gaussian_policy_graph(obs_t_ph: tf.Tensor, exp_spec: ExperimentSpec,
@@ -107,16 +108,16 @@ def build_gaussian_policy_graph(obs_t_ph: tf.Tensor, exp_spec: ExperimentSpec,
                                                             hidden_layers_activation=exp_spec[
                                                                 'phi_hidden_layers_activation'],
                                                             output_layers_activation=exp_spec[
-                                                                'phi_output_layers_activation'],
+                                                                'phi_hidden_layers_activation'],
                                                             name=vocab.phi)
         
                 policy_mu = keras.layers.Dense(playground.ACTION_CHOICES,
-                                               activation=exp_spec['phi_output_layers_activation'],
-                                               name=vocab.phi + '/' + vocab.policy_mu)(phi_mlp)
+                                               activation=tf_cv1.tanh,
+                                               name=vocab.vocab.policy_mu)(phi_mlp)
         
                 policy_log_std = keras.layers.Dense(playground.ACTION_CHOICES,
                                                     activation=tf_cv1.tanh,
-                                                    name=vocab.phi + '/' + vocab.policy_log_std)(phi_mlp)
+                                                    name=vocab.vocab.policy_log_std)(phi_mlp)
     
             else:
                 print(':: Use legacy tensorFlow Dense layer')
@@ -125,18 +126,18 @@ def build_gaussian_policy_graph(obs_t_ph: tf.Tensor, exp_spec: ExperimentSpec,
                                                       hidden_layers_activation=exp_spec[
                                                           'phi_hidden_layers_activation'],
                                                       output_layers_activation=exp_spec[
-                                                          'phi_output_layers_activation'],
+                                                          'phi_hidden_layers_activation'],
                                                       name=vocab.phi)
         
                 policy_mu = tf_cv1.layers.dense(phi_mlp,
                                                 playground.ACTION_CHOICES,
-                                                activation=exp_spec['phi_output_layers_activation'],
-                                                name=vocab.phi + '/' + vocab.policy_mu)
+                                                activation=tf_cv1.tanh,
+                                                name=vocab.vocab.policy_mu)
         
                 policy_log_std = tf_cv1.layers.dense(phi_mlp,
                                                      playground.ACTION_CHOICES,
                                                      activation=tf_cv1.tanh,
-                                                     name=vocab.phi + '/' + vocab.policy_log_std)
+                                                     name=vocab.vocab.policy_log_std)
     
             # Note: clip log standard deviation as in the sac_original_paper/sac/distributions/normal.py
             policy_log_std = tf_cv1.clip_by_value(policy_log_std, POLICY_LOG_STD_CAP_MIN, POLICY_LOG_STD_CAP_MAX)
@@ -171,14 +172,14 @@ def build_critic_graph_v_psi(obs_t_ph: tf.Tensor, obs_t_prime_ph: tf.Tensor, exp
         mlp = build_KERAS_MLP_computation_graph
     else:
         mlp = build_MLP_computation_graph
-    
-    with tf_cv1.variable_scope(vocab.critic_network):
+
+    with tf_cv1.variable_scope(vocab.critic_network, reuse=tf.AUTO_REUSE):
         """ ---- Build parameter '_psi' as a multilayer perceptron ---- """
         v_psi = mlp(obs_t_ph, 1, exp_spec['psi_nn_h_layer_topo'],
                     hidden_layers_activation=exp_spec['psi_hidden_layers_activation'],
                     output_layers_activation=exp_spec['psi_output_layers_activation'],
                     name=vocab.V_psi)
-
+    
         """ ---- Build frozen parameter '_psi' as a multilayer perceptron ---- """
         frozen_v_psi = mlp(obs_t_prime_ph, 1, exp_spec['psi_nn_h_layer_topo'],
                            hidden_layers_activation=exp_spec['psi_hidden_layers_activation'],
@@ -187,13 +188,13 @@ def build_critic_graph_v_psi(obs_t_ph: tf.Tensor, obs_t_prime_ph: tf.Tensor, exp
     return v_psi, frozen_v_psi
 
 
-def init_frozen_v_psi():
+def init_frozen_v_psi() -> tf.Operation:
     """
-    Make a exact copy
-    :return:
+    Pass a exact copy of the weight of V_psi to frozen_V_psi
+    :return: the cloning op
     """
     init_frozen_V_psi_op = _update_frozen_v_psi(1.0)
-    raise init_frozen_V_psi_op
+    return init_frozen_V_psi_op
 
 
 def build_critic_graph_q_theta(obs_t_ph: tf.Tensor, act_t_ph: tf.Tensor, exp_spec: ExperimentSpec) -> Tuple[
@@ -209,17 +210,17 @@ def build_critic_graph_q_theta(obs_t_ph: tf.Tensor, act_t_ph: tf.Tensor, exp_spe
         mlp = build_KERAS_MLP_computation_graph
     else:
         mlp = build_MLP_computation_graph
-    
-    with tf_cv1.variable_scope(vocab.critic_network):
+
+    with tf_cv1.variable_scope(vocab.critic_network, reuse=tf.AUTO_REUSE):
         """ ---- Concat graph input: observation & action ---- """
         inputs = tf_cv1.concat([obs_t_ph, act_t_ph], axis=-1)
-        
+    
         """ ---- Build parameter '_theta_1' as a multilayer perceptron ---- """
         q_theta_1 = mlp(inputs, 1, exp_spec.theta_nn_h_layer_topo,
                         hidden_layers_activation=exp_spec.theta_hidden_layers_activation,
                         output_layers_activation=exp_spec.theta_output_layers_activation,
                         name=vocab.Q_theta_1)
-        
+    
         """ ---- Build parameter '_theta_2' as a multilayer perceptron ---- """
         q_theta_2 = mlp(inputs, 1, exp_spec.theta_nn_h_layer_topo,
                         hidden_layers_activation=exp_spec.theta_hidden_layers_activation,

@@ -21,6 +21,7 @@ from blocAndTools.discrete_time_counter import DiscreteTimestepCounter
 from blocAndTools.logger.epoch_metric_logger import EpochMetricLogger
 from blocAndTools.container.trajectories_pool import PoolManager
 from blocAndTools.rl_vocabulary import rl_name
+from blocAndTools.visualisationtools import CycleIndexer
 
 tf_cv1 = tf.compat.v1  # shortcut
 deprecation._PRINT_DEPRECATION_WARNINGS = False
@@ -71,21 +72,26 @@ class SoftActorCriticAgent(Agent):
                                                                                     obs_ph_name=vocab.obs_tPrime_ph)
         self.reward_t_ph = tf_cv1.placeholder(dtype=tf.float32, shape=(None,), name=vocab.rew_ph)
         self.trj_done_t_ph = tf_cv1.placeholder(dtype=tf.float32, shape=(None,), name=vocab.trj_done_ph)
-    
+
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         # /// Actor computation graph //////////////////////////////////////////////////////////////////////////////////
-    
+
         pi, pi_log_p, self.policy_mu = build_gaussian_policy_graph(self.obs_t_ph, self.exp_spec, self.playground)
 
         self.policy_pi, self.pi_log_likelihood = apply_action_bound(pi, pi_log_p)
-    
+
+        """ ---- Adjust policy distribution result to action range  ---- """
+        if self.playground.ACTION_SPACE.bounded_above:
+            self.policy_pi *= self.playground.ACTION_SPACE.high[0]
+            self.policy_mu *= self.playground.ACTION_SPACE.high[0]
+
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         # /// Critic computation graph /////////////////////////////////////////////////////////////////////////////////
-    
+
         self.V_psi, self.V_psi_frozen = build_critic_graph_v_psi(self.obs_t_ph, self.obs_t_prime_ph, self.exp_spec)
-    
+
         self.Q_theta_1, self.Q_theta_2 = build_critic_graph_q_theta(self.obs_t_ph, self.act_ph, self.exp_spec)
-    
+
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         # /// Actor & Critic Training ops //////////////////////////////////////////////////////////////////////////////
 
@@ -100,7 +106,7 @@ class SoftActorCriticAgent(Agent):
                                                                                                  critic_lr_schedule,
                                                                                                  critic_global_grad_step)
 
-        init_frozen_v_psi_op = init_frozen_v_psi()
+        self.init_frozen_v_psi_op = init_frozen_v_psi()
 
         q_theta_train_ops = critic_q_theta_train(self.V_psi_frozen, self.Q_theta_1, self.Q_theta_2, self.reward_t_ph,
                                                  self.trj_done_t_ph, self.exp_spec,
@@ -410,17 +416,17 @@ class SoftActorCriticAgent(Agent):
         :return: None
         """
         trajectory_logger = BasicTrajectoryLogger()
+        cycle_indexer = CycleIndexer(cycle_lenght=10)
 
-        print(":: Agent evaluation >>> LOCK & LOAD\n"
-              "           ↳ Execute {} run\n           ↳ Test run={}".format(max_trajectories,
-                                                                             self.exp_spec.isTestRun))
+        print("\n:: Agent evaluation >>> \n"
+              "           ↳ Execute {} run\n".format(max_trajectories))
 
         print(":: Running agent evaluation>>> ", end=" ", flush=True)
 
         for run in range(max_trajectories):
-            print(run + 1, end=" ", flush=True)
+            # print(run + 1, end=" ", flush=True)
             observation = self.evaluation_playground.env.reset()  # fetch initial observation
-
+    
             """ ---- Simulator: time-steps ---- """
             while True:
                 act_t = self._select_action_given_policy(sess, observation, deterministic=True)
@@ -431,6 +437,13 @@ class SoftActorCriticAgent(Agent):
                 if done:
                     self.epoch_metric_logger.append_agent_eval_trj_metric(trajectory_logger.the_return,
                                                                           trajectory_logger.lenght)
+    
+                    print("\r            ↳ Trajectory {:>4}  ".format(run + 1),
+                          ">" * cycle_indexer.i, " " * cycle_indexer.j,
+                          "  got return {:>8.2f}   after  {:>4}  timesteps".format(
+                              trajectory_logger.the_return, trajectory_logger.lenght),
+                          sep='', end='', flush=True)
+    
                     trajectory_logger.reset()
                     break
         return None
