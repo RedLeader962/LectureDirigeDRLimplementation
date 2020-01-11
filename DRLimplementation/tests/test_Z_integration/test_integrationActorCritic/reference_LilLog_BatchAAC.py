@@ -18,7 +18,7 @@ import numpy as np
 from typing import Type, Tuple
 import argparse
 
-
+import blocAndTools.tensorflowbloc
 from blocAndTools.agent import Agent
 from blocAndTools.rl_vocabulary import rl_name, TargetType, NetworkType
 from blocAndTools import buildingbloc as bloc, ConsolPrintLearningStats, ExperimentSpec
@@ -217,7 +217,7 @@ class ReferenceActorCriticAgent(Agent):
                         action_array = sess.run(self.policy_pi,
                                                 feed_dict={self.obs_t_ph: obs_t_flat})
 
-                        action = bloc.to_scalar(action_array)
+                        action = blocAndTools.tensorflowbloc.to_scalar(action_array)
 
                         obs_tPrime, reward, done, _ = self.playground.env.step(action)
 
@@ -268,9 +268,9 @@ class ReferenceActorCriticAgent(Agent):
                 # self._data_shape_is_compatibility_with_graph(batch_Qvalues, batch_actions, batch_observations) # =Muted=
 
                 """ ---- Agent: Compute gradient & update policy ---- """
-                feed_dictionary = bloc.build_feed_dictionary(
+                feed_dictionary = blocAndTools.tensorflowbloc.build_feed_dictionary(
                     [self.obs_t_ph, self.action_ph, self.Qvalues_ph, self.Summary_batch_avg_trjs_return_ph],  # =HL=
-                    [batch_observations, batch_actions, batch_Qvalues, batch_average_trjs_return])                # =HL=
+                    [batch_observations, batch_actions, batch_Qvalues, batch_average_trjs_return])  # =HL=
 
                 e_actor_loss, e_V_phi_loss, summary = sess.run([self.actor_loss, self.V_phi_loss, self.summary_op],
                                                       feed_dict=feed_dictionary)
@@ -280,12 +280,12 @@ class ReferenceActorCriticAgent(Agent):
                 """ ---- Train actor ---- """
                 sess.run(self.actor_policy_optimizer, feed_dict=feed_dictionary)
 
-                critic_feed_dictionary = bloc.build_feed_dictionary(
+                critic_feed_dictionary = blocAndTools.tensorflowbloc.build_feed_dictionary(
                     # [self.obs_t_ph, self.Qvalues_ph],
                     # =HL=
                     # [batch_observations, batch_Qvalues])                                                        # =HL=
                     [self.obs_t_ph, self.action_ph, self.Qvalues_ph],  # =HL=
-                    [batch_observations, batch_actions, batch_Qvalues])                                           # =HL=
+                    [batch_observations, batch_actions, batch_Qvalues])  # =HL=
 
                 """ ---- Train critic ---- """
                 for c_loop in range(self.exp_spec['critique_loop_len']):

@@ -9,6 +9,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.python.util.deprecation as deprecation
 
+import blocAndTools.tensorflowbloc
 from SoftActorCritic.SoftActorCriticBrain import (
     actor_train, apply_action_bound, build_critic_graph_q_theta, build_critic_graph_v_psi, build_gaussian_policy_graph,
     critic_q_theta_train, critic_v_psi_train,
@@ -46,7 +47,6 @@ vocab = rl_name()
 
                                                                                                         +--- kban style
 """
-
 
 class SoftActorCriticAgent(Agent):
     
@@ -195,7 +195,7 @@ class SoftActorCriticAgent(Agent):
         
         obs_t_flat = bloc.format_single_step_observation(obs_t)
         act_t = self.sess.run(the_policy, feed_dict={self.obs_t_ph: obs_t_flat})
-        act_t = bloc.to_scalar(act_t)
+        act_t = blocAndTools.tensorflowbloc.to_scalar(act_t)
         return act_t
     
     def _instantiate_data_collector(self) -> PoolManager:
@@ -334,7 +334,8 @@ class SoftActorCriticAgent(Agent):
                     self.summary_avg_Q2_value_ph
                     ]
 
-                epoch_feed_dictionary = bloc.build_feed_dictionary(summary_epoch_ph, epoch_metric)
+                epoch_feed_dictionary = blocAndTools.tensorflowbloc.build_feed_dictionary(summary_epoch_ph,
+                                                                                          epoch_metric)
 
                 epoch_summary = self.sess.run(self.summary_epoch_op, feed_dict=epoch_feed_dictionary)
 
@@ -358,8 +359,8 @@ class SoftActorCriticAgent(Agent):
     
     def _perform_gradient_step(self, consol_print_learning_stats, current_local_step):
         replay_batch = self.pool_manager.sample_from_pool()
-        
-        full_feed_dictionary = bloc.build_feed_dictionary(
+
+        full_feed_dictionary = blocAndTools.tensorflowbloc.build_feed_dictionary(
             [self.obs_t_ph, self.act_ph, self.obs_t_prime_ph, self.reward_t_ph, self.trj_done_t_ph],
             [replay_batch.obs_t, replay_batch.act_t, replay_batch.obs_t_prime, replay_batch.rew_t, replay_batch.done_t])
         

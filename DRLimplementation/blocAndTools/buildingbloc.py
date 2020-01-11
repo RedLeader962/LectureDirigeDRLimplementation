@@ -1,10 +1,11 @@
 # coding=utf-8
 from datetime import datetime
-from typing import Any, Union, Tuple, List
+from typing import Any, Union, Tuple
 import gym
 from gym.wrappers import TimeLimit
 import tensorflow as tf
 import tensorflow.python.util.deprecation as deprecation
+from tensorflow.python import keras
 import numpy as np
 
 from blocAndTools.rl_vocabulary import rl_name
@@ -304,19 +305,19 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, output_dim, hidden
 
     with tf_cv1.variable_scope(name_or_scope=name, reuse=reuse):
         h_layer = input_placeholder
-
+    
         # # (!) the kernel_initializer random initializer choice make a big difference on the learning performance
         kernel_init = tf_cv1.initializers.he_normal
         # kernel_init = None
-
+    
         # create & connect all hidden layer
-        for id in range(len(hidden_layer_topology)):
-            h_layer = tf_cv1.layers.dense(h_layer, hidden_layer_topology[id],
+        for l_id in range(len(hidden_layer_topology)):
+            h_layer = tf_cv1.layers.dense(h_layer, hidden_layer_topology[l_id],
                                           activation=hidden_layers_activation,
                                           reuse=reuse,
                                           kernel_initializer=kernel_init(),
-                                          name='{}{}'.format(vocab.hidden_, id + 1))
-
+                                          name='{}{}'.format(vocab.hidden_, l_id + 1))
+    
         logits = tf_cv1.layers.dense(h_layer, output_dim,
                                      activation=output_layers_activation,
                                      reuse=reuse,
@@ -326,32 +327,56 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, output_dim, hidden
     return logits
 
 
-def get_variables_graph_key(name: str) -> List[str]:
+def build_KERAS_MLP_computation_graph(input_placeholder: tf.Tensor, output_dim, hidden_layer_topology: tuple = (32, 32),
+                                      hidden_layers_activation: tf.Tensor = tf.nn.tanh,
+                                      output_layers_activation: tf.Tensor = None,
+                                      reuse=None,
+                                      name='keras_' + vocab.Multi_Layer_Perceptron) -> tf.Tensor:
     """
-    Fetch the list of all parameter graph key under a specific variable name
+    Builder function for KERAS TensorFlow API.
     
-        >>> the_V = build_MLP_computation_graph(obs_t_ph, 1, (4, 4), name='V_psi')
-        >>> the_frozen_V = build_MLP_computation_graph(obs_t_prime_ph, 1, (4, 4), name='frozen_V_psi')
-        >>> v_psy_key = get_variables_graph_key('V_psi')
-        >>> print(v_psy_key)
-        [<tf.Variable 'V_psi/hidden_1/kernel:0' shape=(4, 4) dtype=float32_ref>,
-         <tf.Variable 'V_psi/hidden_1/bias:0' shape=(4,) dtype=float32_ref>,
-         <tf.Variable 'V_psi/hidden_2/kernel:0' shape=(4, 4) dtype=float32_ref>,
-         <tf.Variable 'V_psi/hidden_2/bias:0' shape=(4,) dtype=float32_ref>,
-         <tf.Variable 'V_psi/logits/kernel:0' shape=(4, 1) dtype=float32_ref>,
-         <tf.Variable 'V_psi/logits/bias:0' shape=(1,) dtype=float32_ref>]
-    :param name: variable name
-    :return: a list of all variable parameter graph key
+    Note: Be advise, the argument 'reuse' is kept for signature compatibility purpose.
+      |     Keras use a different strategy for reuse than regular tensorflow Dense layer.
+    
+    Return a Multi Layer Perceptron computation graph with topology:
+
+        input_placeholder | *hidden_layer_topology | logits_layer
+
+    The last layer is called the 'logits' (aka: the raw output of the MLP)
+
+    In the context of deep learning, 'logits' is the equivalent of 'raw output' of our prediction.
+    It will later be transform into probabilities using the 'softmax function'
+
+
+    :return: a well construct computation graph
+    :rtype: tf.Tensor
     """
-    scope_name = tf_cv1.get_variable_scope().name
-    if len(scope_name) > 0:
-        scope_name += '/' + name + '/'
-    else:
-        scope_name = name + '/'
+    assert reuse is None, ("the argument 'reuse' is keept for signature compatibility purpose. "
+                           "Keras use a different strategy for reuse than regular tensorflow Dense layer")
+    assert isinstance(input_placeholder, tf.Tensor)
+    assert isinstance(hidden_layer_topology, tuple)
     
-    param_key = tf_cv1.get_collection(
-        tf_cv1.GraphKeys.TRAINABLE_VARIABLES, scope=scope_name)
-    return param_key
+    with tf_cv1.variable_scope(name_or_scope=name, reuse=reuse):
+        h_layer = input_placeholder
+        
+        # # (!) the kernel_initializer random initializer choice make a big difference on the learning performance
+        kernel_init = tf_cv1.initializers.he_normal
+        # kernel_init = None
+        
+        # create & connect all hidden layer
+        for l_id in range(len(hidden_layer_topology)):
+            dense = keras.layers.Dense(hidden_layer_topology[l_id],
+                                       activation=hidden_layers_activation,
+                                       kernel_initializer=kernel_init(),
+                                       name='{}{}'.format(vocab.hidden_, l_id + 1))
+            h_layer = dense(h_layer)
+        
+        logits = keras.layers.Dense(output_dim,
+                                    activation=output_layers_activation,
+                                    kernel_initializer=kernel_init(),
+                                    name=vocab.logits)
+    
+    return logits(h_layer)
 
 
 def continuous_space_placeholder(space: gym.spaces.Box, shape_constraint: tuple = None, name=None) -> tf.Tensor:
@@ -377,8 +402,9 @@ def discrete_space_placeholder(space: gym.spaces.Discrete, shape_constraint: tup
 
 def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground, obs_shape_constraint: tuple = None,
                                                action_shape_constraint: tuple = None,
-                                               Q_name: str = vocab.Qvalues_ph, obs_ph_name=vocab.obs_ph) -> (
-tf.Tensor, tf.Tensor, tf.Tensor):
+                                               Q_name: str = vocab.Qvalues_ph,
+                                               obs_ph_name=vocab.obs_ph
+                                               ) -> (tf.Tensor, tf.Tensor, tf.Tensor):
     """
     Configure handle for feeding value to the computation graph
             Continuous space    -->     dtype=tf.float32
@@ -388,7 +414,7 @@ tf.Tensor, tf.Tensor, tf.Tensor):
     :rtype: (tf.Tensor, tf.Tensor, tf.Tensor)
     """
     assert isinstance(playground, GymPlayground), "\n\n>>> Expected a builded GymPlayground.\n\n"
-
+    
     if isinstance(playground.env.observation_space, gym.spaces.Box):
         """observation space is continuous"""
         obs_ph = continuous_space_placeholder(playground.OBSERVATION_SPACE, obs_shape_constraint, name=obs_ph_name)
@@ -398,7 +424,7 @@ tf.Tensor, tf.Tensor, tf.Tensor):
                                             name=obs_ph_name)
     else:
         raise NotImplementedError
-
+    
     if isinstance(playground.env.action_space, gym.spaces.Box):
         """action space is continuous"""
         act_ph = continuous_space_placeholder(playground.ACTION_SPACE, action_shape_constraint, name=vocab.act_ph)
@@ -407,14 +433,14 @@ tf.Tensor, tf.Tensor, tf.Tensor):
         act_ph = discrete_space_placeholder(playground.ACTION_SPACE, action_shape_constraint, name=vocab.act_ph)
     else:
         raise NotImplementedError
-
+    
     if obs_shape_constraint is not None:
         shape = (*obs_shape_constraint,)
     else:
         shape = (None,)
-
+    
     Q_values_ph = tf_cv1.placeholder(dtype=tf.float32, shape=shape, name=Q_name)
-
+    
     return obs_ph, act_ph, Q_values_ph
 
 
@@ -466,7 +492,7 @@ def policy_theta_continuous_space(logits_layer: tf.Tensor, playground: GymPlaygr
     with tf.name_scope(name=name) as scope:
         # convert the logits layer (aka: raw output) to probabilities
         logits_layer = tf.identity(logits_layer, name='mu')
-    
+
         raise NotImplementedError  # todo: implement
         # log_standard_deviation = NotImplemented  # (!) todo
         # standard_deviation = NotImplemented  # (!) todo --> compute standard_deviation
@@ -505,33 +531,6 @@ def policy_optimizer(pseudo_loss: tf.Tensor, learning_rate: list or tf_cv1.Tenso
                                                                             global_step=global_gradient_step, name=name)
 
 
-def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
-    """
-    Build a feed dictionary ready to use in a TensorFlow run session.
-
-    It map TF placeholder to corresponding array of values so be advise, order is important.
-
-    :param placeholders: a list of tensorflow placeholder
-    :type placeholders: [tf.Tensor, ...]
-    :param arrays_of_values: a list of array
-    :type arrays_of_values: [array, ...]
-    :return: a feed dictionary
-    :rtype: dict
-    """
-    assert isinstance(placeholders, list), "Wrong input type, placeholders must be a list of tensorflow placeholder"
-    assert isinstance(arrays_of_values, list), "Wrong input type, arrays_of_values must be a list of array"
-    assert len(placeholders) == len(arrays_of_values), "placeholders and arrays_of_values must be of the same lenght"
-    for placeholder in placeholders:
-        assert isinstance(placeholder, tf.Tensor), ("Wrong input type, placeholders must "
-                                                    "be a list of tensorflow placeholder")
-
-    feed_dict = dict()
-    for placeholder, array in zip(placeholders, arrays_of_values):
-        feed_dict[placeholder] = array
-
-    return feed_dict
-
-
 def format_single_step_observation(observation: np.ndarray):
     """ Single trajectorie batch size hack for the computation graph observation placeholder
             Ex:
@@ -542,10 +541,6 @@ def format_single_step_observation(observation: np.ndarray):
     assert observation.ndim == 1, "Watch out!! observation array is of wrong dimension {}".format(observation.shape)
     batch_size_one_observation = np.expand_dims(observation, axis=0)
     return batch_size_one_observation
-
-
-def to_scalar(action_array: np.ndarray):
-    return action_array.item()
 
 
 def setup_commented_run_dir_str(exp_spec: ExperimentSpec, agent_root_dir: str) -> str:

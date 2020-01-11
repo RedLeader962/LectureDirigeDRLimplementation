@@ -8,6 +8,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.python.util.deprecation as deprecation
 
+import blocAndTools.tensorflowbloc
 from ActorCritic.ActorCriticBrainSharedNetwork import build_actor_critic_shared_graph
 from ActorCritic.ActorCriticBrainSplitNetwork import (build_actor_policy_graph, build_critic_graph, critic_train,
                                                       actor_train, )
@@ -197,12 +198,12 @@ class BatchActorCriticAgent(Agent):
                         if self.exp_spec['Target'] is TargetType.MonteCarlo:
                             action = sess.run(self.policy_pi,
                                               feed_dict={self.obs_t_ph: obs_t_flat})
-                            action = bloc.to_scalar(action)
+                            action = blocAndTools.tensorflowbloc.to_scalar(action)
                         elif self.exp_spec['Target'] is TargetType.Bootstrap:
                             action, V_t = sess.run([self.policy_pi, self.V_phi_estimator],
                                                    feed_dict={self.obs_t_ph: obs_t_flat})
-                            action = bloc.to_scalar(action)
-                            V_t = bloc.to_scalar(V_t)
+                            action = blocAndTools.tensorflowbloc.to_scalar(action)
+                            V_t = blocAndTools.tensorflowbloc.to_scalar(V_t)
 
                         """ ---- Agent: act in the environment ---- """
                         obs_tPrime, reward, done, _ = self.playground.env.step(action)
@@ -263,7 +264,7 @@ class BatchActorCriticAgent(Agent):
                 batch_Qvalues = batch_container.batch_Qvalues
 
                 """ ---- Agent: Compute gradient & update policy ---- """
-                epoch_feed_dictionary = bloc.build_feed_dictionary(
+                epoch_feed_dictionary = blocAndTools.tensorflowbloc.build_feed_dictionary(
                     [self.obs_t_ph, self.action_ph, self.Qvalues_ph, self.Summary_batch_avg_trjs_return_ph],
                     [batch_observations, batch_actions, batch_Qvalues, batch_average_trjs_return])
 
@@ -277,7 +278,7 @@ class BatchActorCriticAgent(Agent):
                 """ ---- Train actor ---- """
                 sess.run(self.actor_policy_optimizer, feed_dict=epoch_feed_dictionary)
 
-                critic_feed_dictionary = bloc.build_feed_dictionary(
+                critic_feed_dictionary = blocAndTools.tensorflowbloc.build_feed_dictionary(
                     [self.obs_t_ph, self.Qvalues_ph],
                     [batch_observations, batch_Qvalues])
 

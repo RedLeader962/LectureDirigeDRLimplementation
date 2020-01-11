@@ -41,6 +41,7 @@ import tensorflow.python.util.deprecation as deprecation
 
 import numpy as np
 
+import blocAndTools.tensorflowbloc
 from BasicPolicyGradient.REINFORCEbrain import REINFORCE_policy
 from blocAndTools import buildingbloc as bloc
 from blocAndTools.agent import Agent
@@ -141,7 +142,7 @@ class REINFORCEagent(Agent):
                         action_array = sess.run(self.policy_pi,
                                                 feed_dict={self.obs_t_ph: step_observation})
 
-                        action = bloc.to_scalar(action_array)
+                        action = blocAndTools.tensorflowbloc.to_scalar(action_array)
                         observe_reaction, reward, done, _ = self.playground.env.step(action)
 
                         """ ---- Agent: Collect current timestep events ---- """
@@ -189,8 +190,9 @@ class REINFORCEagent(Agent):
                 # self._data_shape_is_compatibility_with_graph(batch_Q_values, batch_actions, batch_observations)
 
                 """ ---- Agent: Compute gradient & update policy ---- """
-                feed_dictionary = bloc.build_feed_dictionary([self.obs_t_ph, self.action_ph, self.Q_values_ph],
-                                                             [batch_observations, batch_actions, batch_Q_values])
+                feed_dictionary = blocAndTools.tensorflowbloc.build_feed_dictionary(
+                    [self.obs_t_ph, self.action_ph, self.Q_values_ph],
+                    [batch_observations, batch_actions, batch_Q_values])
                 epoch_loss, _ = sess.run([self.pseudo_loss, self.policy_optimizer_op],
                                          feed_dict=feed_dictionary)
 
@@ -200,7 +202,7 @@ class REINFORCEagent(Agent):
                     epoch_average_trjs_lenght=batch_average_trjs_lenght,
                     number_of_trj_collected=batch_trj_collected,
                     total_timestep_collected=batch_timestep_collected
-                )
+                    )
 
                 self._save_learned_model(batch_average_trjs_return, epoch, sess)
 

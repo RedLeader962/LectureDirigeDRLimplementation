@@ -13,6 +13,7 @@ import tensorflow as tf
 import numpy as np
 from gym.spaces import Discrete, Box
 
+import blocAndTools.tensorflowbloc
 from BasicPolicyGradient import REINFORCEbrain                                             # \\\\\\    My bloc    \\\\\\
 from blocAndTools import buildingbloc as BLOC                                              # \\\\\\    My bloc    \\\\\\
 from blocAndTools.visualisationtools import ConsolPrintLearningStats                       # \\\\\\    My bloc    \\\\\\
@@ -161,8 +162,8 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
                 # obs, rew, done, _ = env.step(act)                                      # ////// Original bloc //////
 
                 step_observation = BLOC.format_single_step_observation(obs)              # \\\\\\    My bloc    \\\\\\
-                action_array = sess.run(actions, feed_dict={obs_ph: step_observation})   # \\\\\\    My bloc    \\\\\\
-                act = BLOC.to_scalar(action_array)                       # \\\\\\    My bloc    \\\\\\
+                action_array = sess.run(actions, feed_dict={obs_ph: step_observation})  # \\\\\\    My bloc    \\\\\\
+                act = blocAndTools.tensorflowbloc.to_scalar(action_array)  # \\\\\\    My bloc    \\\\\\
                 # obs, rew, done, _ = playground.env.step(act)   <-- (!) mistake         # \\\\\\    My bloc    \\\\\\
                 # (!) Solution to silent error 2: dont ovewrite S_t                        \\\\\\    My bloc    \\\\\\
                 obs_prime, rew, done, _ = playground.env.step(act)  # <-- (!) Solution     \\\\\\    My bloc    \\\\\\
@@ -221,17 +222,21 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, epochs=50, batch_s
             #                             weights_ph: np.array(batch_weights)
             #                          })
 
-            batch_container = the_UNI_BATCH_COLLECTOR.pop_batch_and_reset()              # \\\\\\    My bloc    \\\\\\
-            (batch_rets, batch_lens) = batch_container.get_basic_metric()                  # \\\\\\    My bloc    \\\\\\
-            batch_obs = batch_container.batch_observations                               # \\\\\\    My bloc    \\\\\\
-            batch_acts = batch_container.batch_actions                                   # \\\\\\    My bloc    \\\\\\
-            batch_weights = batch_container.batch_Qvalues                                # \\\\\\    My bloc    \\\\\\
+            batch_container = the_UNI_BATCH_COLLECTOR.pop_batch_and_reset()  # \\\\\\    My bloc    \\\\\\
+            (batch_rets, batch_lens) = batch_container.get_basic_metric()  # \\\\\\    My bloc    \\\\\\
+            batch_obs = batch_container.batch_observations  # \\\\\\    My bloc    \\\\\\
+            batch_acts = batch_container.batch_actions  # \\\\\\    My bloc    \\\\\\
+            batch_weights = batch_container.batch_Qvalues  # \\\\\\    My bloc    \\\\\\
 
-            feed_dictionary = BLOC.build_feed_dictionary([obs_ph, act_ph, weights_ph],   # \\\\\\    My bloc    \\\\\\
-                                                         [batch_obs,                     # \\\\\\    My bloc    \\\\\\
-                                                          batch_acts, batch_weights])    # \\\\\\    My bloc    \\\\\\
-            batch_loss, _ = sess.run([loss, train_op],                                   # \\\\\\    My bloc    \\\\\\
-                                     feed_dict=feed_dictionary)                          # \\\\\\    My bloc    \\\\\\
+            feed_dictionary = blocAndTools.tensorflowbloc.build_feed_dictionary([obs_ph, act_ph, weights_ph],
+                                                                                # \\\\\\    My bloc    \\\\\\
+                                                                                [batch_obs,
+                                                                                 # \\\\\\    My bloc    \\\\\\
+                                                                                 batch_acts,
+                                                                                 batch_weights])  # \\\\\\    My bloc
+            #    \\\\\\
+            batch_loss, _ = sess.run([loss, train_op],  # \\\\\\    My bloc    \\\\\\
+                                     feed_dict=feed_dictionary)  # \\\\\\    My bloc    \\\\\\
 
             return batch_loss, batch_rets, batch_lens
 

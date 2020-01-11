@@ -30,7 +30,7 @@ unit_test_hparam = {
     'max_gradient_step_expected':     500000,
     'actor_lr_decay_rate':            0.01,  # Note: set to 1 to swith OFF scheduler
     'critic_lr_decay_rate':           0.01,  # Note: set to 1 to swith OFF scheduler
-
+    
     'target_smoothing_coefficient':   0.005,  # SAC paper: EXPONENTIAL MOVING AVERAGE ~ 0.005, 1 <==> HARD TARGET update
     'target_update_interval':         1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
     'gradient_step_interval':         1,
@@ -63,34 +63,50 @@ unit_test_hparam = {
 
 
 @pytest.fixture
-def gym_and_tf_continuous_setup():
+def gym_and_tf_continuous_MontainCar_setup():
     """
     :return: obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground
     """
     exp_spec = bloc.ExperimentSpec()
+    unit_test_hparam['prefered_environment'] = 'MountainCarContinuous-v0'
+    exp_spec.set_experiment_spec(unit_test_hparam)
+    yield exp_spec
+    tf_cv1.reset_default_graph()
+
+
+@pytest.fixture
+def gym_and_tf_continuous_LunarLander_setup():
+    """
+    :return: obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground
+    """
+    exp_spec = bloc.ExperimentSpec()
+    unit_test_hparam['prefered_environment'] = 'LunarLanderContinuous-v2'
     exp_spec.set_experiment_spec(unit_test_hparam)
     
-    # playground = bloc.GymPlayground('LunarLanderContinuous-v2')
-    playground = bloc.GymPlayground('MountainCarContinuous-v0')
-    obs_t_ph, act_ph, _ = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
-    obs_t_prime_ph = bloc.continuous_space_placeholder(space=playground.OBSERVATION_SPACE,
-                                                       name=vocab.obs_tPrime_ph)
-    reward_t_ph = tf_cv1.placeholder(dtype=tf.float32, shape=(None,), name=vocab.rew_ph)
-    trj_done_t_ph = tf_cv1.placeholder(dtype=tf.float32, shape=(None,), name=vocab.trj_done_ph)
-    
-    yield obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground
+    yield exp_spec
     tf_cv1.reset_default_graph()
 
 
 # --- ActorCritic_agent -------------------------------------------------------------------------------------------
-def test_SoftActorCritic_agent_INSTANTIATE_AGENT_PASS(gym_and_tf_continuous_setup):
-    _, _, _, _, _, exp_spec, _ = gym_and_tf_continuous_setup
-    
-    SoftActorCriticAgent(exp_spec)
+# @pytest.mark.skip(reason="Work fine. Mute for now")
+def test_SoftActorCritic_agent_INSTANTIATE_AGENT_MontainCar_PASS(gym_and_tf_continuous_MontainCar_setup):
+    exp_spec = gym_and_tf_continuous_MontainCar_setup
+    sac_agent_montaincar = SoftActorCriticAgent(exp_spec)
 
 
-def test_SoftActorCritic_agent_TRAIN_AGENT_PASS(gym_and_tf_continuous_setup):
-    _, _, _, _, _, exp_spec, _ = gym_and_tf_continuous_setup
-    
-    sac_agent = SoftActorCriticAgent(exp_spec)
-    sac_agent.train()
+def test_SoftActorCritic_agent_TRAIN_AGENT_MontainCar_PASS(gym_and_tf_continuous_MontainCar_setup):
+    exp_spec = gym_and_tf_continuous_MontainCar_setup
+    sac_agent_montaincar = SoftActorCriticAgent(exp_spec)
+    sac_agent_montaincar.train()
+
+
+# @pytest.mark.skip(reason="Work fine. Mute for now")
+def test_SoftActorCritic_agent_INSTANTIATE_AGENT_LunarLander_PASS(gym_and_tf_continuous_LunarLander_setup):
+    exp_spec = gym_and_tf_continuous_LunarLander_setup
+    sac_agent_lunar = SoftActorCriticAgent(exp_spec)
+
+
+def test_SoftActorCritic_agent_TRAIN_AGENT_LunarLander_PASS(gym_and_tf_continuous_LunarLander_setup):
+    exp_spec = gym_and_tf_continuous_LunarLander_setup
+    sac_agent_lunar = SoftActorCriticAgent(exp_spec)
+    sac_agent_lunar.train()

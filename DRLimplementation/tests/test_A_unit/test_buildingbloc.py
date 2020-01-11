@@ -7,11 +7,14 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
-tf_cv1 = tf.compat.v1   # shortcut
+import blocAndTools.tensorflowbloc
+
+tf_cv1 = tf.compat.v1  # shortcut
 
 from blocAndTools import buildingbloc as bloc, rewardtogo as rtg, visualisationtools
 from blocAndTools.container.samplecontainer import TrajectoryCollector, UniformBatchCollector
 from blocAndTools.rl_vocabulary import rl_name
+
 vocab = rl_name()
 
 
@@ -171,23 +174,51 @@ def test_build_MLP_computation_graph_with_DISCRETE_adapter(gym_discrete_setup):
     _, playground = gym_discrete_setup
     input_placeholder, out_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground,
                                                                                                       action_shape_constraint=(
-                                                                                                      1,))
+                                                                                                          1,))
     bloc.build_MLP_computation_graph(input_placeholder, playground.ACTION_CHOICES, hidden_layer_topology=(2, 2))
+
 
 def test_build_MLP_computation_graph_with_CONTINUOUS_adapter(gym_continuous_setup):
     _, playground = gym_continuous_setup
     input_placeholder, out_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground,
                                                                                                       action_shape_constraint=(
-                                                                                                      1,))
+                                                                                                          1,))
     bloc.build_MLP_computation_graph(input_placeholder, playground.ACTION_CHOICES, hidden_layer_topology=(2, 2))
+
+
+def test_build_KERAS_MLP_computation_graph_io(tf_setup, gym_discrete_setup):
+    _, out_p, nn_shape = tf_setup
+    exp_spec, playground = gym_discrete_setup
+    keras_input = keras.Input(shape=(12,))
+    
+    mlp_hidden_ops = bloc.build_KERAS_MLP_computation_graph(keras_input, playground.ACTION_CHOICES, nn_shape)
+    print("\n\n>>> {}\n\n".format(mlp_hidden_ops))
+    # model = keras.Model(inputs=keras_input, outputs=mlp_hidden_ops)
+    # print(model.to_yaml())
+
+
+def test_build_KERAS_MLP_computation_graph_with_DISCRETE_adapter(gym_discrete_setup):
+    _, playground = gym_discrete_setup
+    input_placeholder, out_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground,
+                                                                                                      action_shape_constraint=(
+                                                                                                          1,))
+    bloc.build_KERAS_MLP_computation_graph(input_placeholder, playground.ACTION_CHOICES, hidden_layer_topology=(2, 2))
+
+
+def test_build_KERAS_MLP_computation_graph_with_CONTINUOUS_adapter(gym_continuous_setup):
+    _, playground = gym_continuous_setup
+    input_placeholder, out_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground,
+                                                                                                      action_shape_constraint=(
+                                                                                                          1,))
+    bloc.build_KERAS_MLP_computation_graph(input_placeholder, playground.ACTION_CHOICES, hidden_layer_topology=(2, 2))
 
 
 def test_integration_Playground_to_adapter_to_build_graph(gym_continuous_setup):
     exp_spec, playground = gym_continuous_setup
-
+    
     # (!) fake input data
     input_data = np.ones((20, *playground.OBSERVATION_SPACE.shape))
-
+    
     input_placeholder, out_placeholder, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground,
                                                                                                       action_shape_constraint=(
                                                                                                       1,))
@@ -381,7 +412,7 @@ def test_build_feed_dictionary_PASS(gym_and_tf_discrete_setup):
     l_ph = [obs_p, act_p]
     l_ar = [np.array(obs_p._shape_as_list()), np.array(act_p._shape_as_list())]
 
-    bloc.build_feed_dictionary(l_ph, l_ar)
+    blocAndTools.tensorflowbloc.build_feed_dictionary(l_ph, l_ar)
 
 
 def test_build_feed_dictionary_FAIL(gym_and_tf_discrete_setup):
@@ -390,7 +421,7 @@ def test_build_feed_dictionary_FAIL(gym_and_tf_discrete_setup):
     l_ph = [obs_p, act_p]
     l_ar = [np.array(obs_p._shape_as_list())]
     with pytest.raises(AssertionError):
-        bloc.build_feed_dictionary(l_ph, l_ar)
+        blocAndTools.tensorflowbloc.build_feed_dictionary(l_ph, l_ar)
 
 
 # --- Return function --------------------------------------------------------------------------------------------

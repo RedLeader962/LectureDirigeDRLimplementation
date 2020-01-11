@@ -335,7 +335,7 @@ else:
     
     elif args.trainLunarLander:
         raise NotImplementedError  # todo: implement
-        """ ---- Harderenvironment ---- """
+        """ ---- Harder environment ---- """
         hparam, key, values_search_set = run_experiment(
             SAC_LunarLander_hparam, args, test_hparam, rerun_nb=args.rerun)
     

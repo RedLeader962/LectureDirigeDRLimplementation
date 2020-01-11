@@ -6,6 +6,7 @@ import tensorflow as tf
 import tensorflow.python.util.deprecation as deprecation
 from gym.wrappers.monitoring.video_recorder import VideoRecorder
 
+import blocAndTools.tensorflowbloc
 from blocAndTools import buildingbloc as bloc
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground, setup_commented_run_dir_str
 from blocAndTools.visualisationtools import ConsolPrintLearningStats
@@ -202,7 +203,7 @@ class Agent(object, metaclass=ABCMeta):
         obs_t_flat = bloc.format_single_step_observation(obs_t)
         act_t = sess.run(self.policy_pi,
                          feed_dict={self.obs_t_ph: obs_t_flat})
-        act_t = bloc.to_scalar(act_t)
+        act_t = blocAndTools.tensorflowbloc.to_scalar(act_t)
         return act_t
 
     def load_selected_trained_agent(self, sess: tf_cv1.Session, run_name: str):
@@ -212,6 +213,6 @@ class Agent(object, metaclass=ABCMeta):
 
 
     def __del__(self):
-        tf_cv1.reset_default_graph()
+        # tf_cv1.reset_default_graph()
         self.playground.env.env.close()
         print(":: Agent >>> CLOSED")

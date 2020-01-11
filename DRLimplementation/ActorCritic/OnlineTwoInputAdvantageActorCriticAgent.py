@@ -9,6 +9,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.python.util.deprecation as deprecation
 
+import blocAndTools.tensorflowbloc
 from ActorCritic.ActorCriticBrainSharedNetwork import build_actor_critic_shared_graph, actor_shared_train, critic_shared_train
 from ActorCritic.ActorCriticBrainSplitNetwork import (build_actor_policy_graph, critic_train, actor_train,
                                                       build_two_input_critic_graph, )
@@ -215,7 +216,7 @@ class OnlineTwoInputAdvantageActorCriticAgent(Agent):
                         obs_t_flat = bloc.format_single_step_observation(obs_t)
                         action = self.sess.run(self.policy_pi, feed_dict={self.obs_t_ph: obs_t_flat})
 
-                        action = bloc.to_scalar(action)
+                        action = blocAndTools.tensorflowbloc.to_scalar(action)
 
                         """ ---- Agent: act in the environment ---- """
                         obs_tPrime, reward, done, _ = self.playground.env.step(action)
@@ -261,12 +262,13 @@ class OnlineTwoInputAdvantageActorCriticAgent(Agent):
                 stage_average_trjs_return, stage_average_trjs_lenght = experiment_container.get_basic_metric()
                 stage_actor_mean_loss, stage_critic_mean_loss = experiment_container.get_stage_mean_loss()
 
-                epoch_feed_dictionary = bloc.build_feed_dictionary([self.summary_stage_avg_trjs_actor_loss_ph,
-                                                                    self.summary_stage_avg_trjs_critic_loss_ph,
-                                                                    self.summary_stage_avg_trjs_return_ph],
-                                                                   [stage_actor_mean_loss,
-                                                                    stage_critic_mean_loss,
-                                                                    stage_average_trjs_return])
+                epoch_feed_dictionary = blocAndTools.tensorflowbloc.build_feed_dictionary(
+                    [self.summary_stage_avg_trjs_actor_loss_ph,
+                     self.summary_stage_avg_trjs_critic_loss_ph,
+                     self.summary_stage_avg_trjs_return_ph],
+                    [stage_actor_mean_loss,
+                     stage_critic_mean_loss,
+                     stage_average_trjs_return])
 
                 epoch_summary = self.sess.run(self.summary_epoch_op, feed_dict=epoch_feed_dictionary)
 
@@ -289,33 +291,35 @@ class OnlineTwoInputAdvantageActorCriticAgent(Agent):
 
     def _train_on_minibatch(self, consol_print_learning_stats, local_step_t):
         minibatch = self.trjCOLLECTOR.get_minibatch()
-
-        minibatch_feed_dictionary = bloc.build_feed_dictionary([self.obs_t_ph, self.action_ph,
-                                                                self.obs_tPrime_ph, self.reward_t_ph],
-                                                               [minibatch.obs_t, minibatch.act_t,
-                                                                minibatch.obs_tPrime, minibatch.rew_t])
-
+    
+        minibatch_feed_dictionary = blocAndTools.tensorflowbloc.build_feed_dictionary([self.obs_t_ph, self.action_ph,
+                                                                                       self.obs_tPrime_ph,
+                                                                                       self.reward_t_ph],
+                                                                                      [minibatch.obs_t, minibatch.act_t,
+                                                                                       minibatch.obs_tPrime,
+                                                                                       minibatch.rew_t])
+    
         """ ---- Compute metric and collect ---- """
         minibatch_actor_loss, minibatch_V_loss = self.sess.run([self.actor_loss, self.V_phi_loss],
                                                                feed_dict=minibatch_feed_dictionary)
-
+    
         self.trjCOLLECTOR.collect_loss(actor_loss=minibatch_actor_loss, critic_loss=minibatch_V_loss)
-
+    
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
         # *                                                                                                  *
         # *                    Update policy_theta & critic V_phi over the minibatch                         *
         # *                                                                                                  *
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
         # consol_print_learning_stats.track_progress(progress=local_step_t, message="Agent training")
-
+    
         """ ---- Train critic ---- """
-        critic_feed_dictionary = bloc.build_feed_dictionary([self.obs_t_ph, self.obs_tPrime_ph, self.reward_t_ph],
-                                                            [minibatch.obs_t, minibatch.obs_tPrime, minibatch.rew_t])
-
+        critic_feed_dictionary = blocAndTools.tensorflowbloc.build_feed_dictionary(
+            [self.obs_t_ph, self.obs_tPrime_ph, self.reward_t_ph],
+            [minibatch.obs_t, minibatch.obs_tPrime, minibatch.rew_t])
+    
         for c_loop in range(self.exp_spec['critique_loop_len']):
             self.sess.run(self.V_phi_optimizer, feed_dict=critic_feed_dictionary)
-
+    
         """ ---- Train actor ---- """
         self.sess.run(self.actor_policy_optimizer, feed_dict=minibatch_feed_dictionary)
         return None
-

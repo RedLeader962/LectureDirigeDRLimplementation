@@ -9,6 +9,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.python.util.deprecation as deprecation
 
+import blocAndTools.tensorflowbloc
 from ActorCritic.ActorCriticBrainSharedNetwork import build_actor_critic_shared_graph, actor_shared_train, critic_shared_train
 from ActorCritic.ActorCriticBrainSplitNetwork import (build_actor_policy_graph, build_critic_graph, critic_train,
                                                       actor_train, )
@@ -201,22 +202,22 @@ class OnlineActorCriticAgent(Agent):
                         local_step_t += 1
                         self._render_trajectory_on_condition(epoch, render_env,
                                                              experimentCOLLECTOR.trj_collected_so_far())
-
+    
                         """ ---- Run Graph computation ---- """
                         obs_t_flat = bloc.format_single_step_observation(obs_t)
                         action, V_t = self.sess.run([self.policy_pi, self.V_phi_estimator],
                                                     feed_dict={self.obs_t_ph: obs_t_flat})
-
-                        action = bloc.to_scalar(action)
-                        V_t = bloc.to_scalar(V_t)
-
+    
+                        action = blocAndTools.tensorflowbloc.to_scalar(action)
+                        V_t = blocAndTools.tensorflowbloc.to_scalar(V_t)
+    
                         """ ---- Agent: act in the environment ---- """
                         obs_tPrime, reward, done, _ = self.playground.env.step(action)
-
+    
                         """ ---- Agent: Collect current timestep events ---- """
                         self.trjCOLLECTOR.collect_OAnORV(obs_t=obs_t, act_t=action, obs_tPrime=obs_tPrime,
                                                          rew_t=reward, V_estimate=V_t)
-
+    
                         obs_t = obs_tPrime
 
                         if done:
@@ -255,12 +256,13 @@ class OnlineActorCriticAgent(Agent):
                 stage_average_trjs_return, stage_average_trjs_lenght = experiment_container.get_basic_metric()
                 stage_actor_mean_loss, stage_critic_mean_loss = experiment_container.get_stage_mean_loss()
 
-                epoch_feed_dictionary = bloc.build_feed_dictionary([self.summary_stage_avg_trjs_actor_loss_ph,
-                                                                    self.summary_stage_avg_trjs_critic_loss_ph,
-                                                                    self.summary_stage_avg_trjs_return_ph],
-                                                                   [stage_actor_mean_loss,
-                                                                    stage_critic_mean_loss,
-                                                                    stage_average_trjs_return])
+                epoch_feed_dictionary = blocAndTools.tensorflowbloc.build_feed_dictionary(
+                    [self.summary_stage_avg_trjs_actor_loss_ph,
+                     self.summary_stage_avg_trjs_critic_loss_ph,
+                     self.summary_stage_avg_trjs_return_ph],
+                    [stage_actor_mean_loss,
+                     stage_critic_mean_loss,
+                     stage_average_trjs_return])
 
                 epoch_summary = self.sess.run(self.summary_epoch_op, feed_dict=epoch_feed_dictionary)
 
@@ -284,16 +286,17 @@ class OnlineActorCriticAgent(Agent):
     def _train_on_minibatch(self, consol_print_learning_stats, local_step_t):
         self.trjCOLLECTOR.compute_Qvalues_as_BootstrapEstimate()
         minibatch = self.trjCOLLECTOR.get_minibatch()
-
-        minibatch_feed_dictionary = bloc.build_feed_dictionary([self.obs_t_ph, self.action_ph, self.Qvalues_ph],
-                                                               [minibatch.obs_t, minibatch.act_t, minibatch.q_values_t])
-
+    
+        minibatch_feed_dictionary = blocAndTools.tensorflowbloc.build_feed_dictionary(
+            [self.obs_t_ph, self.action_ph, self.Qvalues_ph],
+            [minibatch.obs_t, minibatch.act_t, minibatch.q_values_t])
+    
         """ ---- Compute metric and collect ---- """
         minibatch_actor_loss, minibatch_V_loss = self.sess.run([self.actor_loss, self.V_phi_loss],
                                                                feed_dict=minibatch_feed_dictionary)
-
+    
         self.trjCOLLECTOR.collect_loss(actor_loss=minibatch_actor_loss, critic_loss=minibatch_V_loss)
-
+    
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * *
         # *                                                                                                  *
         # *                    Update policy_theta & critic V_phi over the minibatch                         *
@@ -305,7 +308,7 @@ class OnlineActorCriticAgent(Agent):
         self.sess.run(self.actor_policy_optimizer, feed_dict=minibatch_feed_dictionary)
 
         """ ---- Train critic ---- """
-        critic_feed_dictionary = bloc.build_feed_dictionary(
+        critic_feed_dictionary = blocAndTools.tensorflowbloc.build_feed_dictionary(
             [self.obs_t_ph, self.Qvalues_ph],
             [minibatch.obs_t, minibatch.q_values_t])
 

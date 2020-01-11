@@ -68,6 +68,27 @@ def gym_and_tf_continuous_setup():
     """
     exp_spec = bloc.ExperimentSpec()
     exp_spec.set_experiment_spec(unit_test_hparam)
+
+    playground = bloc.GymPlayground('LunarLanderContinuous-v2')
+    obs_t_ph, act_ph, _ = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
+    obs_t_prime_ph = bloc.continuous_space_placeholder(space=playground.OBSERVATION_SPACE,
+                                                       name=vocab.obs_tPrime_ph)
+    reward_t_ph = tf_cv1.placeholder(dtype=tf.float32, shape=(None,), name=vocab.rew_ph)
+    trj_done_t_ph = tf_cv1.placeholder(dtype=tf.float32, shape=(None,), name=vocab.trj_done_ph)
+
+    yield obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground
+    tf_cv1.reset_default_graph()
+
+
+@pytest.fixture
+def gym_and_KERAS_DEV_continuous_setup():
+    """
+    :return: obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground
+    """
+    SoftActorCriticBrain.USE_KERAS_LAYER = False
+    
+    exp_spec = bloc.ExperimentSpec()
+    exp_spec.set_experiment_spec(unit_test_hparam)
     
     playground = bloc.GymPlayground('LunarLanderContinuous-v2')
     obs_t_ph, act_ph, _ = bloc.gym_playground_to_tensorflow_graph_adapter(playground)
@@ -78,25 +99,39 @@ def gym_and_tf_continuous_setup():
     
     yield obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground
     tf_cv1.reset_default_graph()
+    SoftActorCriticBrain.USE_KERAS_LAYER = True
 
 
 # --- ActorCritic_agent -------------------------------------------------------------------------------------------
-def test_SoftActorCritic_agent_Actor_Pi_BUILD_PASS(gym_and_tf_continuous_setup):
+
+def test_SoftActorCritic_brain_tensor_entity_call_warning_investigation_PASS(gym_and_KERAS_DEV_continuous_setup):
+    obs_t_ph, _, _, _, _, exp_spec, playground = gym_and_KERAS_DEV_continuous_setup
+    exp_spec.set_experiment_spec({'phi_nn_h_layer_topo': (2, 2)})
+    
+    pi, pi_log_p, policy_mu = SoftActorCriticBrain.build_gaussian_policy_graph(obs_t_ph, exp_spec,
+                                                                               playground)
+
+
+# @pytest.mark.skip(reason="Temp: Mute for now")
+def test_SoftActorCritic_brain_Actor_Pi_BUILD_PASS(gym_and_tf_continuous_setup):
     obs_t_ph, _, _, _, _, exp_spec, playground = gym_and_tf_continuous_setup
     pi, pi_log_p, policy_mu = SoftActorCriticBrain.build_gaussian_policy_graph(obs_t_ph, exp_spec, playground)
 
 
-def test_SoftActorCritic_agent_Critic_V_BUILD_PASS(gym_and_tf_continuous_setup):
+# @pytest.mark.skip(reason="Temp: Mute for now")
+def test_SoftActorCritic_brain_Critic_V_BUILD_PASS(gym_and_tf_continuous_setup):
     obs_t_ph, _, obs_t_prime_ph, _, _, exp_spec, _ = gym_and_tf_continuous_setup
     V_psi, V_psi_frozen = SoftActorCriticBrain.build_critic_graph_v_psi(obs_t_ph, obs_t_prime_ph, exp_spec)
 
 
-def test_SoftActorCritic_agent_Critic_Q_BUILD_PASS(gym_and_tf_continuous_setup):
+# @pytest.mark.skip(reason="Temp: Mute for now")
+def test_SoftActorCritic_brain_Critic_Q_BUILD_PASS(gym_and_tf_continuous_setup):
     obs_t_ph, act_ph, _, _, _, exp_spec, _ = gym_and_tf_continuous_setup
     Q_theta_1, Q_theta_2 = SoftActorCriticBrain.build_critic_graph_q_theta(obs_t_ph, act_ph, exp_spec)
 
 
-def test_SoftActorCritic_agent_Critic_V_TRAIN_PASS(gym_and_tf_continuous_setup):
+# @pytest.mark.skip(reason="Temp: Mute for now")
+def test_SoftActorCritic_brain_Critic_V_TRAIN_PASS(gym_and_tf_continuous_setup):
     continuous_setup = gym_and_tf_continuous_setup
     obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground = continuous_setup
     
@@ -112,7 +147,8 @@ def test_SoftActorCritic_agent_Critic_V_TRAIN_PASS(gym_and_tf_continuous_setup):
                                                                                                    exp_spec)
 
 
-def test_SoftActorCritic_agent_Critic_Q_TRAIN_PASS(gym_and_tf_continuous_setup):
+# @pytest.mark.skip(reason="Temp: Mute for now")
+def test_SoftActorCritic_brain_Critic_Q_TRAIN_PASS(gym_and_tf_continuous_setup):
     continuous_setup = gym_and_tf_continuous_setup
     obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground = continuous_setup
     
@@ -124,7 +160,8 @@ def test_SoftActorCritic_agent_Critic_Q_TRAIN_PASS(gym_and_tf_continuous_setup):
                                                                   reward_t_ph, trj_done_t_ph, exp_spec)
 
 
-def test_SoftActorCritic_agent_Actor_Pi_TRAIN_PASS(gym_and_tf_continuous_setup):
+# @pytest.mark.skip(reason="Temp: Mute for now")
+def test_SoftActorCritic_brain_Actor_Pi_TRAIN_PASS(gym_and_tf_continuous_setup):
     continuous_setup = gym_and_tf_continuous_setup
     obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground = continuous_setup
     
