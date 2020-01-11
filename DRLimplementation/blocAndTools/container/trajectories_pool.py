@@ -163,7 +163,7 @@ class PoolManager(object):
         """
         self._trajectories_pool.collect_OAnORD(obs_t=obs_t, act_t=act_t, obs_t_prime=obs_t_prime,
                                                rew_t=rew_t, done_t=done_t)
-        self._rewards += rew_t
+        self._rewards.append(rew_t)
         self._curent_trj_lenght += 1
         self._step_count_since_begining_of_training += 1
         return None
@@ -191,6 +191,6 @@ class PoolManager(object):
         return trj_return
     
     def _reset(self):
-        self._rewards = 0.0
+        self._rewards = []
         self._curent_trj_lenght = 0
         return None

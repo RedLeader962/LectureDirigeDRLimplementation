@@ -22,30 +22,50 @@ Metric recommandation from OpenAI SpiningUp:
 
 @dataclass()
 class EpochMetricLogger:
-    trjs_return: List[float] = list
-    trjs_lenght: List[float] = list
-    agent_eval_trjs_return: List[float] = list
-    agent_eval_trjs_lenght: List[float] = list
-    v_loss: List[float] = list
-    q1_loss: List[float] = list
-    q2_loss: List[float] = list
-    pi_loss: List[float] = list
-    pi_log_likelihood: List[float] = list
-    policy_pi: List[float] = list
-    policy_mu: List[float] = list
-    v_values: List[float] = list
-    q1_values: List[float] = list
-    q2_values: List[float] = list
-    _epoch_id: int = None
-    _trj_collected: int = 0
-    _eval_trj_collected: int = 0
-
+    trjs_return: List[float]
+    trjs_lenght: List[float]
+    agent_eval_trjs_return: List[float]
+    agent_eval_trjs_lenght: List[float]
+    v_loss: List[float]
+    q1_loss: List[float]
+    q2_loss: List[float]
+    pi_loss: List[float]
+    pi_log_likelihood: List[float]
+    policy_pi: List[float]
+    policy_mu: List[float]
+    v_values: List[float]
+    q1_values: List[float]
+    q2_values: List[float]
+    _epoch_id: int
+    _trj_collected: int
+    _eval_trj_collected: int
+    
+    def __init__(self):
+        # Manual init is required for using mutable sequence in dataclass
+        self.trjs_return = list()
+        self.trjs_lenght = list()
+        self.agent_eval_trjs_return = list()
+        self.agent_eval_trjs_lenght = list()
+        self.v_loss = list()
+        self.q1_loss = list()
+        self.q2_loss = list()
+        self.pi_loss = list()
+        self.pi_log_likelihood = list()
+        self.policy_pi = list()
+        self.policy_mu = list()
+        self.v_values = list()
+        self.q1_values = list()
+        self.q2_values = list()
+        self._epoch_id = None
+        self._trj_collected = 0
+        self._eval_trj_collected = 0
+    
     def append_trajectory_metric(self, trj_return, trj_lenght) -> None:
         self.trjs_return.append(trj_return)
         self.trjs_lenght.append(trj_lenght)
         self._trj_collected += 1
         return None
-
+    
     def append_agent_eval_trj_metric(self, eval_trj_return, eval_trj_lenght) -> None:
         self.agent_eval_trjs_return.append(eval_trj_return)
         self.agent_eval_trjs_lenght.append(eval_trj_lenght)

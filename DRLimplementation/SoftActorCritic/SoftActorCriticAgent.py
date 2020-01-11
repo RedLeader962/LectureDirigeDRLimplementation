@@ -192,10 +192,11 @@ class SoftActorCriticAgent(Agent):
         else:
             """ ---- The 'exploRation' policy ---- """
             the_policy = self.policy_pi
-        
+
         obs_t_flat = bloc.format_single_step_observation(obs_t)
         act_t = self.sess.run(the_policy, feed_dict={self.obs_t_ph: obs_t_flat})
-        act_t = blocAndTools.tensorflowbloc.to_scalar(act_t)
+        # act_t = blocAndTools.tensorflowbloc.to_scalar(act_t)
+        act_t = act_t.ravel()
         return act_t
     
     def _instantiate_data_collector(self) -> PoolManager:
@@ -237,32 +238,35 @@ class SoftActorCriticAgent(Agent):
             """ ---- Simulator: Epochs ---- """
             timecounter.reset_global_count()
             for epoch in range(self.exp_spec.max_epoch):
+                timecounter.reset_per_epoch_count()
+                timecounter.reset_local_count()
+    
                 # (Ice-Boxed) todo:implement --> add 'global_timestep_max' to hparam:
                 # if global_timestep_idx >= self.exp_spec['global_timestep_max']:
                 #     break
-
+    
                 consol_print_learning_stats.next_glorious_epoch()
                 self.epoch_metric_logger._epoch_id = epoch
-
+    
                 """ ---- Simulator: trajectories ---- """
-                while timecounter.local_count < self.exp_spec['timestep_per_epoch']:
+                while timecounter.per_epoch_count < self.exp_spec['timestep_per_epoch']:
                     timecounter.reset_local_count()
-
+        
                     obs_t = self.playground.env.reset()
                     consol_print_learning_stats.next_glorious_trajectory()
-
+        
                     """ ---- Simulator: time-steps ---- """
-                    while True:
-                        timecounter.local_and_global_step()
-
+                    while timecounter.per_epoch_count < self.exp_spec['timestep_per_epoch']:
+                        timecounter.step_all()
+            
                         self._render_trajectory_on_condition(epoch, render_env,
                                                              self.pool_manager.trj_collected_so_far())
-
+            
                         """ ---- Agent: act in the environment using the stochastic policy---- """
                         act_t = self._select_action_given_policy(sess, obs_t, deterministic=False)
-
+            
                         obs_t_prime, reward_t, trj_done, _ = self.playground.env.step(act_t)
-
+            
                         """ ---- Agent: collect current timestep events ---- """
                         self.pool_manager.collect_OAnORD(obs_t, act_t, obs_t_prime, reward_t, trj_done)
 
@@ -288,18 +292,21 @@ class SoftActorCriticAgent(Agent):
                             consol_print_learning_stats.trajectory_training_stat(the_trajectory_return=trj_return,
                                                                                  timestep=trj_lenght)
                             break
-
+    
                 # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
                 # /// Epoch end ////////////////////////////////////////////////////////////////////////////////////////
-
+    
+                # sanity check
+                assert timecounter.global_count == self.epoch_metric_logger.total_training_timestep_collected
+    
                 """ ---- Evaluate trainning of the agent policy ---- """
                 self._run_agent_evaluation(sess, max_trajectories=self.exp_spec['max_eval_trj'])
-
+    
                 """ ---- Simulator: epoch as ended, fetch training stats and evaluate agent ---- """
                 epoch_mean_policy_loss = self.epoch_metric_logger.mean_pi_loss
                 epoch_eval_mean_trjs_return = self.epoch_metric_logger.agent_eval_mean_trjs_return
                 epoch_eval_mean_trjs_lenght = self.epoch_metric_logger.agent_eval_mean_trjs_lenght
-
+    
                 epoch_metric = [
                     epoch_eval_mean_trjs_return,
                     epoch_eval_mean_trjs_lenght,

@@ -7,6 +7,7 @@ from SoftActorCritic import SoftActorCriticBrain, SoftActorCriticAgent
 from blocAndTools import buildingbloc as bloc
 from blocAndTools.rl_vocabulary import rl_name
 
+# noinspection DuplicatedCode
 tf_cv1 = tf.compat.v1  # shortcut
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 vocab = rl_name()
