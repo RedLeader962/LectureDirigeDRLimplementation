@@ -305,11 +305,11 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, output_dim, hidden
 
     with tf_cv1.variable_scope(name_or_scope=name, reuse=reuse):
         h_layer = input_placeholder
-    
+
         # # (!) the kernel_initializer random initializer choice make a big difference on the learning performance
         kernel_init = tf_cv1.initializers.he_normal
         # kernel_init = None
-    
+
         # create & connect all hidden layer
         for l_id in range(len(hidden_layer_topology)):
             h_layer = tf_cv1.layers.dense(h_layer, hidden_layer_topology[l_id],
@@ -317,7 +317,7 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, output_dim, hidden
                                           reuse=reuse,
                                           kernel_initializer=kernel_init(),
                                           name='{}{}'.format(vocab.hidden_, l_id + 1))
-    
+
         logits = tf_cv1.layers.dense(h_layer, output_dim,
                                      activation=output_layers_activation,
                                      reuse=reuse,
@@ -351,14 +351,17 @@ def build_KERAS_MLP_computation_graph(input_placeholder: tf.Tensor, output_dim, 
     :return: a well construct computation graph
     :rtype: tf.Tensor
     """
-    assert reuse is None, ("the argument 'reuse' is keept for signature compatibility purpose. "
-                           "Keras use a different strategy for reuse than regular tensorflow Dense layer")
+    error_msg = ("\t:: Be advise that the argument 'reuse' was keept only for signature compatibility "
+                 "purpose with 'buildingbloc.build_MLP_computation_graph()'.\n"
+                 "\t\t\t\t\t   Keras implementation of 'Dense' layers use a different strategy to handle 'reuse' task "
+                 "than regular tensorflow 'Dense' layer")
+    assert reuse is None, error_msg
     assert isinstance(input_placeholder, tf.Tensor)
     assert isinstance(hidden_layer_topology, tuple)
-    
+
     with tf_cv1.variable_scope(name_or_scope=name, reuse=reuse):
         h_layer = input_placeholder
-        
+    
         # # (!) the kernel_initializer random initializer choice make a big difference on the learning performance
         kernel_init = tf_cv1.initializers.he_normal
         # kernel_init = None
