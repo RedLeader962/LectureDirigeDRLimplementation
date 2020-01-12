@@ -76,10 +76,10 @@ class SoftActorCriticAgent(Agent):
 
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         # /// Actor computation graph //////////////////////////////////////////////////////////////////////////////////
-
-        pi, pi_log_p, self.policy_mu = build_gaussian_policy_graph(self.obs_t_ph, self.exp_spec, self.playground)
-
-        self.policy_pi, self.pi_log_likelihood = apply_action_bound(pi, pi_log_p)
+        with tf_cv1.variable_scope(vocab.actor_network):
+            pi, pi_log_p, self.policy_mu = build_gaussian_policy_graph(self.obs_t_ph, self.exp_spec, self.playground)
+    
+            self.policy_pi, self.pi_log_likelihood = apply_action_bound(pi, pi_log_p)
 
         """ ---- Adjust policy distribution result to action range  ---- """
         if self.playground.ACTION_SPACE.bounded_above:
@@ -88,35 +88,39 @@ class SoftActorCriticAgent(Agent):
 
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         # /// Critic computation graph /////////////////////////////////////////////////////////////////////////////////
-
-        self.V_psi, self.V_psi_frozen = build_critic_graph_v_psi(self.obs_t_ph, self.obs_t_prime_ph, self.exp_spec)
-
-        self.Q_theta_1, self.Q_theta_2 = build_critic_graph_q_theta(self.obs_t_ph, self.act_ph, self.exp_spec)
+        with tf_cv1.variable_scope(vocab.critic_network):
+            self.V_psi, self.V_psi_frozen = build_critic_graph_v_psi(self.obs_t_ph, self.obs_t_prime_ph, self.exp_spec)
+    
+            self.Q_theta_1, self.Q_theta_2 = build_critic_graph_q_theta(self.obs_t_ph, self.act_ph, self.exp_spec)
 
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         # /// Actor & Critic Training ops //////////////////////////////////////////////////////////////////////////////
-
-        critic_lr_schedule, critic_global_grad_step = critic_learning_rate_scheduler(self.exp_spec)
-
-        self.V_psi_loss, self.V_psi_optimizer, self.V_psi_frozen_update_ops = critic_v_psi_train(self.V_psi,
-                                                                                                 self.V_psi_frozen,
-                                                                                                 self.Q_theta_1,
-                                                                                                 self.Q_theta_2,
-                                                                                                 self.pi_log_likelihood,
-                                                                                                 self.exp_spec,
-                                                                                                 critic_lr_schedule,
-                                                                                                 critic_global_grad_step)
-
-        self.init_frozen_v_psi_op = init_frozen_v_psi()
-
-        q_theta_train_ops = critic_q_theta_train(self.V_psi_frozen, self.Q_theta_1, self.Q_theta_2, self.reward_t_ph,
-                                                 self.trj_done_t_ph, self.exp_spec,
-                                                 critic_lr_schedule, critic_global_grad_step)
+        with tf_cv1.variable_scope(vocab.critic_training):
+            critic_lr_schedule, critic_global_grad_step = critic_learning_rate_scheduler(self.exp_spec)
+    
+            self.V_psi_loss, self.V_psi_optimizer, self.V_psi_frozen_update_ops = critic_v_psi_train(
+                self.V_psi,
+                self.V_psi_frozen,
+                self.Q_theta_1,
+                self.Q_theta_2,
+                self.pi_log_likelihood,
+                self.exp_spec,
+                critic_lr_schedule,
+                critic_global_grad_step)
+    
+            self.init_frozen_v_psi_op = init_frozen_v_psi()
+    
+            q_theta_train_ops = critic_q_theta_train(self.V_psi_frozen, self.Q_theta_1, self.Q_theta_2,
+                                                     self.reward_t_ph,
+                                                     self.trj_done_t_ph, self.exp_spec,
+                                                     critic_lr_schedule, critic_global_grad_step)
 
         self.q_theta_1_loss, self.q_theta_2_loss, self.q_theta_1_optimizer, self.q_theta_2_optimizer = q_theta_train_ops
 
-        self.actor_kl_loss, self.actor_policy_optimizer_op = actor_train(self.pi_log_likelihood,
-                                                                         self.Q_theta_1, self.Q_theta_2, self.exp_spec)
+        with tf_cv1.variable_scope(vocab.policy_training):
+            self.actor_kl_loss, self.actor_policy_optimizer_op = actor_train(self.pi_log_likelihood,
+                                                                             self.Q_theta_1, self.Q_theta_2,
+                                                                             self.exp_spec)
 
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         # /// Summary ops //////////////////////////////////////////////////////////////////////////////////////////////
@@ -271,36 +275,40 @@ class SoftActorCriticAgent(Agent):
                     """ ---- Simulator: time-steps ---- """
                     while True:
                         timecounter.step_all()
-
+    
                         self._render_trajectory_on_condition(epoch, render_env, trj_idx)
-
-                        """ ---- Agent: act in the environment using the stochastic policy---- """
-                        act_t = self._select_action_given_policy(sess, obs_t, deterministic=False)
-
+    
+                        if timecounter.global_count > self.exp_spec['min_pool_size']:
+                            """ ---- Agent: act in the environment using the stochastic policy---- """
+                            act_t = self._select_action_given_policy(sess, obs_t, deterministic=False)
+                        else:
+                            """ ---- Agent: act randomly at first for better exploration ---- """
+                            act_t = self.playground.env.action_space.sample()
+    
                         obs_t_prime, reward_t, trj_done, _ = self.playground.env.step(act_t)
-
+    
                         """ ---- Agent: collect current timestep events ---- """
                         self.pool_manager.collect_OAnORD(obs_t, act_t, obs_t_prime, reward_t, trj_done)
-
+    
                         obs_t = obs_t_prime
-
+    
                         if (timecounter.local_count % self.exp_spec['gradient_step_interval'] == 0
                                 and self.pool_manager.current_pool_size > self.exp_spec['min_pool_size']):
                             """ ---- 'Soft Policy Evaluation' & 'Policy Improvement' step ---- """
-                            self._perform_gradient_step(consol_print_learning_stats, timecounter)
-
+                            self._perform_gradient_step(consol_print_learning_stats, timecounter=timecounter)
+    
                         if trj_done or timecounter.per_epoch_count > self.exp_spec['timestep_per_epoch']:
                             """ ---- Simulator: trajectory as ended --> compute training stats ---- """
                             trj_return, trj_lenght = self.pool_manager.trajectory_ended()
                             self.epoch_metric_logger.append_trajectory_metric(trj_return, trj_lenght)
-    
+        
                             trj_summary = sess.run(self.summary_TRJ_op, {
                                 self.summary_sto_pi_TRJ_return_ph: trj_return,
                                 self.summary_sto_pi_TRJ_lenght_ph: trj_lenght
                                 })
-    
+        
                             self.writer.add_summary(trj_summary, global_step=timecounter.global_count)
-    
+        
                             consol_print_learning_stats.trajectory_training_stat(the_trajectory_return=trj_return,
                                                                                  timestep=trj_lenght)
                             trj_idx += 1
@@ -313,7 +321,7 @@ class SoftActorCriticAgent(Agent):
                 assert timecounter.global_count == self.epoch_metric_logger.total_training_timestep_collected
 
                 """ ---- Evaluate trainning of the agent policy ---- """
-                self._run_agent_evaluation(sess, epoch,
+                self._run_agent_evaluation(sess, epoch=epoch,
                                            max_trajectories=self.exp_spec['max_eval_trj'])
 
                 """ ---- Simulator: epoch as ended, fetch training stats and evaluate agent ---- """
@@ -380,33 +388,33 @@ class SoftActorCriticAgent(Agent):
 
     def _perform_gradient_step(self, consol_print_learning_stats, timecounter: DiscreteTimestepCounter):
         replay_batch = self.pool_manager.sample_from_pool()
-    
+
         full_feed_dictionary = blocAndTools.tensorflowbloc.build_feed_dictionary(
             [self.obs_t_ph, self.act_ph, self.obs_t_prime_ph, self.reward_t_ph, self.trj_done_t_ph],
             [replay_batch.obs_t, replay_batch.act_t, replay_batch.obs_t_prime, replay_batch.rew_t, replay_batch.done_t])
-    
+
         losses_op = [self.V_psi_loss, self.q_theta_1_loss, self.q_theta_2_loss, self.actor_kl_loss]
         policy_and_value_fct_op = [self.policy_pi, self.pi_log_likelihood, self.policy_mu,
                                    self.V_psi, self.Q_theta_1, self.Q_theta_2]
-    
+
         """ ---- Compute metric and collect ---- """
         metric = self.sess.run([*losses_op, *policy_and_value_fct_op], feed_dict=full_feed_dictionary)
         self.epoch_metric_logger.append_all_epoch_metric(*metric)
-    
+
         consol_print_learning_stats.track_progress(progress=timecounter.global_count, message="Agent training",
                                                    counter_str='gradient step')
-    
+
         """ ---- 'Soft Policy Evaluation' step ---- """
         critic_optimizer = [self.V_psi_optimizer, self.q_theta_1_optimizer, self.q_theta_2_optimizer]
         self.sess.run(critic_optimizer, feed_dict=full_feed_dictionary)
-    
+
         """ ---- 'Policy Improvement' step ---- """
         self.sess.run(self.actor_policy_optimizer_op, feed_dict=full_feed_dictionary)
-    
+
         """ ---- Target weight update interval (see SAC original paper, apendice E for result and D for hparam) ---- """
-        if timecounter.local_count == self.exp_spec['target_update_interval']:
+        if timecounter.local_count % self.exp_spec['target_update_interval'] == 0:
             self.sess.run(self.V_psi_frozen_update_ops)
-    
+
         return None
 
     def _run_agent_evaluation(self, sess: tf_cv1.Session, epoch: int,
@@ -425,42 +433,42 @@ class SoftActorCriticAgent(Agent):
         cycle_indexer = CycleIndexer(cycle_lenght=10)
         eval_trj_returns = []
         eval_trj_lenghts = []
-    
+
         # print("\n:: Agent evaluation >>> \n"
         #       "           ↳ Execute {} run\n".format(max_trajectories))
         #
         # print(":: Running agent evaluation>>> ", end=" ", flush=True)
-    
+
         for run in range(max_trajectories):
             observation = self.evaluation_playground.env.reset()  # fetch initial observation
-        
+
             """ ---- Simulator: time-steps ---- """
             while True:
                 act_t = self._select_action_given_policy(sess, observation, deterministic=True)
                 observation, reward, done, _ = self.evaluation_playground.env.step(act_t)
-            
+
                 trajectory_logger.push(reward)
-            
+
                 if done:
                     self.epoch_metric_logger.append_agent_eval_trj_metric(trajectory_logger.the_return,
                                                                           trajectory_logger.lenght)
                     eval_trj_returns.append(trajectory_logger.the_return)
                     eval_trj_lenghts.append(trajectory_logger.lenght)
-                
+
                     print("\r     ↳ {:^3} :: Agent evaluation {:>4}  ".format(epoch, run + 1),
                           ">" * cycle_indexer.i, " " * cycle_indexer.j,
                           # "  got return {:>8.2f}   after  {:>4}  timesteps".format(trajectory_logger.the_return,
                           # trajectory_logger.lenght),
                           sep='', end='', flush=True)
-                
+
                     trajectory_logger.reset()
                     break
-    
+
         eval_trj_return = np.mean(eval_trj_returns)
         eval_trj_lenght = np.mean(eval_trj_lenghts)
-    
+
         print("\r     ↳ {:^3} :: Agent evaluation   avg return: {:>8.2f}   avg trj lenght:  {:>4}".format(epoch,
                                                                                                           eval_trj_return,
                                                                                                           eval_trj_lenght))
-    
+
         return None

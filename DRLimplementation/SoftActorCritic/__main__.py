@@ -157,20 +157,20 @@ SAC_MountainCar_hparam = {
     'gradient_step_interval':         1,
     
     'alpha':                          1,  # HW5: we recover a standard max expected return objective as alpha --> 0
-    
+    'reward_scaling':                 [5.0, 10.0, 30.0],
     'max_eval_trj':                   10,  #SpiningUp: 10
     
-    'pool_capacity':                  int(1e6),  # SAC paper: 1e6
+    'pool_capacity':                  int(1e5),  # SAC paper: 1e6
     'min_pool_size':                  1000,
-    'batch_size_in_ts':               256,  # SAC paper:256, SpinningUp:100
+    'batch_size_in_ts':               200,  # SAC paper:256, SpinningUp:100
     
-    'theta_nn_h_layer_topo':          (32, 32),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+    'theta_nn_h_layer_topo':          (32,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
     'theta_hidden_layers_activation': tf.nn.relu,
     'theta_output_layers_activation': None,
-    'phi_nn_h_layer_topo':            (32, 32),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+    'phi_nn_h_layer_topo':            (32,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
     'phi_hidden_layers_activation':   tf.nn.relu,
     'phi_output_layers_activation':   None,
-    'psi_nn_h_layer_topo':            (32, 32),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+    'psi_nn_h_layer_topo':            (32,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
     'psi_hidden_layers_activation':   tf.nn.relu,
     'psi_output_layers_activation':   None,
     
@@ -205,8 +205,8 @@ SAC_Pendulum_hparam = {
     'timestep_per_epoch':             2000,
     
     'discout_factor':                 0.99,  # SAC paper: 0.99
-    'learning_rate':                  0.003,  # SAC paper: 30e-4
-    'critic_learning_rate':           0.003,  # SAC paper: 30e-4
+    'learning_rate':                  0.03,  # SAC paper: 30e-4
+    'critic_learning_rate':           0.03,  # SAC paper: 30e-4
     'max_gradient_step_expected':     200000,
     'actor_lr_decay_rate':            0.01,  # Note: set to 1 to swith OFF scheduler
     'critic_lr_decay_rate':           0.01,  # Note: set to 1 to swith OFF scheduler
@@ -216,20 +216,20 @@ SAC_Pendulum_hparam = {
     'gradient_step_interval':         1,
     
     'alpha':                          1,  # HW5: we recover a standard max expected return objective as alpha --> 0
-    
+    'reward_scaling':                 3.0,
     'max_eval_trj':                   10,  #SpiningUp: 10
     
-    'pool_capacity':                  int(1e4),  # SAC paper: 1e6
-    'min_pool_size':                  1000,
-    'batch_size_in_ts':               100,  # SAC paper:256, SpinningUp:100
+    'pool_capacity':                  int(1e3),  # SAC paper: 1e6
+    'min_pool_size':                  2000,
+    'batch_size_in_ts':               [200, 100, 300],  # SAC paper:256, SpinningUp:100
     
-    'theta_nn_h_layer_topo':          (32, 32),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+    'theta_nn_h_layer_topo':          (32,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
     'theta_hidden_layers_activation': tf.nn.relu,
     'theta_output_layers_activation': None,
-    'phi_nn_h_layer_topo':            (32, 32),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+    'phi_nn_h_layer_topo':            (32,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
     'phi_hidden_layers_activation':   tf.nn.relu,
     'phi_output_layers_activation':   None,
-    'psi_nn_h_layer_topo':            (32, 32),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+    'psi_nn_h_layer_topo':            (32,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
     'psi_hidden_layers_activation':   tf.nn.relu,
     'psi_output_layers_activation':   None,
     
@@ -309,7 +309,7 @@ test_hparam = {
     'gradient_step_interval':         1,
     
     'alpha':                          1,  # HW5: we recover a standard max expected return objective as alpha --> 0
-    
+    'reward_scaling':                 3.0,
     'max_eval_trj':                   10,  #SpiningUp: 10
     
     'pool_capacity':                  int(1e6),  # SAC paper: 1e6

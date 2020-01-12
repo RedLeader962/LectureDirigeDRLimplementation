@@ -86,74 +86,74 @@ def build_gaussian_policy_graph(obs_t_ph: tf.Tensor, exp_spec: ExperimentSpec,
 
     :return: policy_pi, policy_pi_log_likelihood, policy_mu
     """
-    with tf_cv1.variable_scope(vocab.actor_network):
-    
-        # ::Discrete case
-        if isinstance(playground.env.action_space, gym.spaces.Discrete):
-            raise ValueError("Discrete environment are not compatible with this Soft Actor-Critic implementation")
+    # with tf_cv1.variable_scope(vocab.actor_network):
 
-        # ::Continuous case
-        elif isinstance(playground.env.action_space, gym.spaces.Box):
-            """ ---- Assess the input shape compatibility ---- """
-            are_compatible = obs_t_ph.shape.as_list()[-1] == playground.OBSERVATION_SPACE.shape[0]
-            assert are_compatible, ("the obs_t_ph is incompatible with environment, "
-                                    "{} != {}").format(obs_t_ph.shape.as_list()[-1],
-                                                       playground.OBSERVATION_SPACE.shape[0])
+    # ::Discrete case
+    if isinstance(playground.env.action_space, gym.spaces.Discrete):
+        raise ValueError("Discrete environment are not compatible with this Soft Actor-Critic implementation")
+
+    # ::Continuous case
+    elif isinstance(playground.env.action_space, gym.spaces.Box):
+        """ ---- Assess the input shape compatibility ---- """
+        are_compatible = obs_t_ph.shape.as_list()[-1] == playground.OBSERVATION_SPACE.shape[0]
+        assert are_compatible, ("the obs_t_ph is incompatible with environment, "
+                                "{} != {}").format(obs_t_ph.shape.as_list()[-1],
+                                                   playground.OBSERVATION_SPACE.shape[0])
     
-            """ ---- Build parameter PHI as a multilayer perceptron ---- """
-            if USE_KERAS_LAYER:
-                print(':: Use Keras style Dense layer')
-                phi_mlp = build_KERAS_MLP_computation_graph(obs_t_ph, playground.ACTION_CHOICES,
-                                                            exp_spec['phi_nn_h_layer_topo'],
-                                                            hidden_layers_activation=exp_spec[
-                                                                'phi_hidden_layers_activation'],
-                                                            output_layers_activation=exp_spec[
-                                                                'phi_hidden_layers_activation'],
-                                                            name=vocab.phi)
+        """ ---- Build parameter PHI as a multilayer perceptron ---- """
+        if USE_KERAS_LAYER:
+            print(':: Use Keras style Dense layer')
+            phi_mlp = build_KERAS_MLP_computation_graph(obs_t_ph, playground.ACTION_CHOICES,
+                                                        exp_spec['phi_nn_h_layer_topo'],
+                                                        hidden_layers_activation=exp_spec[
+                                                            'phi_hidden_layers_activation'],
+                                                        output_layers_activation=exp_spec[
+                                                            'phi_hidden_layers_activation'],
+                                                        name=vocab.phi)
         
-                policy_mu = keras.layers.Dense(playground.ACTION_CHOICES,
-                                               activation=tf_cv1.tanh,
-                                               name=vocab.policy_mu)(phi_mlp)
+            policy_mu = keras.layers.Dense(playground.ACTION_CHOICES,
+                                           activation=tf_cv1.tanh,
+                                           name=vocab.policy_mu)(phi_mlp)
         
-                policy_log_std = keras.layers.Dense(playground.ACTION_CHOICES,
-                                                    activation=tf_cv1.tanh,
-                                                    name=vocab.policy_log_std)(phi_mlp)
-    
-            else:
-                print(':: Use legacy tensorFlow Dense layer')
-                phi_mlp = build_MLP_computation_graph(obs_t_ph, playground.ACTION_CHOICES,
-                                                      exp_spec['phi_nn_h_layer_topo'],
-                                                      hidden_layers_activation=exp_spec[
-                                                          'phi_hidden_layers_activation'],
-                                                      output_layers_activation=exp_spec[
-                                                          'phi_hidden_layers_activation'],
-                                                      name=vocab.phi)
-        
-                policy_mu = tf_cv1.layers.dense(phi_mlp,
-                                                playground.ACTION_CHOICES,
+            policy_log_std = keras.layers.Dense(playground.ACTION_CHOICES,
                                                 activation=tf_cv1.tanh,
-                                                name=vocab.policy_mu)
-        
-                policy_log_std = tf_cv1.layers.dense(phi_mlp,
-                                                     playground.ACTION_CHOICES,
-                                                     activation=tf_cv1.tanh,
-                                                     name=vocab.policy_log_std)
+                                                name=vocab.policy_log_std)(phi_mlp)
     
-            # Note: clip log standard deviation as in the sac_original_paper/sac/distributions/normal.py
-            policy_log_std = tf_cv1.clip_by_value(policy_log_std, POLICY_LOG_STD_CAP_MIN, POLICY_LOG_STD_CAP_MAX)
-    
-            """ ---- Build the policy for continuous space ---- """
-            policy_distribution = tfp.distributions.MultivariateNormalDiag(loc=policy_mu,
-                                                                           scale_diag=tf_cv1.exp(policy_log_std))
-            policy_pi = policy_distribution.sample(name=vocab.policy_pi)
-            policy_pi_log_likelihood = policy_distribution.log_prob(policy_pi,
-                                                                    name=vocab.policy_pi_log_likelihood)
-        
-        # ::Other gym environment
         else:
-            print("\n>>> The agent implementation does not support that environment space "
-                  "{} yet.\n\n".format(playground.env.action_space))
-            raise NotImplementedError
+            print(':: Use legacy tensorFlow Dense layer')
+            phi_mlp = build_MLP_computation_graph(obs_t_ph, playground.ACTION_CHOICES,
+                                                  exp_spec['phi_nn_h_layer_topo'],
+                                                  hidden_layers_activation=exp_spec[
+                                                      'phi_hidden_layers_activation'],
+                                                  output_layers_activation=exp_spec[
+                                                      'phi_hidden_layers_activation'],
+                                                  name=vocab.phi)
+        
+            policy_mu = tf_cv1.layers.dense(phi_mlp,
+                                            playground.ACTION_CHOICES,
+                                            activation=tf_cv1.tanh,
+                                            name=vocab.policy_mu)
+        
+            policy_log_std = tf_cv1.layers.dense(phi_mlp,
+                                                 playground.ACTION_CHOICES,
+                                                 activation=tf_cv1.tanh,
+                                                 name=vocab.policy_log_std)
+    
+        # Note: clip log standard deviation as in the sac_original_paper/sac/distributions/normal.py
+        policy_log_std = tf_cv1.clip_by_value(policy_log_std, POLICY_LOG_STD_CAP_MIN, POLICY_LOG_STD_CAP_MAX)
+    
+        """ ---- Build the policy for continuous space ---- """
+        policy_distribution = tfp.distributions.MultivariateNormalDiag(loc=policy_mu,
+                                                                       scale_diag=tf_cv1.exp(policy_log_std))
+        policy_pi = policy_distribution.sample(name=vocab.policy_pi)
+        policy_pi_log_likelihood = policy_distribution.log_prob(policy_pi,
+                                                                name=vocab.policy_pi_log_likelihood)
+
+    # ::Other gym environment
+    else:
+        print("\n>>> The agent implementation does not support that environment space "
+              "{} yet.\n\n".format(playground.env.action_space))
+        raise NotImplementedError
     
     return policy_pi, policy_pi_log_likelihood, policy_mu
 
@@ -167,24 +167,24 @@ def build_critic_graph_v_psi(obs_t_ph: tf.Tensor, obs_t_prime_ph: tf.Tensor, exp
 
     :return: v_psi, frozen_v_psi
     """
-    
+
     if USE_KERAS_LAYER:
         mlp = build_KERAS_MLP_computation_graph
     else:
         mlp = build_MLP_computation_graph
-
-    with tf_cv1.variable_scope(vocab.critic_network, reuse=tf_cv1.AUTO_REUSE):
-        """ ---- Build parameter '_psi' as a multilayer perceptron ---- """
-        v_psi = mlp(obs_t_ph, 1, exp_spec['psi_nn_h_layer_topo'],
-                    hidden_layers_activation=exp_spec['psi_hidden_layers_activation'],
-                    output_layers_activation=exp_spec['psi_output_layers_activation'],
-                    name=vocab.V_psi)
     
-        """ ---- Build frozen parameter '_psi' as a multilayer perceptron ---- """
-        frozen_v_psi = mlp(obs_t_prime_ph, 1, exp_spec['psi_nn_h_layer_topo'],
-                           hidden_layers_activation=exp_spec['psi_hidden_layers_activation'],
-                           output_layers_activation=exp_spec['psi_output_layers_activation'],
-                           name=vocab.frozen_V_psi)
+        # with tf_cv1.variable_scope(vocab.critic_network):
+        """ ---- Build parameter '_psi' as a multilayer perceptron ---- """
+    v_psi = mlp(obs_t_ph, 1, exp_spec['psi_nn_h_layer_topo'],
+                hidden_layers_activation=exp_spec['psi_hidden_layers_activation'],
+                output_layers_activation=exp_spec['psi_output_layers_activation'],
+                name=vocab.V_psi)
+
+    """ ---- Build frozen parameter '_psi' as a multilayer perceptron ---- """
+    frozen_v_psi = mlp(obs_t_prime_ph, 1, exp_spec['psi_nn_h_layer_topo'],
+                       hidden_layers_activation=exp_spec['psi_hidden_layers_activation'],
+                       output_layers_activation=exp_spec['psi_output_layers_activation'],
+                       name=vocab.frozen_V_psi)
     return v_psi, frozen_v_psi
 
 
@@ -211,22 +211,22 @@ def build_critic_graph_q_theta(obs_t_ph: tf.Tensor, act_t_ph: tf.Tensor, exp_spe
     else:
         mlp = build_MLP_computation_graph
 
-    with tf_cv1.variable_scope(vocab.critic_network, reuse=tf_cv1.AUTO_REUSE):
-        """ ---- Concat graph input: observation & action ---- """
-        inputs = tf_cv1.concat([obs_t_ph, act_t_ph], axis=-1)
-    
-        """ ---- Build parameter '_theta_1' as a multilayer perceptron ---- """
-        q_theta_1 = mlp(inputs, 1, exp_spec.theta_nn_h_layer_topo,
-                        hidden_layers_activation=exp_spec.theta_hidden_layers_activation,
-                        output_layers_activation=exp_spec.theta_output_layers_activation,
-                        name=vocab.Q_theta_1)
-    
-        """ ---- Build parameter '_theta_2' as a multilayer perceptron ---- """
-        q_theta_2 = mlp(inputs, 1, exp_spec.theta_nn_h_layer_topo,
-                        hidden_layers_activation=exp_spec.theta_hidden_layers_activation,
-                        output_layers_activation=exp_spec.theta_output_layers_activation,
-                        name=vocab.Q_theta_2)
-    
+    # with tf_cv1.variable_scope(vocab.critic_network):
+    """ ---- Concat graph input: observation & action ---- """
+    inputs = tf_cv1.concat([obs_t_ph, act_t_ph], axis=-1)
+
+    """ ---- Build parameter '_theta_1' as a multilayer perceptron ---- """
+    q_theta_1 = mlp(inputs, 1, exp_spec.theta_nn_h_layer_topo,
+                    hidden_layers_activation=exp_spec.theta_hidden_layers_activation,
+                    output_layers_activation=exp_spec.theta_output_layers_activation,
+                    name=vocab.Q_theta_1)
+
+    """ ---- Build parameter '_theta_2' as a multilayer perceptron ---- """
+    q_theta_2 = mlp(inputs, 1, exp_spec.theta_nn_h_layer_topo,
+                    hidden_layers_activation=exp_spec.theta_hidden_layers_activation,
+                    output_layers_activation=exp_spec.theta_output_layers_activation,
+                    name=vocab.Q_theta_2)
+
     return q_theta_1, q_theta_2
 
 
@@ -243,27 +243,28 @@ def actor_train(policy_pi_log_likelihood: tf.Tensor, q_theta_1: tf.Tensor, q_the
 
     :return: actor_kl_loss, actor_policy_optimizer_op
     """
-    
+
     alpha = exp_spec['alpha']
-    
+
+    # with tf_cv1.variable_scope(vocab.policy_training):
+
     min_q_theta = tf_cv1.minimum(q_theta_1, q_theta_2)
-    
-    with tf_cv1.variable_scope(vocab.policy_training):
-        """ ---- Build the Kullback-Leibler divergence loss function ---- """
-        actor_kl_loss = tf_cv1.reduce_mean(alpha * policy_pi_log_likelihood - min_q_theta,
-                                           name=vocab.actor_kl_loss)
-        
-        """ ---- Actor optimizer & learning rate scheduler ---- """
-        actor_lr_schedule, actor_global_grad_step = learning_rate_scheduler(
-            max_gradient_step_expected=exp_spec['max_gradient_step_expected'],
-            learning_rate=exp_spec.learning_rate,
-            lr_decay_rate=exp_spec['actor_lr_decay_rate'],
-            name_sufix='actor')
-        
-        actor_policy_optimizer_op = tf_cv1.train.AdamOptimizer(learning_rate=actor_lr_schedule
-                                                               ).minimize(loss=actor_kl_loss,
-                                                                          global_step=actor_global_grad_step,
-                                                                          name=vocab.policy_optimizer)
+
+    """ ---- Build the Kullback-Leibler divergence loss function ---- """
+    actor_kl_loss = tf_cv1.reduce_mean(alpha * policy_pi_log_likelihood - min_q_theta,
+                                       name=vocab.actor_kl_loss)
+
+    """ ---- Actor optimizer & learning rate scheduler ---- """
+    actor_lr_schedule, actor_global_grad_step = learning_rate_scheduler(
+        max_gradient_step_expected=exp_spec['max_gradient_step_expected'],
+        learning_rate=exp_spec.learning_rate,
+        lr_decay_rate=exp_spec['actor_lr_decay_rate'],
+        name_sufix='actor')
+
+    actor_policy_optimizer_op = tf_cv1.train.AdamOptimizer(learning_rate=actor_lr_schedule
+                                                           ).minimize(loss=actor_kl_loss,
+                                                                      global_step=actor_global_grad_step,
+                                                                      name=vocab.policy_optimizer)
     return actor_kl_loss, actor_policy_optimizer_op
 
 
@@ -281,17 +282,18 @@ def critic_v_psi_train(v_psi: tf.Tensor, frozen_v_psi: tf.Tensor, q_theta_1: tf.
     """
     alpha = exp_spec['alpha']
     tau = exp_spec['target_smoothing_coefficient']
-    
-    min_q_theta = tf_cv1.minimum(q_theta_1, q_theta_2)
-    
-    v_psi_target = tf_cv1.stop_gradient(min_q_theta - alpha * policy_pi_log_likelihood)
-    
-    """ ---- Build the Mean Square Error loss function ---- """
+
     # with tf_cv1.variable_scope(vocab.critic_training):
     # with tf_cv1.variable_scope(vocab.critic_loss):
+
+    min_q_theta = tf_cv1.minimum(q_theta_1, q_theta_2)
+
+    v_psi_target = tf_cv1.stop_gradient(min_q_theta - alpha * policy_pi_log_likelihood)
+
+    """ ---- Build the Mean Square Error loss function ---- """
     with tf_cv1.variable_scope(vocab.V_psi_loss):
         v_loss = 1 / 2 * tf.reduce_mean((v_psi - v_psi_target) ** 2)
-        
+    
         """ ---- Critic optimizer & learning rate scheduler ---- """
         # critic_lr_schedule, critic_global_grad_step = critic_learning_rate_scheduler(exp_spec)
         
@@ -303,7 +305,7 @@ def critic_v_psi_train(v_psi: tf.Tensor, frozen_v_psi: tf.Tensor, q_theta_1: tf.
     with tf_cv1.variable_scope(vocab.frozen_V_psi_update_ops):
         """ ---- Fetch all tensor from V_psi and frozen_V_psi for update ---- """
         frozen_v_psi_update_ops = _update_frozen_v_psi(tau)
-    
+
     return v_loss, v_psi_optimizer, frozen_v_psi_update_ops
 
 
@@ -332,26 +334,28 @@ def critic_q_theta_train(frozen_v_psi: tf.Tensor, q_theta_1: tf.Tensor, q_theta_
     :param critic_global:
     :return: q_theta_1_loss, q_theta_2_loss, q_theta_1_optimizer, q_theta_2_optimizer
     """
+    # with tf_cv1.variable_scope(vocab.critic_training):
+    
     q_target = tf_cv1.stop_gradient(
-        rew_ph + (1 - trj_done_ph) * exp_spec.discout_factor * tf_cv1.squeeze(frozen_v_psi))
+        exp_spec['reward_scaling'] * rew_ph + (1 - trj_done_ph) * exp_spec.discout_factor * tf_cv1.squeeze(
+            frozen_v_psi))
     
-    with tf_cv1.variable_scope(vocab.critic_training):
-        """ ---- Build the Mean Square Error loss function ---- """
-        # with tf_cv1.variable_scope(vocab.critic_loss):
-        with tf_cv1.variable_scope(vocab.Q_theta_1_loss):
-            q_theta_1_loss = 1 / 2 * tf.reduce_mean((tf_cv1.squeeze(q_theta_1) - q_target) ** 2)
+    """ ---- Build the Mean Square Error loss function ---- """
+    # with tf_cv1.variable_scope(vocab.critic_loss):
+    with tf_cv1.variable_scope(vocab.Q_theta_1_loss):
+        q_theta_1_loss = 1 / 2 * tf.reduce_mean((tf_cv1.squeeze(q_theta_1) - q_target) ** 2)
     
-        with tf_cv1.variable_scope(vocab.Q_theta_2_loss):
-            q_theta_2_loss = 1 / 2 * tf.reduce_mean((tf_cv1.squeeze(q_theta_2) - q_target) ** 2)
+    with tf_cv1.variable_scope(vocab.Q_theta_2_loss):
+        q_theta_2_loss = 1 / 2 * tf.reduce_mean((tf_cv1.squeeze(q_theta_2) - q_target) ** 2)
     
-        """ ---- Critic optimizer & learning rate scheduler ---- """
-        q_theta_1_optimizer = tf_cv1.train.AdamOptimizer(learning_rate=critic_lr_schedule
-                                                         ).minimize(q_theta_1_loss,
-                                                                    global_step=critic_global_grad_step)
+    """ ---- Critic optimizer & learning rate scheduler ---- """
+    q_theta_1_optimizer = tf_cv1.train.AdamOptimizer(learning_rate=critic_lr_schedule
+                                                     ).minimize(q_theta_1_loss,
+                                                                global_step=critic_global_grad_step)
     
-        q_theta_2_optimizer = tf_cv1.train.AdamOptimizer(learning_rate=critic_lr_schedule
-                                                         ).minimize(q_theta_2_loss,
-                                                                    global_step=critic_global_grad_step)
+    q_theta_2_optimizer = tf_cv1.train.AdamOptimizer(learning_rate=critic_lr_schedule
+                                                     ).minimize(q_theta_2_loss,
+                                                                global_step=critic_global_grad_step)
     
     return q_theta_1_loss, q_theta_2_loss, q_theta_1_optimizer, q_theta_2_optimizer
 
