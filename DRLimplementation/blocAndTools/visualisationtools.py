@@ -207,10 +207,10 @@ class ConsolPrintLearningStats(object):
         self.timestep = timestep
         return None
 
-    def track_progress(self, progress: int, message: str) -> None:
+    def track_progress(self, progress: int, message: str, counter_str="loop") -> None:
         print("\r     ↳ {:^3} :: {} ".format(self.epoch, message),
               ">" * self.cycle_indexer2.i, " " * self.cycle_indexer2.j,
-              "  loop {:>2}".format(progress),
+              "  {} {:>2}".format(counter_str, progress),
               sep='', end='', flush=True)
         self.cycle_indexer2.__next__()
 

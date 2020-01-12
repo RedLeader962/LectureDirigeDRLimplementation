@@ -202,12 +202,12 @@ SAC_Pendulum_hparam = {
     
     'expected_reward_goal':           90,  # Note: trigger model save on reach
     'max_epoch':                      100,
-    'timestep_per_epoch':             5000,
+    'timestep_per_epoch':             2000,
     
     'discout_factor':                 0.99,  # SAC paper: 0.99
     'learning_rate':                  0.003,  # SAC paper: 30e-4
     'critic_learning_rate':           0.003,  # SAC paper: 30e-4
-    'max_gradient_step_expected':     500000,
+    'max_gradient_step_expected':     200000,
     'actor_lr_decay_rate':            0.01,  # Note: set to 1 to swith OFF scheduler
     'critic_lr_decay_rate':           0.01,  # Note: set to 1 to swith OFF scheduler
     
@@ -219,7 +219,7 @@ SAC_Pendulum_hparam = {
     
     'max_eval_trj':                   10,  #SpiningUp: 10
     
-    'pool_capacity':                  int(1e6),  # SAC paper: 1e6
+    'pool_capacity':                  int(1e4),  # SAC paper: 1e6
     'min_pool_size':                  1000,
     'batch_size_in_ts':               100,  # SAC paper:256, SpinningUp:100
     
@@ -238,10 +238,18 @@ SAC_Pendulum_hparam = {
     'note':                           ''
     }
 
-SAC_Pendulum_hparam_TEST_RERUN = SAC_Pendulum_hparam.copy()
-SAC_Pendulum_hparam_TEST_RERUN['max_epoch'] = 2
-SAC_Pendulum_hparam_TEST_RERUN['timestep_per_epoch'] = 200
-SAC_Pendulum_hparam_TEST_RERUN['min_pool_size'] = 100
+SAC_Pendulum_hparam_TEST_RERUN = dict(SAC_Pendulum_hparam)
+# SAC_Pendulum_hparam_TEST_RERUN['max_epoch'] = 2
+# SAC_Pendulum_hparam_TEST_RERUN['timestep_per_epoch'] = 200
+# SAC_Pendulum_hparam_TEST_RERUN['min_pool_size'] = 100
+
+SAC_Pendulum_hparam_TEST_RERUN.update(
+    {
+        'max_epoch':          2,
+        'timestep_per_epoch': 200,
+        'min_pool_size':      100,
+        }
+    )
 
 # 'LunarLanderContinuous-v2'
 # - action_space:  Box(2,) ⟶ [main engine, left-right engines]
