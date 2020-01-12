@@ -61,7 +61,7 @@ def apply_action_bound(policy_pi: tf.Tensor, policy_pi_log_likelihood: tf.Tensor
     with tf_cv1.variable_scope(vocab.squashing_fct):
         # (nice to have) todo:implement --> a numericaly stable version : see p8 HW5c Sergey Levine DRL course
         squashed_policy_pi = tf_cv1.tanh(policy_pi)
-        num_corr = tf_cv1.reduce_sum(tf_cv1.log(1 - tf_cv1.tanh(squashed_policy_pi) ** 2 + NUM_STABILITY_CORRECTION),
+        num_corr = tf_cv1.reduce_sum(tf_cv1.log(1 - squashed_policy_pi ** 2 + NUM_STABILITY_CORRECTION),
                                      axis=1)
         squashed_policy_pi_log_likelihood = policy_pi_log_likelihood - num_corr
         return squashed_policy_pi, squashed_policy_pi_log_likelihood
@@ -336,9 +336,17 @@ def critic_q_theta_train(frozen_v_psi: tf.Tensor, q_theta_1: tf.Tensor, q_theta_
     """
     # with tf_cv1.variable_scope(vocab.critic_training):
     
+    # ... investigate
+    # ...................................................................................................
+    # (Priority) todo:investigate?? --> does the squeeze introduce a error?:
+    # q_target = tf_cv1.stop_gradient(
+    #     exp_spec['reward_scaling'] * rew_ph + (1 - trj_done_ph) * exp_spec.discout_factor * tf_cv1.squeeze(
+    #         frozen_v_psi))
+    
     q_target = tf_cv1.stop_gradient(
-        exp_spec['reward_scaling'] * rew_ph + (1 - trj_done_ph) * exp_spec.discout_factor * tf_cv1.squeeze(
-            frozen_v_psi))
+        exp_spec['reward_scaling'] * rew_ph + (1 - trj_done_ph) * exp_spec.discout_factor * frozen_v_psi)
+    # ........................................................................................... investigate ...(
+    # end)...
     
     """ ---- Build the Mean Square Error loss function ---- """
     # with tf_cv1.variable_scope(vocab.critic_loss):

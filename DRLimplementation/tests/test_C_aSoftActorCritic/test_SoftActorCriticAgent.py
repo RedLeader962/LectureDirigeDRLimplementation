@@ -23,6 +23,8 @@ unit_test_hparam = {
     'max_epoch':                      2,
     'timestep_per_epoch':             1000,
     
+    'reward_scaling':                 5.0,
+    
     'discout_factor':                 0.99,  # SAC paper: 0.99
     'learning_rate':                  0.003,  # SAC paper: 30e-4
     'critic_learning_rate':           0.003,  # SAC paper: 30e-4

@@ -409,13 +409,44 @@ def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground, obs_sh
                                                obs_ph_name=vocab.obs_ph
                                                ) -> (tf.Tensor, tf.Tensor, tf.Tensor):
     """
-    Configure handle for feeding value to the computation graph
+    Configure placeholder for feeding value to the computation graph
             Continuous space    -->     dtype=tf.float32
             Discrete scpace     -->     dtype=tf.int32
 
     :return: obs_ph, act_ph, Q_values_placeholder
     :rtype: (tf.Tensor, tf.Tensor, tf.Tensor)
     """
+    assert isinstance(playground, GymPlayground), "\n\n>>> Expected a builded GymPlayground.\n\n"
+    
+    obs_ph = build_observation_placeholder(playground, obs_ph_name, obs_shape_constraint)
+    
+    act_ph = build_action_placeholder(playground, action_shape_constraint)
+    
+    if obs_shape_constraint is not None:
+        shape = (*obs_shape_constraint,)
+    else:
+        shape = (None,)
+    
+    Q_values_ph = tf_cv1.placeholder(dtype=tf.float32, shape=shape, name=Q_name)
+    
+    return obs_ph, act_ph, Q_values_ph
+
+
+def build_action_placeholder(playground, action_shape_constraint: tuple = None, act_ph_name: str = vocab.act_ph):
+    assert isinstance(playground, GymPlayground), "\n\n>>> Expected a builded GymPlayground.\n\n"
+    
+    if isinstance(playground.env.action_space, gym.spaces.Box):
+        """action space is continuous"""
+        act_ph = continuous_space_placeholder(playground.ACTION_SPACE, action_shape_constraint, name=act_ph_name)
+    elif isinstance(playground.env.action_space, gym.spaces.Discrete):
+        """action space is discrete"""
+        act_ph = discrete_space_placeholder(playground.ACTION_SPACE, action_shape_constraint, name=act_ph_name)
+    else:
+        raise NotImplementedError
+    return act_ph
+
+
+def build_observation_placeholder(playground, obs_ph_name: str = vocab.obs_ph, obs_shape_constraint: tuple = None):
     assert isinstance(playground, GymPlayground), "\n\n>>> Expected a builded GymPlayground.\n\n"
     
     if isinstance(playground.env.observation_space, gym.spaces.Box):
@@ -427,24 +458,7 @@ def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground, obs_sh
                                             name=obs_ph_name)
     else:
         raise NotImplementedError
-    
-    if isinstance(playground.env.action_space, gym.spaces.Box):
-        """action space is continuous"""
-        act_ph = continuous_space_placeholder(playground.ACTION_SPACE, action_shape_constraint, name=vocab.act_ph)
-    elif isinstance(playground.env.action_space, gym.spaces.Discrete):
-        """action space is discrete"""
-        act_ph = discrete_space_placeholder(playground.ACTION_SPACE, action_shape_constraint, name=vocab.act_ph)
-    else:
-        raise NotImplementedError
-    
-    if obs_shape_constraint is not None:
-        shape = (*obs_shape_constraint,)
-    else:
-        shape = (None,)
-    
-    Q_values_ph = tf_cv1.placeholder(dtype=tf.float32, shape=shape, name=Q_name)
-    
-    return obs_ph, act_ph, Q_values_ph
+    return obs_ph
 
 
 def policy_theta_discrete_space(logits_layer: tf.Tensor, playground: GymPlayground, name=vocab.policy_theta_D) -> (
@@ -611,6 +625,8 @@ def learning_rate_scheduler(max_gradient_step_expected: int, learning_rate: floa
     :return:                            the decayed learning rate , the gradient step counter
     :rtype:                             Tuple[tf_cv1.Tensor, tf_cv1.Variable]
     """
+    assert isinstance(lr_decay_rate, float)
+
     if name_sufix is not None:
         name_sufix += '_'
 

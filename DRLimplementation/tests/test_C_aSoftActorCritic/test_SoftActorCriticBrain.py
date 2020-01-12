@@ -13,35 +13,37 @@ deprecation._PRINT_DEPRECATION_WARNINGS = False
 vocab = rl_name()
 
 unit_test_hparam = {
-    'rerun_tag':                      'Unit-TEST',
-    'paramameter_set_name':           'SAC',
-    'comment':                        'UnitTestSpec',  # Comment added to training folder name (can be empty)
-    'algo_name':                      'Soft Actor Critic',
-    'AgentType':                      SoftActorCriticAgent,
-    'prefered_environment':           'MountainCarContinuous-v0',
+    'rerun_tag':                    'Unit-TEST',
+    'paramameter_set_name':         'SAC',
+    'comment':                      'UnitTestSpec',  # Comment added to training folder name (can be empty)
+    'algo_name':                    'Soft Actor Critic',
+    'AgentType':                    SoftActorCriticAgent,
+    'prefered_environment':         'MountainCarContinuous-v0',
     
-    'expected_reward_goal':           90,  # Note: trigger model save on reach
-    'max_epoch':                      10,
-    'timestep_per_epoch':             500,
+    'expected_reward_goal':         90,  # Note: trigger model save on reach
+    'max_epoch':                    10,
+    'timestep_per_epoch':           500,
     
-    'discout_factor':                 0.99,  # SAC paper: 0.99
-    'learning_rate':                  0.003,  # SAC paper: 30e-4
-    'critic_learning_rate':           0.003,  # SAC paper: 30e-4
-    'max_gradient_step_expected':     500000,
-    'actor_lr_decay_rate':            0.01,  # Note: set to 1 to swith OFF scheduler
-    'critic_lr_decay_rate':           0.01,  # Note: set to 1 to swith OFF scheduler
+    'reward_scaling':               5.0,
     
-    'target_smoothing_coefficient':   0.005,  # SAC paper: EXPONENTIAL MOVING AVERAGE ~ 0.005, 1 <==> HARD TARGET update
-    'target_update_interval':         1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
-    'gradient_step_interval':         1,
+    'discout_factor':               0.99,  # SAC paper: 0.99
+    'learning_rate':                0.003,  # SAC paper: 30e-4
+    'critic_learning_rate':         0.003,  # SAC paper: 30e-4
+    'max_gradient_step_expected':   500000,
+    'actor_lr_decay_rate':          0.01,  # Note: set to 1 to swith OFF scheduler
+    'critic_lr_decay_rate':         0.01,  # Note: set to 1 to swith OFF scheduler
     
-    'alpha':                          1,  # HW5: we recover a standard max expected return objective as alpha --> 0
+    'target_smoothing_coefficient': 0.005,  # SAC paper: EXPONENTIAL MOVING AVERAGE ~ 0.005, 1 <==> HARD TARGET update
+    'target_update_interval':       1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
+    'gradient_step_interval':       1,
     
-    'max_eval_trj':                   10,  #SpiningUp: 10
+    'alpha':                        1,  # HW5: we recover a standard max expected return objective as alpha --> 0
     
-    'pool_capacity':                  int(1e6),  # SAC paper: 1e6
-    'min_pool_size':                  100,
-    'batch_size_in_ts':               100,  # SAC paper:256, SpinningUp:100
+    'max_eval_trj':                 10,  #SpiningUp: 10
+    
+    'pool_capacity':                int(1e6),  # SAC paper: 1e6
+    'min_pool_size':                100,
+    'batch_size_in_ts':             100,  # SAC paper:256, SpinningUp:100
     
     'theta_nn_h_layer_topo':          (4, 4),  # SAC paper:(256, 256), SpinningUp:(400, 300)
     'theta_hidden_layers_activation': tf.nn.relu,

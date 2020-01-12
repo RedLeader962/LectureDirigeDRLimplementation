@@ -2,11 +2,13 @@
 from abc import ABCMeta, abstractmethod
 from typing import Any
 
+import numpy as np
 import tensorflow as tf
 import tensorflow.python.util.deprecation as deprecation
 from gym.wrappers.monitoring.video_recorder import VideoRecorder
 
 import blocAndTools.tensorflowbloc
+from SoftActorCritic.SoftActorCriticAgent import tf_cv1
 from blocAndTools import buildingbloc as bloc
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground, setup_commented_run_dir_str
 from blocAndTools.visualisationtools import ConsolPrintLearningStats
@@ -210,6 +212,14 @@ class Agent(object, metaclass=ABCMeta):
         # (nice to have) todo:implement --> capability to load the last trained agent:
         path = "{}/saved_training".format(self.agent_root_dir)
         self.saver.restore(sess, "{}/{}".format(path, run_name))
+
+    def _set_random_seed(self):
+        if self.exp_spec.random_seed == 0:
+            print(":: Random seed control is turned OFF")
+        else:
+            tf_cv1.random.set_random_seed(self.exp_spec.random_seed)
+            np.random.seed(self.exp_spec.random_seed)
+            print(":: Random seed control is turned ON")
 
     def __del__(self):
     

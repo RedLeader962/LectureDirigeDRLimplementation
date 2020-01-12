@@ -59,12 +59,7 @@ class SoftActorCriticAgent(Agent):
     def _build_computation_graph(self):
         """ Build the Policy_phi, V_psi and Q_theta computation graph as multi-layer perceptron """
 
-        if self.exp_spec.random_seed == 0:
-            print(":: Random seed control is turned OFF")
-        else:
-            tf_cv1.random.set_random_seed(self.exp_spec.random_seed)
-            np.random.seed(self.exp_spec.random_seed)
-            print(":: Random seed control is turned ON")
+        self._set_random_seed()
 
         """ ---- Placeholder ---- """
         self.obs_t_ph, self.act_ph, _ = bloc.gym_playground_to_tensorflow_graph_adapter(self.playground,
@@ -470,5 +465,12 @@ class SoftActorCriticAgent(Agent):
         print("\r     ↳ {:^3} :: Agent evaluation   avg return: {:>8.2f}   avg trj lenght:  {:>4}".format(epoch,
                                                                                                           eval_trj_return,
                                                                                                           eval_trj_lenght))
-
         return None
+
+    def __del__(self):
+        # (nice to have) todo:assessment --> is it linked to the 'experiment_runner' rerun error (fail at second rerun)
+        tf_cv1.reset_default_graph()
+    
+        self.playground.env.env.close()
+        self.evaluation_playground.env.env.close()
+        print(":: SAC agent >>> CLOSED")
