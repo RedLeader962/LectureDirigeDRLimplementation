@@ -137,16 +137,16 @@ def test_SoftActorCritic_brain_Critic_Q_BUILD_PASS(gym_and_tf_continuous_setup):
 def test_SoftActorCritic_brain_Critic_V_TRAIN_PASS(gym_and_tf_continuous_setup):
     continuous_setup = gym_and_tf_continuous_setup
     obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground = continuous_setup
-    
+
     critic_lr_schedule, critic_global_grad_step = critic_learning_rate_scheduler(exp_spec)
-    
+
     pi, pi_log_p, policy_mu = SoftActorCriticBrain.build_gaussian_policy_graph(obs_t_ph, exp_spec, playground)
     V_psi, V_psi_frozen = SoftActorCriticBrain.build_critic_graph_v_psi(obs_t_ph, obs_t_prime_ph, exp_spec)
     Q_theta_1, Q_theta_2 = SoftActorCriticBrain.build_critic_graph_q_theta(obs_t_ph, act_ph, exp_spec)
-    
-    V_psi_loss, V_psi_optimizer, V_psi_frozen_update_ops = SoftActorCriticBrain.critic_v_psi_train(V_psi, V_psi_frozen,
-                                                                                                   Q_theta_1, Q_theta_2,
-                                                                                                   pi_log_p, exp_spec,
+
+    V_psi_loss, V_psi_optimizer, V_psi_frozen_update_ops = SoftActorCriticBrain.critic_v_psi_train(V_psi, Q_theta_1,
+                                                                                                   Q_theta_2, pi_log_p,
+                                                                                                   exp_spec,
                                                                                                    critic_lr_schedule,
                                                                                                    critic_global_grad_step)
 

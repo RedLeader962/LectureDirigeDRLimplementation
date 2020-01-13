@@ -142,40 +142,40 @@ SAC_MountainCar_hparam = {
     'prefered_environment':           'MountainCarContinuous-v0',
     
     'expected_reward_goal':           90,  # Note: trigger model save on reach
-    'max_epoch':                      100,
+    'max_epoch':                      1000,
     'timestep_per_epoch':             5000,
     
-    'reward_scaling':                 [10.0, 30.0],
+    'reward_scaling':                 [3.0, 6.0, 12.0, 24.0, 48.0],
     
     'discout_factor':                 0.99,  # SAC paper: 0.99
     'learning_rate':                  0.003,  # SAC paper: 30e-4
     'critic_learning_rate':           0.003,  # SAC paper: 30e-4
-    'max_gradient_step_expected':     500000,
+    'max_gradient_step_expected':     5000000,
     'actor_lr_decay_rate':            1.0,  # Note: set to 1.0 to swith OFF scheduler
     'critic_lr_decay_rate':           1.0,  # Note: set to 1.0 to swith OFF scheduler
     
-    'target_smoothing_coefficient':   0.005,  # SAC paper: EXPONENTIAL MOVING AVERAGE ~ 0.005, 1 <==> HARD TARGET update
-    'target_update_interval':         1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
+    'target_smoothing_coefficient':   0.01,  # SAC paper: EXPONENTIAL MOVING AVERAGE ~ 0.005, 1 <==> HARD TARGET update
+    'target_update_interval':         2,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
     'gradient_step_interval':         1,
     
     'alpha':                          1,  # HW5: we recover a standard max expected return objective as alpha --> 0
     'max_eval_trj':                   10,  #SpiningUp: 10
     
-    'pool_capacity':                  int(1e5),  # SAC paper: 1e6
-    'min_pool_size':                  1000,
+    'pool_capacity':                  int(1e6),  # SAC paper: 1e6
+    'min_pool_size':                  10000,
     'batch_size_in_ts':               200,  # SAC paper:256, SpinningUp:100
     
-    'theta_nn_h_layer_topo':          (32, 32),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+    'theta_nn_h_layer_topo':          (62, 62),  # SAC paper:(256, 256), SpinningUp:(400, 300)
     'theta_hidden_layers_activation': tf.nn.relu,
     'theta_output_layers_activation': None,
-    'phi_nn_h_layer_topo':            (32, 32),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+    'phi_nn_h_layer_topo':            (62, 62),  # SAC paper:(256, 256), SpinningUp:(400, 300)
     'phi_hidden_layers_activation':   tf.nn.relu,
     'phi_output_layers_activation':   None,
-    'psi_nn_h_layer_topo':            (32, 32),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+    'psi_nn_h_layer_topo':            (62, 62),  # SAC paper:(256, 256), SpinningUp:(400, 300)
     'psi_hidden_layers_activation':   tf.nn.relu,
     'psi_output_layers_activation':   None,
     
-    'render_env_every_What_epoch':    2,
+    'render_env_every_What_epoch':    5,
     'print_metric_every_what_epoch':  5,
     'note':                           ''
     }

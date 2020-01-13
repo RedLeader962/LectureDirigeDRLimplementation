@@ -8,7 +8,6 @@ import tensorflow.python.util.deprecation as deprecation
 from gym.wrappers.monitoring.video_recorder import VideoRecorder
 
 import blocAndTools.tensorflowbloc
-from SoftActorCritic.SoftActorCriticAgent import tf_cv1
 from blocAndTools import buildingbloc as bloc
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground, setup_commented_run_dir_str
 from blocAndTools.visualisationtools import ConsolPrintLearningStats

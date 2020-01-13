@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="test all in ../test_samplecontainer" type="tests" factoryName="py.test" activateToolWindowBeforeRun="false">
+  <configuration default="false" name="test all in ../test_samplecontainer" type="tests" factoryName="py.test" activateToolWindowBeforeRun="false" singleton="false">
     <module name="LectureDirigeDRLimplementation" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />

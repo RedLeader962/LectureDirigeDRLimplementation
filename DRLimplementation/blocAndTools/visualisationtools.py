@@ -32,10 +32,9 @@ class ConsolPrintLearningStats(object):
     def __init__(self, experiment_spec, print_metric_every_what_epoch=5, consol_span=90):
         self.cycle_indexer = CycleIndexer(cycle_lenght=10)
         self.cycle_indexer2 = CycleIndexer(cycle_lenght=10)
+        self.cycle_indexer3 = CycleIndexer(cycle_lenght=10)
         self.epoch = 0
         self.trj = 0
-        self.the_trajectory_return = None
-        self.timestep = None
         self.number_of_trj_collected = None
         self.total_timestep_collected = None
         self.epoch_loss = None
@@ -52,12 +51,18 @@ class ConsolPrintLearningStats(object):
         self.last_batch_return = 0
 
         self.collected_experiment_stats = {
-            'smoothed_average_return': [],
+            'smoothed_average_return':      [],
             'smoothed_average_peusdo_loss': [],
-            'smoothed_average_lenght': [],
-        }
+            'smoothed_average_lenght':      [],
+            }
 
         self.exp_spec = experiment_spec
+
+    def change_progress_bar_lenght(self, lenght: int) -> None:
+        self.cycle_indexer = CycleIndexer(cycle_lenght=lenght)
+        self.cycle_indexer2 = CycleIndexer(cycle_lenght=lenght)
+        self.cycle_indexer3 = CycleIndexer(cycle_lenght=lenght)
+        return None
 
     def _assert_all_property_are_feed(self) -> bool:
         if ((self.number_of_trj_collected is not None) and (self.total_timestep_collected is not None) and
@@ -198,21 +203,34 @@ class ConsolPrintLearningStats(object):
         :rtype: None
         """
         print("\r     ↳ {:^3} :: Trajectory {:>4}  ".format(self.epoch, self.trj),
-              ">"*self.cycle_indexer.i, " "*self.cycle_indexer.j,
+              ">" * self.cycle_indexer.i, " " * self.cycle_indexer.j,
               "  got return {:>8.2f}   after  {:>4}  timesteps".format(
                   the_trajectory_return, timestep),
               sep='', end='', flush=True)
-
-        self.the_trajectory_return = the_trajectory_return
-        self.timestep = timestep
         return None
 
-    def track_progress(self, progress: int, message: str, counter_str="loop") -> None:
+    def track_progress(self, message: str, progress: int, counter_str="loop", post_message: str = '  |') -> None:
         print("\r     ↳ {:^3} :: {} ".format(self.epoch, message),
-              ">" * self.cycle_indexer2.i, " " * self.cycle_indexer2.j,
-              "  {} {:>2}".format(counter_str, progress),
+              ">" * self.cycle_indexer2.i, '>', " " * self.cycle_indexer2.j,
+              " {} {:>2}".format(counter_str, progress),
+              post_message,
               sep='', end='', flush=True)
         self.cycle_indexer2.__next__()
+
+    def track_2_progress(self, pre_message: str, progress_1: int, progress_2: int, middle_message: str = '',
+                         cursor_1: str = '>', cursor_2: str = '>', counter_str_1="loop",
+                         cursor_1_pre: str = '>', counter_str_2="loop", cursor_2_pre: str = '>',
+                         post_message: str = '') -> None:
+        print("\r     ↳ {:^3} :: {} ".format(self.epoch, pre_message),
+              cursor_1_pre * self.cycle_indexer2.i, cursor_1, " " * self.cycle_indexer2.j,
+              " {} {:>2}".format(counter_str_1, progress_1),
+              '  | ' + middle_message + ' ',
+              cursor_2_pre * self.cycle_indexer3.i, cursor_2, " " * self.cycle_indexer3.j,
+              " {} {:>2}".format(counter_str_2, progress_2),
+              post_message,
+              sep='', end='', flush=True)
+        self.cycle_indexer2.__next__()
+        self.cycle_indexer3.__next__()
 
 
 def ultra_basic_ploter(epoch_average_return: list, epoch_average_loss: list, epoch_average_lenght: list,

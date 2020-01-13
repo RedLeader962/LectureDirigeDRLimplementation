@@ -289,7 +289,7 @@ class ReferenceActorCriticAgent(Agent):
 
                 """ ---- Train critic ---- """
                 for c_loop in range(self.exp_spec['critique_loop_len']):
-                    consol_print_learning_stats.track_progress(progress=c_loop, message="Critic training")
+                    consol_print_learning_stats.track_progress(message="Critic training", progress=c_loop)
                     sess.run(self.V_phi_optimizer, feed_dict=critic_feed_dictionary)
 
                 consol_print_learning_stats.epoch_training_stat(

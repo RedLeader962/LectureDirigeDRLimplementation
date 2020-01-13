@@ -90,7 +90,7 @@ class EpochMetricLogger:
         self.q1_values.append(q1_value)
         self.q2_values.append(q2_value)
         return None
-    
+
     def append_all_epoch_metric(self, critic_v_loss, critic_q1_loss, critic_q2_loss, actor_kl_loss,
                                 pi_log_likelihood, policy_pi, policy_mu,
                                 v_value, q1_value, q2_value) -> None:
@@ -98,6 +98,11 @@ class EpochMetricLogger:
         self.append_policy_metric(pi_log_likelihood, policy_pi, policy_mu)
         self.append_approximator_values(v_value, q1_value, q2_value)
         return None
+
+    def get_training_trj_metric(self):
+        self.mean_trjs_return
+        self.mean_trjs_lenght
+        raise NotImplementedError  # todo: implement
 
     @property
     def total_training_timestep_collected(self):
@@ -162,16 +167,14 @@ class EpochMetricLogger:
     @property
     def nb_trj_collected(self):
         return self._trj_collected
-    
+
     def new_epoch(self, epoch_id):
-        self.reset()
+        self._reset()
         self._epoch_id = epoch_id
-    
-    def reset(self):
-        self.trjs_return.clear()
-        self.trjs_lenght.clear()
-        self.agent_eval_trjs_return.clear()
-        self.agent_eval_trjs_lenght.clear()
+
+    def _reset(self):
+        self.clear_trj_metric()
+        self.clear_eval_trj_metric()
         self.v_loss.clear()
         self.q1_loss.clear()
         self.q2_loss.clear()
@@ -185,3 +188,17 @@ class EpochMetricLogger:
         self._epoch_id = None
         self._trj_collected = 0
         self._eval_trj_collected = 0
+
+    def clear_eval_trj_metric(self):
+        self.agent_eval_trjs_return.clear()
+        self.agent_eval_trjs_lenght.clear()
+
+    def clear_trj_metric(self):
+        self.trjs_return.clear()
+        self.trjs_lenght.clear()
+
+    def is_empty(self):
+        if self.nb_trj_collected == 0:
+            return True
+        else:
+            return False

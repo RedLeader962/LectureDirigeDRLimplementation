@@ -20,7 +20,7 @@ class ExperimentSpec:
     def __init__(self, algo_name=None, comment=None, batch_size_in_ts=5000, max_epoch=2, discout_factor=0.99,
                  learning_rate=1e-2, theta_nn_hidden_layer_topology: tuple = (32, 32), random_seed=0,
                  discounted_reward_to_go=True, environment_name='CartPole-v1', expected_reward_goal=None,
-                 print_metric_every_what_epoch=5, isTestRun=False, show_plot=False):
+                 print_metric_every_what_epoch=5, isTestRun=False, show_plot=False, log_metric_interval=100):
         """
         Gather the specification for a experiement regarding NN and algo training hparam plus some environment detail
         
@@ -32,33 +32,33 @@ class ExperimentSpec:
         """
         # todo: add a param for the neural net configuration via a dict fed as a argument
         # (nice to have) todo:implement --> set_experiment_spec_JSON (taking json as argument):
-
+    
         self.algo_name = algo_name
         self.comment = comment
         self.paramameter_set_name = 'default'
         self.rerun_tag = None
         self.rerun_idx = 0
-
+    
         self.isTestRun = isTestRun
         self.prefered_environment = environment_name
         self.expected_reward_goal = expected_reward_goal
         self.show_plot = show_plot
-
+    
         self.batch_size_in_ts = batch_size_in_ts
         self.max_epoch = max_epoch
         self.discout_factor: float = discout_factor
         self.learning_rate = learning_rate
         self.discounted_reward_to_go = discounted_reward_to_go
-
+    
         self.theta_nn_h_layer_topo = theta_nn_hidden_layer_topology
         self.random_seed = random_seed
         self.theta_hidden_layers_activation: tf.Tensor = tf.nn.tanh
         self.theta_output_layers_activation: tf.Tensor = None
-
+    
         self.render_env_every_What_epoch = 100
-        self.log_every_step = 1000
+        self.log_metric_interval = log_metric_interval
         self.print_metric_every_what_epoch = print_metric_every_what_epoch
-
+    
         self._assert_param()
     
     def _assert_param(self):
@@ -361,7 +361,7 @@ def build_KERAS_MLP_computation_graph(input_placeholder: tf.Tensor, output_dim, 
 
     with tf_cv1.variable_scope(name_or_scope=name, reuse=reuse):
         h_layer = input_placeholder
-    
+
         # # (!) the kernel_initializer random initializer choice make a big difference on the learning performance
         kernel_init = tf_cv1.initializers.he_normal
         # kernel_init = None
@@ -417,8 +417,8 @@ def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground, obs_sh
     :rtype: (tf.Tensor, tf.Tensor, tf.Tensor)
     """
     assert isinstance(playground, GymPlayground), "\n\n>>> Expected a builded GymPlayground.\n\n"
-    
-    obs_ph = build_observation_placeholder(playground, obs_ph_name, obs_shape_constraint)
+
+    obs_ph = build_observation_placeholder(playground, obs_shape_constraint, obs_ph_name)
     
     act_ph = build_action_placeholder(playground, action_shape_constraint)
     
@@ -432,30 +432,32 @@ def gym_playground_to_tensorflow_graph_adapter(playground: GymPlayground, obs_sh
     return obs_ph, act_ph, Q_values_ph
 
 
-def build_action_placeholder(playground, action_shape_constraint: tuple = None, act_ph_name: str = vocab.act_ph):
+def build_action_placeholder(playground: GymPlayground, action_shape_constraint: tuple = None,
+                             name: str = vocab.act_ph):
     assert isinstance(playground, GymPlayground), "\n\n>>> Expected a builded GymPlayground.\n\n"
     
     if isinstance(playground.env.action_space, gym.spaces.Box):
         """action space is continuous"""
-        act_ph = continuous_space_placeholder(playground.ACTION_SPACE, action_shape_constraint, name=act_ph_name)
+        act_ph = continuous_space_placeholder(playground.ACTION_SPACE, action_shape_constraint, name=name)
     elif isinstance(playground.env.action_space, gym.spaces.Discrete):
         """action space is discrete"""
-        act_ph = discrete_space_placeholder(playground.ACTION_SPACE, action_shape_constraint, name=act_ph_name)
+        act_ph = discrete_space_placeholder(playground.ACTION_SPACE, action_shape_constraint, name=name)
     else:
         raise NotImplementedError
     return act_ph
 
 
-def build_observation_placeholder(playground, obs_ph_name: str = vocab.obs_ph, obs_shape_constraint: tuple = None):
+def build_observation_placeholder(playground: GymPlayground, obs_shape_constraint: tuple = None,
+                                  name: str = vocab.obs_ph):
     assert isinstance(playground, GymPlayground), "\n\n>>> Expected a builded GymPlayground.\n\n"
     
     if isinstance(playground.env.observation_space, gym.spaces.Box):
         """observation space is continuous"""
-        obs_ph = continuous_space_placeholder(playground.OBSERVATION_SPACE, obs_shape_constraint, name=obs_ph_name)
+        obs_ph = continuous_space_placeholder(playground.OBSERVATION_SPACE, obs_shape_constraint, name=name)
     elif isinstance(playground.env.action_space, gym.spaces.Discrete):
         """observation space is discrete"""
         obs_ph = discrete_space_placeholder(playground.OBSERVATION_SPACE, obs_shape_constraint, dtype=tf_cv1.float32,
-                                            name=obs_ph_name)
+                                            name=name)
     else:
         raise NotImplementedError
     return obs_ph

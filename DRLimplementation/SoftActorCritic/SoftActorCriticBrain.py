@@ -58,7 +58,7 @@ def apply_action_bound(policy_pi: tf.Tensor, policy_pi_log_likelihood: tf.Tensor
     :param policy_pi_log_likelihood:
     :return: squashed_policy_pi, squashed_policy_pi_log_likelihood
     """
-    with tf_cv1.variable_scope(vocab.squashing_fct):
+    with tf_cv1.variable_scope(vocab.squashing_fct, reuse=True):
         # (nice to have) todo:implement --> a numericaly stable version : see p8 HW5c Sergey Levine DRL course
         squashed_policy_pi = tf_cv1.tanh(policy_pi)
         num_corr = tf_cv1.reduce_sum(tf_cv1.log(1 - squashed_policy_pi ** 2 + NUM_STABILITY_CORRECTION),
@@ -144,7 +144,8 @@ def build_gaussian_policy_graph(obs_t_ph: tf.Tensor, exp_spec: ExperimentSpec,
     
         """ ---- Build the policy for continuous space ---- """
         policy_distribution = tfp.distributions.MultivariateNormalDiag(loc=policy_mu,
-                                                                       scale_diag=tf_cv1.exp(policy_log_std))
+                                                                       scale_diag=tf_cv1.exp(policy_log_std),
+                                                                       allow_nan_stats=False)
         policy_pi = policy_distribution.sample(name=vocab.policy_pi)
         policy_pi_log_likelihood = policy_distribution.log_prob(policy_pi,
                                                                 name=vocab.policy_pi_log_likelihood)
@@ -248,10 +249,15 @@ def actor_train(policy_pi_log_likelihood: tf.Tensor, q_theta_1: tf.Tensor, q_the
 
     # with tf_cv1.variable_scope(vocab.policy_training):
 
-    min_q_theta = tf_cv1.minimum(q_theta_1, q_theta_2)
+    # min_q_theta = tf_cv1.minimum(q_theta_1, q_theta_2)
+    #
+    # """ ---- Build the Kullback-Leibler divergence loss function ---- """
+    # actor_kl_loss = tf_cv1.reduce_mean(alpha * policy_pi_log_likelihood - min_q_theta,
+    #                                    name=vocab.actor_kl_loss)
+    #
 
     """ ---- Build the Kullback-Leibler divergence loss function ---- """
-    actor_kl_loss = tf_cv1.reduce_mean(alpha * policy_pi_log_likelihood - min_q_theta,
+    actor_kl_loss = tf_cv1.reduce_mean(alpha * policy_pi_log_likelihood - q_theta_1,
                                        name=vocab.actor_kl_loss)
 
     """ ---- Actor optimizer & learning rate scheduler ---- """
@@ -268,7 +274,7 @@ def actor_train(policy_pi_log_likelihood: tf.Tensor, q_theta_1: tf.Tensor, q_the
     return actor_kl_loss, actor_policy_optimizer_op
 
 
-def critic_v_psi_train(v_psi: tf.Tensor, frozen_v_psi: tf.Tensor, q_theta_1: tf.Tensor, q_theta_2: tf.Tensor,
+def critic_v_psi_train(v_psi: tf.Tensor, q_theta_1: tf.Tensor, q_theta_2: tf.Tensor,
                        policy_pi_log_likelihood: tf.Tensor, exp_spec: ExperimentSpec, critic_lr_schedule,
                        critic_global_grad_step) -> Tuple[tf.Tensor, tf.Operation, tf.Operation]:
     """
@@ -276,24 +282,22 @@ def critic_v_psi_train(v_psi: tf.Tensor, frozen_v_psi: tf.Tensor, q_theta_1: tf.
                 input:
                 output: the Mean Squared Error (MSE)
 
-    :param critic_lr_schedule:
-    :param critic_global_grad_step:
     :return: v_loss, v_psi_optimizer, frozen_v_psi_update_ops
     """
     alpha = exp_spec['alpha']
     tau = exp_spec['target_smoothing_coefficient']
-
+    
     # with tf_cv1.variable_scope(vocab.critic_training):
     # with tf_cv1.variable_scope(vocab.critic_loss):
-
-    min_q_theta = tf_cv1.minimum(q_theta_1, q_theta_2)
-
-    v_psi_target = tf_cv1.stop_gradient(min_q_theta - alpha * policy_pi_log_likelihood)
-
-    """ ---- Build the Mean Square Error loss function ---- """
-    with tf_cv1.variable_scope(vocab.V_psi_loss):
-        v_loss = 1 / 2 * tf.reduce_mean((v_psi - v_psi_target) ** 2)
     
+    """ ---- Build the Mean Square Error loss function ---- """
+    with tf_cv1.variable_scope(vocab.V_psi_loss, reuse=True):
+        min_q_theta = tf_cv1.minimum(q_theta_1, q_theta_2)
+        
+        v_psi_target = tf_cv1.stop_gradient(min_q_theta - alpha * policy_pi_log_likelihood)
+        
+        v_loss = 0.5 * tf.reduce_mean((v_psi - v_psi_target) ** 2)
+        
         """ ---- Critic optimizer & learning rate scheduler ---- """
         # critic_lr_schedule, critic_global_grad_step = critic_learning_rate_scheduler(exp_spec)
         
@@ -302,22 +306,23 @@ def critic_v_psi_train(v_psi: tf.Tensor, frozen_v_psi: tf.Tensor, q_theta_1: tf.
                                                                 global_step=critic_global_grad_step)
     
     # (nice to have) todo:investigate?? --> find a other way to pass the network weight between the V and frozen_V:
-    with tf_cv1.variable_scope(vocab.frozen_V_psi_update_ops):
-        """ ---- Fetch all tensor from V_psi and frozen_V_psi for update ---- """
-        frozen_v_psi_update_ops = _update_frozen_v_psi(tau)
-
+    
+    """ ---- Fetch all tensor from V_psi and frozen_V_psi for update ---- """
+    frozen_v_psi_update_ops = _update_frozen_v_psi(tau)
+    
     return v_loss, v_psi_optimizer, frozen_v_psi_update_ops
 
 
-def _update_frozen_v_psi(tau):
+def _update_frozen_v_psi(tau: float):
     """
     Utility function: fetch all V_psi & frozen_V_psi graph key and update frozen_V_psi network
     :param tau: target_smoothing_coefficient
     :return: the update op
     """
-    v_psi_graph_key = get_variables_graph_key(vocab.V_psi)
-    frozen_v_psi_graph_key = get_variables_graph_key(vocab.frozen_V_psi)
-    frozen_v_psi_update_ops = update_nn_weights(v_psi_graph_key, frozen_v_psi_graph_key, tau)
+    with tf_cv1.variable_scope(vocab.frozen_V_psi_update_ops, reuse=True):
+        v_psi_graph_key = get_variables_graph_key(vocab.V_psi)
+        frozen_v_psi_graph_key = get_variables_graph_key(vocab.frozen_V_psi)
+        frozen_v_psi_update_ops = update_nn_weights(v_psi_graph_key, frozen_v_psi_graph_key, tau)
     return frozen_v_psi_update_ops
 
 
@@ -342,25 +347,25 @@ def critic_q_theta_train(frozen_v_psi: tf.Tensor, q_theta_1: tf.Tensor, q_theta_
     # q_target = tf_cv1.stop_gradient(
     #     exp_spec['reward_scaling'] * rew_ph + (1 - trj_done_ph) * exp_spec.discout_factor * tf_cv1.squeeze(
     #         frozen_v_psi))
-    
+
     q_target = tf_cv1.stop_gradient(
         exp_spec['reward_scaling'] * rew_ph + (1 - trj_done_ph) * exp_spec.discout_factor * frozen_v_psi)
     # ........................................................................................... investigate ...(
     # end)...
-    
+
     """ ---- Build the Mean Square Error loss function ---- """
     # with tf_cv1.variable_scope(vocab.critic_loss):
-    with tf_cv1.variable_scope(vocab.Q_theta_1_loss):
-        q_theta_1_loss = 1 / 2 * tf.reduce_mean((tf_cv1.squeeze(q_theta_1) - q_target) ** 2)
-    
-    with tf_cv1.variable_scope(vocab.Q_theta_2_loss):
-        q_theta_2_loss = 1 / 2 * tf.reduce_mean((tf_cv1.squeeze(q_theta_2) - q_target) ** 2)
-    
+    with tf_cv1.variable_scope(vocab.Q_theta_1_loss, reuse=True):
+        q_theta_1_loss = 0.5 * tf.reduce_mean((q_target - tf_cv1.squeeze(q_theta_1)) ** 2)
+
+    with tf_cv1.variable_scope(vocab.Q_theta_2_loss, reuse=True):
+        q_theta_2_loss = 0.5 * tf.reduce_mean((q_target - tf_cv1.squeeze(q_theta_2)) ** 2)
+
     """ ---- Critic optimizer & learning rate scheduler ---- """
     q_theta_1_optimizer = tf_cv1.train.AdamOptimizer(learning_rate=critic_lr_schedule
                                                      ).minimize(q_theta_1_loss,
                                                                 global_step=critic_global_grad_step)
-    
+
     q_theta_2_optimizer = tf_cv1.train.AdamOptimizer(learning_rate=critic_lr_schedule
                                                      ).minimize(q_theta_2_loss,
                                                                 global_step=critic_global_grad_step)

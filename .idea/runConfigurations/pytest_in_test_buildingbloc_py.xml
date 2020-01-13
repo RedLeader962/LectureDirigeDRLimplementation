@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="pytest in test_buildingbloc.py" type="tests" factoryName="py.test" activateToolWindowBeforeRun="false" nameIsGenerated="true">
+  <configuration default="false" name="pytest in test_buildingbloc.py" type="tests" factoryName="py.test" activateToolWindowBeforeRun="false" singleton="false" nameIsGenerated="true">
     <module name="LectureDirigeDRLimplementation" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
