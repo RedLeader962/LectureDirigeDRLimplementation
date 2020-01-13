@@ -64,7 +64,7 @@ class SoftActorCriticAgent(Agent):
         self._set_random_seed()
     
         """ ---- Adjust return threshold for model saving ---- """
-        self.exp_spec.expected_reward_goal *= self.experiment_counter['reward_scaling']
+        self.exp_spec.expected_reward_goal *= self.exp_spec['reward_scaling']
     
         """ ---- Placeholder ---- """
         self.obs_t_ph = bloc.build_observation_placeholder(self.playground, name=vocab.obs_t_ph)
