@@ -293,23 +293,23 @@ def critic_v_psi_train(v_psi: tf.Tensor, q_theta_1: tf.Tensor, q_theta_2: tf.Ten
     """ ---- Build the Mean Square Error loss function ---- """
     with tf_cv1.variable_scope(vocab.V_psi_loss, reuse=True):
         min_q_theta = tf_cv1.minimum(q_theta_1, q_theta_2)
-        
+    
         v_psi_target = tf_cv1.stop_gradient(min_q_theta - alpha * policy_pi_log_likelihood)
-        
+    
         v_loss = 0.5 * tf.reduce_mean((v_psi - v_psi_target) ** 2)
-        
+    
         """ ---- Critic optimizer & learning rate scheduler ---- """
         # critic_lr_schedule, critic_global_grad_step = critic_learning_rate_scheduler(exp_spec)
-        
-        v_psi_optimizer = tf_cv1.train.AdamOptimizer(learning_rate=critic_lr_schedule
-                                                     ).minimize(v_loss,
-                                                                global_step=critic_global_grad_step)
-    
+
+    v_psi_optimizer = tf_cv1.train.AdamOptimizer(learning_rate=critic_lr_schedule
+                                                 ).minimize(v_loss,
+                                                            global_step=critic_global_grad_step)
+
     # (nice to have) todo:investigate?? --> find a other way to pass the network weight between the V and frozen_V:
-    
+
     """ ---- Fetch all tensor from V_psi and frozen_V_psi for update ---- """
     frozen_v_psi_update_ops = _update_frozen_v_psi(tau)
-    
+
     return v_loss, v_psi_optimizer, frozen_v_psi_update_ops
 
 

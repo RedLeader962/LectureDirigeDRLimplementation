@@ -91,9 +91,9 @@ class SoftActorCriticAgent(Agent):
     
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         # /// Actor & Critic Training ops //////////////////////////////////////////////////////////////////////////////
-        with tf_cv1.variable_scope(vocab.critic_training, reuse=True):
+        with tf_cv1.variable_scope(vocab.critic_training, reuse=tf_cv1.AUTO_REUSE):
             critic_lr_schedule, critic_global_grad_step = critic_learning_rate_scheduler(self.exp_spec)
-        
+    
             self.V_psi_loss, self.V_psi_optimizer, self.V_psi_frozen_update_ops = critic_v_psi_train(self.V_psi,
                                                                                                      self.Q_theta_1,
                                                                                                      self.Q_theta_2,
@@ -110,8 +110,8 @@ class SoftActorCriticAgent(Agent):
                                                      critic_lr_schedule, critic_global_grad_step)
     
         self.q_theta_1_loss, self.q_theta_2_loss, self.q_theta_1_optimizer, self.q_theta_2_optimizer = q_theta_train_ops
-    
-        with tf_cv1.variable_scope(vocab.policy_training, reuse=True):
+
+        with tf_cv1.variable_scope(vocab.policy_training, reuse=tf_cv1.AUTO_REUSE):
             self.actor_kl_loss, self.actor_policy_optimizer_op = actor_train(self.pi_log_likelihood,
                                                                              self.Q_theta_1, self.Q_theta_2,
                                                                              self.exp_spec)

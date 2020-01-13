@@ -163,7 +163,7 @@ SAC_MountainCar_hparam = {
     
     'pool_capacity':                  int(1e6),  # SAC paper: 1e6
     'min_pool_size':                  10000,
-    'batch_size_in_ts':               200,  # SAC paper:256, SpinningUp:100
+    'batch_size_in_ts':               100,  # SAC paper:256, SpinningUp:100
     
     'theta_nn_h_layer_topo':          (62, 62),  # SAC paper:(256, 256), SpinningUp:(400, 300)
     'theta_hidden_layers_activation': tf.nn.relu,
