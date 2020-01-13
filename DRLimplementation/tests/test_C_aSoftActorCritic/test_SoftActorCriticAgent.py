@@ -69,8 +69,9 @@ def gym_and_tf_continuous_montain_car_setup():
     :return: obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground
     """
     exp_spec = bloc.ExperimentSpec()
-    unit_test_hparam['prefered_environment'] = 'MountainCarContinuous-v0'
-    exp_spec.set_experiment_spec(unit_test_hparam)
+    unit_test_MontainCar_hparam = dict(unit_test_hparam)
+    unit_test_MontainCar_hparam.update({'prefered_environment': 'MountainCarContinuous-v0'})
+    exp_spec.set_experiment_spec(unit_test_MontainCar_hparam)
     
     yield exp_spec
     tf_cv1.reset_default_graph()
@@ -82,8 +83,9 @@ def gym_and_tf_continuous_pendulum_setup():
     :return: obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground
     """
     exp_spec = bloc.ExperimentSpec()
-    unit_test_hparam['prefered_environment'] = 'Pendulum-v0'
-    exp_spec.set_experiment_spec(unit_test_hparam)
+    unit_test_Pendulum_hparam = dict(unit_test_hparam)
+    unit_test_Pendulum_hparam.update({'prefered_environment': 'Pendulum-v0'})
+    exp_spec.set_experiment_spec(unit_test_Pendulum_hparam)
     
     yield exp_spec
     tf_cv1.reset_default_graph()

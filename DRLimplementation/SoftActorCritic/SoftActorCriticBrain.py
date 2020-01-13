@@ -356,10 +356,10 @@ def critic_q_theta_train(frozen_v_psi: tf.Tensor, q_theta_1: tf.Tensor, q_theta_
     """ ---- Build the Mean Square Error loss function ---- """
     # with tf_cv1.variable_scope(vocab.critic_loss):
     with tf_cv1.variable_scope(vocab.Q_theta_1_loss, reuse=True):
-        q_theta_1_loss = 0.5 * tf.reduce_mean((q_target - tf_cv1.squeeze(q_theta_1)) ** 2)
+        q_theta_1_loss = 0.5 * tf.reduce_mean((q_target - q_theta_1) ** 2)
 
     with tf_cv1.variable_scope(vocab.Q_theta_2_loss, reuse=True):
-        q_theta_2_loss = 0.5 * tf.reduce_mean((q_target - tf_cv1.squeeze(q_theta_2)) ** 2)
+        q_theta_2_loss = 0.5 * tf.reduce_mean((q_target - q_theta_2) ** 2)
 
     """ ---- Critic optimizer & learning rate scheduler ---- """
     q_theta_1_optimizer = tf_cv1.train.AdamOptimizer(learning_rate=critic_lr_schedule

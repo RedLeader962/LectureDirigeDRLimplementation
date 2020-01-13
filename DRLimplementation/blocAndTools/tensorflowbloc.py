@@ -59,7 +59,14 @@ def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
     """
     Build a feed dictionary ready to use in a TensorFlow run session.
 
-    It map TF placeholder to corresponding array of values so be advise, order is important.
+    output ex:
+        '''
+            {
+                self.Summary_trj_return_ph: trj_return,
+                self.Summary_trj_lenght_ph: trj_len
+                }
+        '''
+    (!) It map TF placeholder to corresponding array of values so be advise, order is important.
 
     :param placeholders: a list of tensorflow placeholder
     :type placeholders: [tf.Tensor, ...]

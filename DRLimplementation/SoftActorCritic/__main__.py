@@ -122,6 +122,54 @@ from blocAndTools.experiment_runner import (
 
 """
 
+SAC_base_hparam = {
+    'rerun_tag':                      '',
+    'paramameter_set_name':           'SAC',
+    'comment':                        '',
+    'algo_name':                      'Soft Actor Critic',
+    'AgentType':                      SoftActorCriticAgent,
+    'prefered_environment':           '',
+    
+    'expected_reward_goal':           90,  # Note: trigger model save on reach
+    'max_epoch':                      50,
+    'timestep_per_epoch':             5000,
+    
+    'reward_scaling':                 5.0,  # the only hparam requiring tuning
+    
+    'discout_factor':                 0.99,  # SAC paper: 0.99
+    'learning_rate':                  0.003,  # SAC paper: 30e-4
+    'critic_learning_rate':           0.003,  # SAC paper: 30e-4
+    'max_gradient_step_expected':     250000,
+    'actor_lr_decay_rate':            1.0,  # Note: set to 1.0 to swith OFF scheduler
+    'critic_lr_decay_rate':           1.0,  # Note: set to 1.0 to swith OFF scheduler
+    
+    'target_smoothing_coefficient':   0.005,  # SAC paper: EXPONENTIAL MOVING AVERAGE ~ 0.005, 1 <==> HARD TARGET update
+    'target_update_interval':         1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
+    'gradient_step_interval':         1,
+    
+    'alpha':                          1,  # HW5: we recover a standard max expected return objective as alpha --> 0
+    'max_eval_trj':                   10,  #SpiningUp: 10
+    
+    'pool_capacity':                  int(1e6),  # SAC paper & SpinningUp: 1e6
+    'min_pool_size':                  2000,
+    'batch_size_in_ts':               100,  # SAC paper:256, SpinningUp:100
+    
+    'theta_nn_h_layer_topo':          (200, 200),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+    'theta_hidden_layers_activation': tf.nn.relu,
+    'theta_output_layers_activation': None,
+    'phi_nn_h_layer_topo':            (200, 200),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+    'phi_hidden_layers_activation':   tf.nn.relu,
+    'phi_output_layers_activation':   None,
+    'psi_nn_h_layer_topo':            (200, 200),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+    'psi_hidden_layers_activation':   tf.nn.relu,
+    'psi_output_layers_activation':   None,
+    
+    'render_env_every_What_epoch':    5,
+    'render_env_eval_interval':       5,
+    'print_metric_every_what_epoch':  5,
+    'note':                           ''
+    }
+
 # 'MountainCarContinuous-v0'
 # - action_space:  Box(1,)
 #    - high: [1.]
@@ -142,7 +190,7 @@ SAC_MountainCar_hparam = {
     'prefered_environment':           'MountainCarContinuous-v0',
     
     'expected_reward_goal':           90,  # Note: trigger model save on reach
-    'max_epoch':                      1000,
+    'max_epoch':                      50,
     'timestep_per_epoch':             5000,
     
     'reward_scaling':                 [3.0, 6.0, 12.0, 24.0, 48.0],
@@ -154,24 +202,24 @@ SAC_MountainCar_hparam = {
     'actor_lr_decay_rate':            1.0,  # Note: set to 1.0 to swith OFF scheduler
     'critic_lr_decay_rate':           1.0,  # Note: set to 1.0 to swith OFF scheduler
     
-    'target_smoothing_coefficient':   0.01,  # SAC paper: EXPONENTIAL MOVING AVERAGE ~ 0.005, 1 <==> HARD TARGET update
-    'target_update_interval':         2,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
+    'target_smoothing_coefficient':   1.0,  # SAC paper: EXPONENTIAL MOVING AVERAGE ~ 0.005, 1 <==> HARD TARGET update
+    'target_update_interval':         1000,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
     'gradient_step_interval':         1,
     
     'alpha':                          1,  # HW5: we recover a standard max expected return objective as alpha --> 0
     'max_eval_trj':                   10,  #SpiningUp: 10
     
-    'pool_capacity':                  int(1e6),  # SAC paper: 1e6
-    'min_pool_size':                  10000,
+    'pool_capacity':                  int(1e6),  # SAC paper & SpinningUp: 1e6
+    'min_pool_size':                  800,
     'batch_size_in_ts':               100,  # SAC paper:256, SpinningUp:100
     
-    'theta_nn_h_layer_topo':          (62, 62),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+    'theta_nn_h_layer_topo':          (200, 200),  # SAC paper:(256, 256), SpinningUp:(400, 300)
     'theta_hidden_layers_activation': tf.nn.relu,
     'theta_output_layers_activation': None,
-    'phi_nn_h_layer_topo':            (62, 62),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+    'phi_nn_h_layer_topo':            (200, 200),  # SAC paper:(256, 256), SpinningUp:(400, 300)
     'phi_hidden_layers_activation':   tf.nn.relu,
     'phi_output_layers_activation':   None,
-    'psi_nn_h_layer_topo':            (62, 62),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+    'psi_nn_h_layer_topo':            (200, 200),  # SAC paper:(256, 256), SpinningUp:(400, 300)
     'psi_hidden_layers_activation':   tf.nn.relu,
     'psi_output_layers_activation':   None,
     
@@ -193,63 +241,17 @@ SAC_MountainCar_hparam = {
 #    - reward_threshold: None       #  The reward threshold before the task is considered solved
 #
 # Gym: https://gym.openai.com/envs/MountainCarContinuous-v0/
-SAC_Pendulum_hparam = {
-    'rerun_tag':                      'Pendulum',
-    'paramameter_set_name':           'SAC',
-    'comment':                        '',
-    'algo_name':                      'Soft Actor Critic',
-    'AgentType':                      SoftActorCriticAgent,
-    'prefered_environment':           'Pendulum-v0',
-    
-    'expected_reward_goal':           90,  # Note: trigger model save on reach
-    'max_epoch':                      100,
-    'timestep_per_epoch':             2000,
-    
-    'reward_scaling':                 3.0,
-    
-    'discout_factor':                 0.99,  # SAC paper: 0.99
-    'learning_rate':                  0.03,  # SAC paper: 30e-4
-    'critic_learning_rate':           0.03,  # SAC paper: 30e-4
-    'max_gradient_step_expected':     200000,
-    'actor_lr_decay_rate':            1.0,  # Note: set to 1.0 to swith OFF scheduler
-    'critic_lr_decay_rate':           1.0,  # Note: set to 1.0 to swith OFF scheduler
-    
-    'target_smoothing_coefficient':   0.005,  # SAC paper: EXPONENTIAL MOVING AVERAGE ~ 0.005, 1 <==> HARD TARGET update
-    'target_update_interval':         1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
-    'gradient_step_interval':         1,
-    
-    'alpha':                          1,  # HW5: we recover a standard max expected return objective as alpha --> 0
-    'max_eval_trj':                   10,  #SpiningUp: 10
-    
-    'pool_capacity':                  int(1e3),  # SAC paper: 1e6
-    'min_pool_size':                  2000,
-    'batch_size_in_ts':               [200, 100, 300],  # SAC paper:256, SpinningUp:100
-    
-    'theta_nn_h_layer_topo':          (32,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
-    'theta_hidden_layers_activation': tf.nn.relu,
-    'theta_output_layers_activation': None,
-    'phi_nn_h_layer_topo':            (32,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
-    'phi_hidden_layers_activation':   tf.nn.relu,
-    'phi_output_layers_activation':   None,
-    'psi_nn_h_layer_topo':            (32,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
-    'psi_hidden_layers_activation':   tf.nn.relu,
-    'psi_output_layers_activation':   None,
-    
-    'render_env_every_What_epoch':    2,
-    'print_metric_every_what_epoch':  5,
-    'note':                           ''
-    }
-
-SAC_Pendulum_hparam_TEST_RERUN = dict(SAC_Pendulum_hparam)
-# SAC_Pendulum_hparam_TEST_RERUN['max_epoch'] = 2
-# SAC_Pendulum_hparam_TEST_RERUN['timestep_per_epoch'] = 200
-# SAC_Pendulum_hparam_TEST_RERUN['min_pool_size'] = 100
-
-SAC_Pendulum_hparam_TEST_RERUN.update(
+SAC_Pendulum_hparam = dict(SAC_base_hparam)
+SAC_Pendulum_hparam.update(
     {
-        'max_epoch':          2,
-        'timestep_per_epoch': 200,
-        'min_pool_size':      100,
+        'rerun_tag':                   'Pendulum',
+        'comment':                     '',
+        'prefered_environment':        'Pendulum-v0',
+        'expected_reward_goal':        -130,
+        'reward_scaling':              [5.0, 10.0, 20.0],
+        'render_env_every_What_epoch': 1,
+        'render_env_eval_interval':    5,
+        'note':                        ''
         }
     )
 
@@ -277,65 +279,54 @@ SAC_Pendulum_hparam_TEST_RERUN.update(
 # Engine can't work with less than 50% power. S
 # econd value -1.0..-0.5 fire left engine, +0.5..+1.0 fire right engine, -0.5..0.5 off.
 # source: https://gym.openai.com/envs/LunarLanderContinuous-v2/
-# todo --> training:
-SAC_LunarLander_hparam = {
-    'rerun_tag':            'MonCar',
-    'paramameter_set_name': 'SAC',
-    'comment':              '',
-    'algo_name':            'Soft Actor Critic',
-    'AgentType':            SoftActorCriticAgent,
-    'prefered_environment': 'LunarLanderContinuous-v2',
-    }
+SAC_LunarLander_hparam = dict(SAC_base_hparam)
+SAC_LunarLander_hparam.update(
+    {
+        'rerun_tag':            'LunarLander',
+        'comment':              '',
+        'prefered_environment': 'LunarLanderContinuous-v2',
+        'expected_reward_goal': 190,  # goal: 200
+        'reward_scaling':       3.0,
+        'note':                 ''
+        }
+    )
 
-test_hparam = {
-    'rerun_tag':                      'TEST-RUN',
-    'paramameter_set_name':           'SAC',
-    'comment':                        'TestSpec',  # Comment added to training folder name (can be empty)
-    'algo_name':                      'Soft Actor Critic',
-    'AgentType':                      SoftActorCriticAgent,
-    'prefered_environment':           'MountainCarContinuous-v0',
-    
-    'expected_reward_goal':           90,  # Note: trigger model save on reach
-    'max_epoch':                      10,
-    'timestep_per_epoch':             500,
-    
-    'reward_scaling':                 3.0,
-    
-    'discout_factor':                 0.99,  # SAC paper: 0.99
-    'learning_rate':                  0.003,  # SAC paper: 30e-4
-    'critic_learning_rate':           0.003,  # SAC paper: 30e-4
-    'max_gradient_step_expected':     500000,
-    'actor_lr_decay_rate':            1.0,  # Note: set to 1.0 to swith OFF scheduler
-    'critic_lr_decay_rate':           1.0,  # Note: set to 1.0 to swith OFF scheduler
-    
-    'target_smoothing_coefficient':   0.005,  # SAC paper: EXPONENTIAL MOVING AVERAGE ~ 0.005, 1 <==> HARD TARGET update
-    'target_update_interval':         1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
-    'gradient_step_interval':         1,
-    
-    'alpha':                          1,  # HW5: we recover a standard max expected return objective as alpha --> 0
-    'max_eval_trj':                   10,  #SpiningUp: 10
-    
-    'pool_capacity':                  int(1e6),  # SAC paper: 1e6
-    'min_pool_size':                  100,
-    'batch_size_in_ts':               100,  # SAC paper:256, SpinningUp:100
-    
-    'theta_nn_h_layer_topo':          (4, 4),  # SAC paper:(256, 256), SpinningUp:(400, 300)
-    'theta_hidden_layers_activation': tf.nn.relu,
-    'theta_output_layers_activation': None,
-    'phi_nn_h_layer_topo':            (4, 4),  # SAC paper:(256, 256), SpinningUp:(400, 300)
-    'phi_hidden_layers_activation':   tf.nn.relu,
-    'phi_output_layers_activation':   None,
-    'psi_nn_h_layer_topo':            (4, 4),  # SAC paper:(256, 256), SpinningUp:(400, 300)
-    'psi_hidden_layers_activation':   tf.nn.relu,
-    'psi_output_layers_activation':   None,
-    
-    'render_env_every_What_epoch':    5,
-    'print_metric_every_what_epoch':  5,
-    'random_seed':                    0,  # Note: 0 --> turned OFF (default)
-    'isTestRun':                      True,
-    'show_plot':                      False,
-    'note':                           'My note ...'
-    }
+# ... Test hparam ......................................................................................................
+test_hparam = dict(SAC_base_hparam)
+test_hparam.update(
+    {
+        'rerun_tag':             'TEST-RUN',
+        'comment':               'TestSpec',
+        'prefered_environment':  'Pendulum-v0',
+        
+        'max_epoch':             10,
+        'timestep_per_epoch':    500,
+        
+        'expected_reward_goal':  -130,  # goal: 200
+        'reward_scaling':        3.0,
+        
+        'pool_capacity':         int(1e6),  # SAC paper: 1e6
+        'min_pool_size':         100,
+        'batch_size_in_ts':      100,  # SAC paper:256, SpinningUp:100
+        
+        'theta_nn_h_layer_topo': (4, 4),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+        'phi_nn_h_layer_topo':   (4, 4),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+        'psi_nn_h_layer_topo':   (4, 4),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+        'isTestRun':             True,
+        'show_plot':             False,
+        }
+    )
+
+SAC_Pendulum_hparam_TEST_RERUN = dict(SAC_Pendulum_hparam)
+SAC_Pendulum_hparam_TEST_RERUN.update(
+    {
+        'max_epoch':          2,
+        'timestep_per_epoch': 200,
+        'min_pool_size':      100,
+        }
+    )
+# .............................................................................................. Test hparam ...(end)...
+
 
 parser = argparse.ArgumentParser(description=(
     "=============================================================================\n"
@@ -462,7 +453,6 @@ else:
             SAC_Pendulum_hparam_TEST_RERUN, args, test_hparam, rerun_nb=args.rerun)
 
     elif args.trainLunarLander:
-        raise NotImplementedError  # todo: implement
         """ ---- Harder environment [--trainLunarLander] ---- """
         hparam, key, values_search_set = run_experiment(
             SAC_LunarLander_hparam, args, test_hparam, rerun_nb=args.rerun)
