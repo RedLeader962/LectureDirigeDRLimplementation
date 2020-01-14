@@ -285,6 +285,7 @@ def actor_train(policy_pi_log_likelihood: tf.Tensor, q_theta_1: tf.Tensor, q_the
         name_sufix='actor')
 
     var_list = get_explicitely_graph_key_from(vocab.actor_network)
+    assert len(var_list) is not 0
     actor_policy_optimizer_op = tf_cv1.train.AdamOptimizer(learning_rate=actor_lr_schedule
                                                            ).minimize(loss=actor_kl_loss,
                                                                       var_list=var_list,
@@ -321,6 +322,7 @@ def critic_v_psi_train(v_psi: tf.Tensor, q_theta_1: tf.Tensor, q_theta_2: tf.Ten
         # critic_lr_schedule, critic_global_grad_step = critic_learning_rate_scheduler(exp_spec)
     
     var_list = get_explicitely_graph_key_from(vocab.critic_network + '/' + vocab.V_psi)
+    assert len(var_list) is not 0
     v_psi_optimizer = tf_cv1.train.AdamOptimizer(learning_rate=critic_lr_schedule
                                                  ).minimize(loss=v_loss,
                                                             var_list=var_list,
@@ -341,9 +343,7 @@ def update_frozen_v_psi_op(tau: float) -> tf.Operation:
     :return: the update op
     """
     with tf_cv1.variable_scope(vocab.frozen_V_psi_update_ops, reuse=True):
-        v_psi_graph_key = get_explicitely_graph_key_from(vocab.critic_network + '/' + vocab.V_psi)
-        frozen_v_psi_graph_key = get_explicitely_graph_key_from(vocab.critic_network + '/' + vocab.frozen_V_psi)
-        frozen_v_psi_update_ops = update_nn_weights(v_psi_graph_key, frozen_v_psi_graph_key, tau)
+        frozen_v_psi_update_ops = _update_frozen_v_psi_op(tau)
     return frozen_v_psi_update_ops
 
 
@@ -352,8 +352,22 @@ def init_frozen_v_psi() -> tf.Operation:
     Pass a exact copy of the weight of V_psi to frozen_V_psi
     :return: the cloning op
     """
-    init_frozen_V_psi_op = update_frozen_v_psi_op(1.0)
+    with tf_cv1.variable_scope(vocab.frozen_V_psi + '_init_ops', reuse=True):
+        init_frozen_V_psi_op = update_frozen_v_psi_op(1.0)
     return init_frozen_V_psi_op
+
+
+def _update_frozen_v_psi_op(tau):
+    """Construct the target update op
+    :param tau: target_smoothing_coefficient
+    :return: the update op
+    """
+    v_psi_graph_key = get_explicitely_graph_key_from(vocab.critic_network + '/' + vocab.V_psi)
+    frozen_v_psi_graph_key = get_explicitely_graph_key_from(vocab.critic_network + '/' + vocab.frozen_V_psi)
+    assert len(v_psi_graph_key) is not 0
+    assert len(frozen_v_psi_graph_key) is not 0
+    frozen_v_psi_update_ops = update_nn_weights(v_psi_graph_key, frozen_v_psi_graph_key, tau)
+    return frozen_v_psi_update_ops
 
 
 def critic_q_theta_train(frozen_v_psi: tf.Tensor, q_theta_1: tf.Tensor, q_theta_2: tf.Tensor, rew_ph: tf.Tensor,
@@ -394,6 +408,9 @@ def critic_q_theta_train(frozen_v_psi: tf.Tensor, q_theta_1: tf.Tensor, q_theta_
     """ ---- Critic optimizer & learning rate scheduler ---- """
     var_list_1 = get_explicitely_graph_key_from(vocab.critic_network + '/' + vocab.Q_theta_1)
     var_list_2 = get_explicitely_graph_key_from(vocab.critic_network + '/' + vocab.Q_theta_2)
+    
+    assert len(var_list_1) is not 0
+    assert len(var_list_2) is not 0
     
     # note: global_step=critic_global_grad_step is already control by 'critic_v_psi_train' AdamOptimizer
     q_theta_1_optimizer = tf_cv1.train.AdamOptimizer(learning_rate=critic_lr_schedule

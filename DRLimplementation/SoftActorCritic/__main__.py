@@ -74,6 +74,7 @@ from blocAndTools.experiment_runner import (
         'target_smoothing_coefficient': float       (tau, polyak update coeficient)
                                                      Control over the EXPONENTIAL MOVING AVERAGE
                                                      the SAC paper recommand ~ 0.005
+                                                     (SpiningUp = 0.995 with 'target_update_interval' = 1)
                                                     - Large tau can lead to instability, small cam make training slower
                                                     - tau=1 <--> HARD TARGET update
                                             
@@ -144,15 +145,16 @@ SAC_base_hparam = {
     'actor_lr_decay_rate':            1.0,  # Note: set to 1.0 to swith OFF scheduler
     'critic_lr_decay_rate':           1.0,  # Note: set to 1.0 to swith OFF scheduler
     
-    'target_smoothing_coefficient':   0.005,  # SAC paper: EXPONENTIAL MOVING AVERAGE ~ 0.005, 1 <==> HARD TARGET update
+    'target_smoothing_coefficient':   0.005,  # SAC paper: 0.005 (1 <==> HARD TARGET update), SpiningUp: 0.995,
     'target_update_interval':         1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
     'gradient_step_interval':         1,
     
-    'alpha':                          0.95,  # HW5: we recover a standard max expected return objective as alpha --> 0
+    # HW5: recover a standard max expected return objective as alpha --> 0, SpinningUp alpha=0.2
+    'alpha':                          0.95,
     'max_eval_trj':                   10,  #SpiningUp: 10
     
     'pool_capacity':                  int(1e6),  # SAC paper & SpinningUp: 1e6
-    'min_pool_size':                  4000,
+    'min_pool_size':                  5000,  # SpinningUp: 10000
     'batch_size_in_ts':               100,  # SAC paper:256, SpinningUp:100
     
     'theta_nn_h_layer_topo':          (200, 200),  # SAC paper:(256, 256), SpinningUp:(400, 300)
@@ -168,6 +170,7 @@ SAC_base_hparam = {
     'render_env_every_What_epoch':    5,
     'render_env_eval_interval':       5,
     'print_metric_every_what_epoch':  5,
+    'log_metric_interval':            500,
     'note':                           ''
     }
 
@@ -245,14 +248,35 @@ SAC_MountainCar_hparam = {
 SAC_Pendulum_hparam = dict(SAC_base_hparam)
 SAC_Pendulum_hparam.update(
     {
-        'rerun_tag':                   'Pendulum',
-        'comment':                     '',
-        'prefered_environment':        'Pendulum-v0',
-        'expected_reward_goal':        -130,
-        'reward_scaling':              [5.0, 10.0, 20.0],
-        'render_env_every_What_epoch': 1,
-        'render_env_eval_interval':    5,
-        'note':                        ''
+        'rerun_tag':                     'Pendulum',
+        'comment':                       '',
+        'prefered_environment':          'Pendulum-v0',
+        'expected_reward_goal':          160,
+        'max_epoch':                     100,
+        'timestep_per_epoch':            5000,
+        'max_gradient_step_expected':    250000,
+        'actor_lr_decay_rate':           1.0,  # Note: set to 1.0 to swith OFF scheduler
+        'critic_lr_decay_rate':          1.0,  # Note: set to 1.0 to swith OFF scheduler
+        'batch_size_in_ts':              100,  # SAC paper:256, SpinningUp:100
+        'learning_rate':                 0.003,  # SAC paper: 30e-4
+        'critic_learning_rate':          0.003,  # SAC paper: 30e-4
+        
+        # HW5: recover a standard max expected return objective as alpha --> 0, SpinningUp alpha=0.2
+        'alpha':                         0.2,
+        
+        'reward_scaling':                [2.0, -2.0, -5.0, -10.0],
+        
+        'target_smoothing_coefficient':  0.995,  # SAC paper: 0.005 (1 <==> HARD TARGET update), SpiningUp: 0.995,
+        'target_update_interval':        1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
+        
+        'pool_capacity':                 int(1e5),  # SAC paper & SpinningUp: 1e6
+        'min_pool_size':                 10000,  # SpinningUp: 10000
+        
+        'render_env_every_What_epoch':   1,
+        'render_env_eval_interval':      5,
+        'print_metric_every_what_epoch': 5,
+        'log_metric_interval':           500,
+        'note':                          ''
         }
     )
 
@@ -283,12 +307,16 @@ SAC_Pendulum_hparam.update(
 SAC_LunarLander_hparam = dict(SAC_base_hparam)
 SAC_LunarLander_hparam.update(
     {
-        'rerun_tag':            'LunarLander',
-        'comment':              '',
-        'prefered_environment': 'LunarLanderContinuous-v2',
-        'expected_reward_goal': 190,  # goal: 200
-        'reward_scaling':       3.0,
-        'note':                 ''
+        'rerun_tag':                     'LunarLander',
+        'comment':                       '',
+        'prefered_environment':          'LunarLanderContinuous-v2',
+        'expected_reward_goal':          190,  # goal: 200
+        'reward_scaling':                3.0,
+        'render_env_every_What_epoch':   1,
+        'render_env_eval_interval':      5,
+        'print_metric_every_what_epoch': 5,
+        'log_metric_interval':           500,
+        'note':                          ''
         }
     )
 
@@ -299,17 +327,17 @@ test_hparam.update(
         'rerun_tag':             'TEST-RUN',
         'comment':               'TestSpec',
         'prefered_environment':  'Pendulum-v0',
-        
+    
         'max_epoch':             3,
         'timestep_per_epoch':    220,
-        
+    
         'expected_reward_goal':  -130,  # goal: 200
         'reward_scaling':        3.0,
-        
+    
         'pool_capacity':         int(1e2),  # SAC paper: 1e6
-        'min_pool_size':         50,
+        'min_pool_size':         50,  # SpinningUp: 10000
         'batch_size_in_ts':      10,  # SAC paper:256, SpinningUp:100
-        
+    
         'theta_nn_h_layer_topo': (2, 2),  # SAC paper:(256, 256), SpinningUp:(400, 300)
         'phi_nn_h_layer_topo':   (2, 2),  # SAC paper:(256, 256), SpinningUp:(400, 300)
         'psi_nn_h_layer_topo':   (2, 2),  # SAC paper:(256, 256), SpinningUp:(400, 300)

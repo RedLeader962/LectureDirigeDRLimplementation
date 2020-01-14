@@ -20,7 +20,7 @@ class TimestepSample:
         self.act_t = np.zeros((1, playground.ACTION_CHOICES), dtype=np.float32)
         self.obs_t_prime = np.zeros((1, playground.OBSERVATION_DIM), dtype=np.float32)
         self.rew_t = 0.0
-        self.done_t = 0
+        self.done_t = 0.0
     
     def replace(self, obs_t: np.ndarray, act_t: np.ndarray, obs_t_prime: np.ndarray,
                 rew_t: float, done_t: int) -> None:
@@ -34,15 +34,6 @@ class TimestepSample:
         my_rep = data_container_class_representation(self, class_name='TimestepSample')
         return my_rep
 
-    # def __repr__(self):
-    #     myRep = "\n::TimestepSample/\n"
-    #     myRep += ".obs_t=\n{}\n\n".format(self.obs_t)
-    #     myRep += ".act_t=\n{}\n\n".format(self.act_t)
-    #     myRep += ".obs_t_prime=\n{}\n\n".format(self.obs_t_prime)
-    #     myRep += ".rew_t=\n{}\n\n".format(self.rew_t)
-    #     myRep += ".done_t=\n{}\n\n".format(self.done_t)
-    #     return myRep
-
 
 class SampleBatch:
     __slots__ = ['obs_t', 'act_t', 'obs_t_prime', 'rew_t', 'done_t', '_BATCH_SIZE']
@@ -53,7 +44,7 @@ class SampleBatch:
         self.obs_t_prime = [np.zeros((batch_size, playground.OBSERVATION_DIM), dtype=np.float32) for _ in
                             range(batch_size)]
         self.rew_t = [0.0 for _ in range(batch_size)]
-        self.done_t = [0 for _ in range(batch_size)]
+        self.done_t = [0.0 for _ in range(batch_size)]
         self._BATCH_SIZE = batch_size
 
     def __setitem__(self, key, value: TimestepSample):
@@ -73,15 +64,6 @@ class SampleBatch:
     def __repr__(self):
         my_rep = data_container_class_representation(self, class_name='SampleBatch')
         return my_rep
-
-    # def __repr__(self):
-    #     myRep = "\n::SampleBatch/\n"
-    #     myRep += ".obs_t=\n{}\n\n".format(self.obs_t)
-    #     myRep += ".act_t=\n{}\n\n".format(self.act_t)
-    #     myRep += ".obs_t_prime=\n{}\n\n".format(self.obs_t_prime)
-    #     myRep += ".rew_t=\n{}\n\n".format(self.rew_t)
-    #     myRep += ".done_t=\n{}\n\n".format(self.done_t)
-    #     return myRep
 
 
 class TrajectoriesPool(object):

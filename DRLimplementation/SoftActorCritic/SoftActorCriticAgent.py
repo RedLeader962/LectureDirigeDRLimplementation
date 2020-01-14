@@ -114,18 +114,19 @@ class SoftActorCriticAgent(Agent):
                                                      self.reward_t_ph,
                                                      self.trj_done_t_ph, self.exp_spec,
                                                      critic_lr_schedule, critic_global_grad_step)
-    
+
         self.q_theta_1_loss, self.q_theta_2_loss, self.q_theta_1_optimizer, self.q_theta_2_optimizer = q_theta_train_ops
-    
+
         with tf_cv1.variable_scope(vocab.policy_training, reuse=tf_cv1.AUTO_REUSE):
             self.actor_kl_loss, self.actor_policy_optimizer_op = actor_train(self.pi_log_likelihood,
                                                                              self.Q_theta_1, self.Q_theta_2,
                                                                              self.exp_spec)
-    
+
         """ ---- Target nework update: V_psi --> frozen_V_psi ---- """
-        self.V_psi_frozen_update_ops = update_frozen_v_psi_op(self.exp_spec['target_smoothing_coefficient'])
-        self.init_frozen_v_psi_op = init_frozen_v_psi()
-    
+        with tf_cv1.variable_scope(vocab.target_update, reuse=tf_cv1.AUTO_REUSE):
+            self.V_psi_frozen_update_ops = update_frozen_v_psi_op(self.exp_spec['target_smoothing_coefficient'])
+            self.init_frozen_v_psi_op = init_frozen_v_psi()
+
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         # /// Summary ops //////////////////////////////////////////////////////////////////////////////////////////////
         """ ---- By Epoch summary: RETURNS & LENGHT ---- """
@@ -133,7 +134,7 @@ class SoftActorCriticAgent(Agent):
             tf.float32, name='summary_ph/' + 'stoPi_stage_avg_trjs_return_ph')
         tf_cv1.summary.scalar('Epoch_average_trj_return_stochastic_pi)', self.summary_avg_trjs_return_ph,
                               family=vocab.G)
-    
+
         self.summary_avg_trjs_len_ph = tf_cv1.placeholder(
             tf.float32, name='summary_ph/' + 'stoPi_stage_avg_trjs_len_ph')
         tf_cv1.summary.scalar('Epoch_average_trj_lenght_stochastic_pi)', self.summary_avg_trjs_len_ph,
@@ -285,10 +286,12 @@ class SoftActorCriticAgent(Agent):
                     consol_print_learning_stats.next_glorious_trajectory()
     
                     # ... investigate ..................................................................................
+                    obs_t = self.playground.env.reset()
+    
                     # (nice to have) todo:investigate?? --> check if it make a difference to pre instantiate :
-                    obs_t, reward_t, trj_done = self.playground.env.reset(), 0.0, False
-                    obs_t_prime = np.copy(obs_t)
-                    act_t = self.playground.env.action_space.sample()
+                    # obs_t, reward_t, trj_done = self.playground.env.reset(), 0.0, False
+                    # obs_t_prime = np.copy(obs_t)
+                    # act_t = self.playground.env.action_space.sample()
                     # .......................................................................... investigate ...(end)...
     
                     """ ---- Simulator: time-steps ---- """
@@ -340,16 +343,17 @@ class SoftActorCriticAgent(Agent):
                 # assert timecounter.global_count == self.epoch_metric_logger.total_training_timestep_collected
 
                 """ ---- Evaluate trainning of the agent policy ---- """
-                self._run_agent_evaluation(sess, epoch=epoch, render_env=render_env,
-                                           max_trajectories=self.exp_spec['max_eval_trj'])
+                if self.experiment_counter.gradient_step_count > 0:
+                    self._run_agent_evaluation(sess, epoch=epoch, render_env=render_env,
+                                               max_trajectories=self.exp_spec['max_eval_trj'])
 
-                if (not self.epoch_metric_logger.is_empty()
+                if ((not self.epoch_metric_logger.is_empty())
                         and self.pool_manager.current_pool_size > self.exp_spec['min_pool_size']):
                     """ ---- Simulator: epoch as ended, fetch training stats and evaluate agent ---- """
                     epoch_eval_mean_trjs_return = self.epoch_metric_logger.agent_eval_mean_trjs_return
                     epoch_eval_mean_trjs_lenght = self.epoch_metric_logger.agent_eval_mean_trjs_lenght
                     epoch_mean_policy_loss = self.epoch_metric_logger.mean_pi_loss
-
+    
                     epoch_metric = [
                         epoch_eval_mean_trjs_return,
                         epoch_eval_mean_trjs_lenght,
@@ -440,7 +444,8 @@ class SoftActorCriticAgent(Agent):
         self.sess.run(self.actor_policy_optimizer_op, feed_dict=full_feed_dictionary)
 
         """ ---- 'Target update' (see SAC original paper, apendice E for result and D for hparam) ---- """
-        console_print_interval = 4  # speed improvement
+        console_print_interval = 10  # speed improvement
+
         if timecounter.global_count % self.exp_spec['target_update_interval'] == 0:
             self.experiment_counter.target_update_step()
             self.sess.run(self.V_psi_frozen_update_ops)
@@ -524,13 +529,20 @@ class SoftActorCriticAgent(Agent):
     def _render_eval_trj_on_condition(self, epoch, render_env, trj_collected_in_that_epoch):
         """ Render EVALUATION playground"""
         if (render_env and (epoch % self.exp_spec.render_env_every_What_epoch == 0)
-                and trj_collected_in_that_epoch == 0):
+                and trj_collected_in_that_epoch % self.exp_spec['render_env_eval_interval'] == 0):
             self.evaluation_playground.env.env.render()  # keep environment rendering turned OFF during unit test
+
+    def _save_learned_model(self, batch_average_trjs_return: float, epoch, sess: tf_cv1.Session) -> None:
+        if batch_average_trjs_return >= float(self.exp_spec.expected_reward_goal):
+            print("\n\n    ::  {} batch avg return reached".format(batch_average_trjs_return))
+            self._save_checkpoint(epoch, sess, self.exp_spec.algo_name, batch_average_trjs_return)
+        elif self.experiment_counter.gradient_step_count % 100000 == 0:
+            self._save_checkpoint(epoch, sess, self.exp_spec.algo_name, batch_average_trjs_return)
 
     def __del__(self):
         # (nice to have) todo:assessment --> is it linked to the 'experiment_runner' rerun error (fail at second rerun)
         tf_cv1.reset_default_graph()
-
+    
         self.playground.env.env.close()
         self.evaluation_playground.env.env.close()
         print(":: SAC agent >>> CLOSED")

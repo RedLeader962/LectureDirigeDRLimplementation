@@ -157,8 +157,8 @@ class EpochMetricLogger:
 
     @property
     def mean_v_values(self):
-        return np.asarray(self.v_values).mean() \
- \
+        return np.asarray(self.v_values).mean()
+
     @property
     def mean_frozen_v_values(self):
         return np.asarray(self.frozen_v_values).mean()
@@ -206,7 +206,7 @@ class EpochMetricLogger:
         self.trjs_lenght.clear()
 
     def is_empty(self):
-        if self.nb_trj_collected == 0:
+        if len(self.v_loss) == 0:
             return True
         else:
             return False
