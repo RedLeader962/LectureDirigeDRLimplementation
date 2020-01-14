@@ -34,6 +34,7 @@ class EpochMetricLogger:
     policy_pi: List[float]
     policy_mu: List[float]
     v_values: List[float]
+    frozen_v_values: List[float]
     q1_values: List[float]
     q2_values: List[float]
     _epoch_id: int
@@ -54,6 +55,7 @@ class EpochMetricLogger:
         self.policy_pi = list()
         self.policy_mu = list()
         self.v_values = list()
+        self.frozen_v_values = list()
         self.q1_values = list()
         self.q2_values = list()
         self._epoch_id = None
@@ -84,19 +86,20 @@ class EpochMetricLogger:
         self.policy_pi.append(policy_pi)
         self.policy_mu.append(policy_mu)
         return None
-    
-    def append_approximator_values(self, v_value, q1_value, q2_value) -> None:
+
+    def append_approximator_values(self, v_value, frozen_v_values, q1_value, q2_value) -> None:
         self.v_values.append(v_value)
+        self.frozen_v_values.append(frozen_v_values)
         self.q1_values.append(q1_value)
         self.q2_values.append(q2_value)
         return None
 
     def append_all_epoch_metric(self, critic_v_loss, critic_q1_loss, critic_q2_loss, actor_kl_loss,
                                 pi_log_likelihood, policy_pi, policy_mu,
-                                v_value, q1_value, q2_value) -> None:
+                                v_value, frozen_v_values, q1_value, q2_value) -> None:
         self.append_loss(critic_v_loss, critic_q1_loss, critic_q2_loss, actor_kl_loss)
         self.append_policy_metric(pi_log_likelihood, policy_pi, policy_mu)
-        self.append_approximator_values(v_value, q1_value, q2_value)
+        self.append_approximator_values(v_value, frozen_v_values, q1_value, q2_value)
         return None
 
     def get_training_trj_metric(self):
@@ -143,23 +146,27 @@ class EpochMetricLogger:
     @property
     def mean_pi_log_likelihood(self):
         return np.asarray(self.pi_log_likelihood).mean()
-    
+
     @property
     def mean_policy_pi(self):
         return np.asarray(self.policy_pi).mean()
-    
+
     @property
     def mean_policy_mu(self):
         return np.asarray(self.policy_mu).mean()
-    
+
     @property
     def mean_v_values(self):
-        return np.asarray(self.v_values).mean()
-    
+        return np.asarray(self.v_values).mean() \
+ \
+    @property
+    def mean_frozen_v_values(self):
+        return np.asarray(self.frozen_v_values).mean()
+
     @property
     def mean_q1_values(self):
         return np.asarray(self.q1_values).mean()
-    
+
     @property
     def mean_q2_values(self):
         return np.asarray(self.q2_values).mean()
@@ -183,6 +190,7 @@ class EpochMetricLogger:
         self.policy_pi.clear()
         self.policy_mu.clear()
         self.v_values.clear()
+        self.frozen_v_values.clear()
         self.q1_values.clear()
         self.q2_values.clear()
         self._epoch_id = None

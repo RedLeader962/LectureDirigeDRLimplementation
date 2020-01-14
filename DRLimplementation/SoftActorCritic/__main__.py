@@ -71,7 +71,8 @@ from blocAndTools.experiment_runner import (
         'reward_scaling': float                     The most important hymperparameter for SAC
     /--- Target network update -----------------------------------------------------------------------------------------
         'target_update_interval': int               1000 for HARD TARGET update, 1 for EXPONENTIAL MOVING AVERAGE
-        'target_smoothing_coefficient': float       (tau) control of EXPONENTIAL MOVING AVERAGE,
+        'target_smoothing_coefficient': float       (tau, polyak update coeficient)
+                                                     Control over the EXPONENTIAL MOVING AVERAGE
                                                      the SAC paper recommand ~ 0.005
                                                     - Large tau can lead to instability, small cam make training slower
                                                     - tau=1 <--> HARD TARGET update
@@ -147,11 +148,11 @@ SAC_base_hparam = {
     'target_update_interval':         1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
     'gradient_step_interval':         1,
     
-    'alpha':                          1,  # HW5: we recover a standard max expected return objective as alpha --> 0
+    'alpha':                          0.95,  # HW5: we recover a standard max expected return objective as alpha --> 0
     'max_eval_trj':                   10,  #SpiningUp: 10
     
     'pool_capacity':                  int(1e6),  # SAC paper & SpinningUp: 1e6
-    'min_pool_size':                  2000,
+    'min_pool_size':                  4000,
     'batch_size_in_ts':               100,  # SAC paper:256, SpinningUp:100
     
     'theta_nn_h_layer_topo':          (200, 200),  # SAC paper:(256, 256), SpinningUp:(400, 300)
@@ -191,7 +192,7 @@ SAC_MountainCar_hparam = {
     
     'expected_reward_goal':           90,  # Note: trigger model save on reach
     'max_epoch':                      50,
-    'timestep_per_epoch':             5000,
+    'timestep_per_epoch':             10000,
     
     'reward_scaling':                 [3.0, 6.0, 12.0, 24.0, 48.0],
     
@@ -210,8 +211,8 @@ SAC_MountainCar_hparam = {
     'max_eval_trj':                   10,  #SpiningUp: 10
     
     'pool_capacity':                  int(1e6),  # SAC paper & SpinningUp: 1e6
-    'min_pool_size':                  800,
-    'batch_size_in_ts':               100,  # SAC paper:256, SpinningUp:100
+    'min_pool_size':                  8000,
+    'batch_size_in_ts':               64,  # SAC paper:256, SpinningUp:100
     
     'theta_nn_h_layer_topo':          (200, 200),  # SAC paper:(256, 256), SpinningUp:(400, 300)
     'theta_hidden_layers_activation': tf.nn.relu,
@@ -299,30 +300,30 @@ test_hparam.update(
         'comment':               'TestSpec',
         'prefered_environment':  'Pendulum-v0',
         
-        'max_epoch':             10,
-        'timestep_per_epoch':    500,
+        'max_epoch':             3,
+        'timestep_per_epoch':    220,
         
         'expected_reward_goal':  -130,  # goal: 200
         'reward_scaling':        3.0,
         
-        'pool_capacity':         int(1e6),  # SAC paper: 1e6
-        'min_pool_size':         100,
-        'batch_size_in_ts':      100,  # SAC paper:256, SpinningUp:100
+        'pool_capacity':         int(1e2),  # SAC paper: 1e6
+        'min_pool_size':         50,
+        'batch_size_in_ts':      10,  # SAC paper:256, SpinningUp:100
         
-        'theta_nn_h_layer_topo': (4, 4),  # SAC paper:(256, 256), SpinningUp:(400, 300)
-        'phi_nn_h_layer_topo':   (4, 4),  # SAC paper:(256, 256), SpinningUp:(400, 300)
-        'psi_nn_h_layer_topo':   (4, 4),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+        'theta_nn_h_layer_topo': (2, 2),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+        'phi_nn_h_layer_topo':   (2, 2),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+        'psi_nn_h_layer_topo':   (2, 2),  # SAC paper:(256, 256), SpinningUp:(400, 300)
         'isTestRun':             True,
         'show_plot':             False,
         }
     )
 
-SAC_Pendulum_hparam_TEST_RERUN = dict(SAC_Pendulum_hparam)
+SAC_Pendulum_hparam_TEST_RERUN = dict(test_hparam)
 SAC_Pendulum_hparam_TEST_RERUN.update(
     {
         'max_epoch':          2,
-        'timestep_per_epoch': 200,
-        'min_pool_size':      100,
+        'timestep_per_epoch': 220,
+        'isTestRun':          False,
         }
     )
 # .............................................................................................. Test hparam ...(end)...

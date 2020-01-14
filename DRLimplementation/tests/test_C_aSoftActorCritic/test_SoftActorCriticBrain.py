@@ -13,37 +13,37 @@ deprecation._PRINT_DEPRECATION_WARNINGS = False
 vocab = rl_name()
 
 unit_test_hparam = {
-    'rerun_tag':                    'Unit-TEST',
-    'paramameter_set_name':         'SAC',
-    'comment':                      'UnitTestSpec',  # Comment added to training folder name (can be empty)
-    'algo_name':                    'Soft Actor Critic',
-    'AgentType':                    SoftActorCriticAgent,
-    'prefered_environment':         'MountainCarContinuous-v0',
+    'rerun_tag':                      'Unit-TEST',
+    'paramameter_set_name':           'SAC',
+    'comment':                        'UnitTestSpec',  # Comment added to training folder name (can be empty)
+    'algo_name':                      'Soft Actor Critic',
+    'AgentType':                      SoftActorCriticAgent,
+    'prefered_environment':           'MountainCarContinuous-v0',
     
-    'expected_reward_goal':         90,  # Note: trigger model save on reach
-    'max_epoch':                    10,
-    'timestep_per_epoch':           500,
+    'expected_reward_goal':           90,  # Note: trigger model save on reach
+    'max_epoch':                      10,
+    'timestep_per_epoch':             500,
     
-    'reward_scaling':               5.0,
+    'reward_scaling':                 5.0,
     
-    'discout_factor':               0.99,  # SAC paper: 0.99
-    'learning_rate':                0.003,  # SAC paper: 30e-4
-    'critic_learning_rate':         0.003,  # SAC paper: 30e-4
-    'max_gradient_step_expected':   500000,
-    'actor_lr_decay_rate':          0.01,  # Note: set to 1 to swith OFF scheduler
-    'critic_lr_decay_rate':         0.01,  # Note: set to 1 to swith OFF scheduler
+    'discout_factor':                 0.99,  # SAC paper: 0.99
+    'learning_rate':                  0.003,  # SAC paper: 30e-4
+    'critic_learning_rate':           0.003,  # SAC paper: 30e-4
+    'max_gradient_step_expected':     500000,
+    'actor_lr_decay_rate':            0.01,  # Note: set to 1 to swith OFF scheduler
+    'critic_lr_decay_rate':           0.01,  # Note: set to 1 to swith OFF scheduler
     
-    'target_smoothing_coefficient': 0.005,  # SAC paper: EXPONENTIAL MOVING AVERAGE ~ 0.005, 1 <==> HARD TARGET update
-    'target_update_interval':       1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
-    'gradient_step_interval':       1,
+    'target_smoothing_coefficient':   0.005,  # SAC paper: EXPONENTIAL MOVING AVERAGE ~ 0.005, 1 <==> HARD TARGET update
+    'target_update_interval':         1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
+    'gradient_step_interval':         1,
     
-    'alpha':                        1,  # HW5: we recover a standard max expected return objective as alpha --> 0
+    'alpha':                          1,  # HW5: we recover a standard max expected return objective as alpha --> 0
     
-    'max_eval_trj':                 10,  #SpiningUp: 10
+    'max_eval_trj':                   10,  #SpiningUp: 10
     
-    'pool_capacity':                int(1e6),  # SAC paper: 1e6
-    'min_pool_size':                100,
-    'batch_size_in_ts':             100,  # SAC paper:256, SpinningUp:100
+    'pool_capacity':                  int(1e6),  # SAC paper: 1e6
+    'min_pool_size':                  100,
+    'batch_size_in_ts':               100,  # SAC paper:256, SpinningUp:100
     
     'theta_nn_h_layer_topo':          (4, 4),  # SAC paper:(256, 256), SpinningUp:(400, 300)
     'theta_hidden_layers_activation': tf.nn.relu,
@@ -137,18 +137,21 @@ def test_SoftActorCritic_brain_Critic_Q_BUILD_PASS(gym_and_tf_continuous_setup):
 def test_SoftActorCritic_brain_Critic_V_TRAIN_PASS(gym_and_tf_continuous_setup):
     continuous_setup = gym_and_tf_continuous_setup
     obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground = continuous_setup
-
+    
     critic_lr_schedule, critic_global_grad_step = critic_learning_rate_scheduler(exp_spec)
-
-    pi, pi_log_p, policy_mu = SoftActorCriticBrain.build_gaussian_policy_graph(obs_t_ph, exp_spec, playground)
-    V_psi, V_psi_frozen = SoftActorCriticBrain.build_critic_graph_v_psi(obs_t_ph, obs_t_prime_ph, exp_spec)
-    Q_theta_1, Q_theta_2 = SoftActorCriticBrain.build_critic_graph_q_theta(obs_t_ph, act_ph, exp_spec)
-
-    V_psi_loss, V_psi_optimizer, V_psi_frozen_update_ops = SoftActorCriticBrain.critic_v_psi_train(V_psi, Q_theta_1,
-                                                                                                   Q_theta_2, pi_log_p,
-                                                                                                   exp_spec,
-                                                                                                   critic_lr_schedule,
-                                                                                                   critic_global_grad_step)
+    
+    with tf_cv1.variable_scope(vocab.actor_network, reuse=tf_cv1.AUTO_REUSE):
+        pi, pi_log_p, policy_mu = SoftActorCriticBrain.build_gaussian_policy_graph(obs_t_ph, exp_spec, playground)
+    
+    with tf_cv1.variable_scope(vocab.critic_network, reuse=tf_cv1.AUTO_REUSE):
+        V_psi, V_psi_frozen = SoftActorCriticBrain.build_critic_graph_v_psi(obs_t_ph, obs_t_prime_ph, exp_spec)
+        Q_theta_1, Q_theta_2 = SoftActorCriticBrain.build_critic_graph_q_theta(obs_t_ph, act_ph, exp_spec)
+    
+    V_psi_loss, V_psi_optimizer = SoftActorCriticBrain.critic_v_psi_train(V_psi, Q_theta_1,
+                                                                          Q_theta_2, pi_log_p,
+                                                                          exp_spec,
+                                                                          critic_lr_schedule,
+                                                                          critic_global_grad_step)
 
 
 # @pytest.mark.skip(reason="Temp: Mute for now")
@@ -156,9 +159,12 @@ def test_SoftActorCritic_brain_Critic_Q_TRAIN_PASS(gym_and_tf_continuous_setup):
     continuous_setup = gym_and_tf_continuous_setup
     obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground = continuous_setup
     
-    pi, pi_log_p, policy_mu = SoftActorCriticBrain.build_gaussian_policy_graph(obs_t_ph, exp_spec, playground)
-    V_psi, V_psi_frozen = SoftActorCriticBrain.build_critic_graph_v_psi(obs_t_ph, obs_t_prime_ph, exp_spec)
-    Q_theta_1, Q_theta_2 = SoftActorCriticBrain.build_critic_graph_q_theta(obs_t_ph, act_ph, exp_spec)
+    with tf_cv1.variable_scope(vocab.actor_network, reuse=tf_cv1.AUTO_REUSE):
+        pi, pi_log_p, policy_mu = SoftActorCriticBrain.build_gaussian_policy_graph(obs_t_ph, exp_spec, playground)
+    
+    with tf_cv1.variable_scope(vocab.critic_network, reuse=tf_cv1.AUTO_REUSE):
+        V_psi, V_psi_frozen = SoftActorCriticBrain.build_critic_graph_v_psi(obs_t_ph, obs_t_prime_ph, exp_spec)
+        Q_theta_1, Q_theta_2 = SoftActorCriticBrain.build_critic_graph_q_theta(obs_t_ph, act_ph, exp_spec)
     
     critic_lr_schedule, critic_global_grad_step = critic_learning_rate_scheduler(exp_spec)
     
@@ -172,9 +178,12 @@ def test_SoftActorCritic_brain_Actor_Pi_TRAIN_PASS(gym_and_tf_continuous_setup):
     continuous_setup = gym_and_tf_continuous_setup
     obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground = continuous_setup
     
-    pi, pi_log_p, policy_mu = SoftActorCriticBrain.build_gaussian_policy_graph(obs_t_ph, exp_spec, playground)
-    V_psi, V_psi_frozen = SoftActorCriticBrain.build_critic_graph_v_psi(obs_t_ph, obs_t_prime_ph, exp_spec)
-    Q_theta_1, Q_theta_2 = SoftActorCriticBrain.build_critic_graph_q_theta(obs_t_ph, act_ph, exp_spec)
+    with tf_cv1.variable_scope(vocab.actor_network, reuse=tf_cv1.AUTO_REUSE):
+        pi, pi_log_p, policy_mu = SoftActorCriticBrain.build_gaussian_policy_graph(obs_t_ph, exp_spec, playground)
+    
+    with tf_cv1.variable_scope(vocab.critic_network, reuse=tf_cv1.AUTO_REUSE):
+        V_psi, V_psi_frozen = SoftActorCriticBrain.build_critic_graph_v_psi(obs_t_ph, obs_t_prime_ph, exp_spec)
+        Q_theta_1, Q_theta_2 = SoftActorCriticBrain.build_critic_graph_q_theta(obs_t_ph, act_ph, exp_spec)
     
     actor_kl_loss, actor_policy_optimizer_op = SoftActorCriticBrain.actor_train(pi_log_p,
                                                                                 Q_theta_1, Q_theta_2, exp_spec)

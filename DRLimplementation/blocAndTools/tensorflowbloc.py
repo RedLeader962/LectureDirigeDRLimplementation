@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
 
-from blocAndTools.buildingbloc import tf_cv1
+from blocAndTools.buildingbloc import build_MLP_computation_graph
 from blocAndTools.rl_vocabulary import rl_name
 
 tf_cv1 = tf.compat.v1  # shortcut
@@ -27,13 +27,17 @@ def update_nn_weights(graph_key_from: List[str], graph_key_to: List[str],
     return op
 
 
-def get_variables_graph_key(name: str) -> List[str]:
+def get_current_scope_variables_graph_key(name: str) -> List[str]:
     """
     Fetch the list of all parameter graph key under a specific variable name
+    Pass to argument 'name':
+        - If called INSIDE a scope --> only the relevant key ex: 'V_psi'
+        - If called OUTSIDE a scope --> the full key ex: 'Tatget_network/V_psi'
     
-        >>> the_V = build_MLP_computation_graph(obs_t_ph, 1, (4, 4), name='V_psi')
-        >>> the_frozen_V = build_MLP_computation_graph(obs_t_prime_ph, 1, (4, 4), name='frozen_V_psi')
-        >>> v_psy_key = get_variables_graph_key('V_psi')
+        >>> with tf_cv1.variable_scope('Tatget_network'):
+        >>>     the_V = build_MLP_computation_graph(obs_t_ph, 1, (4, 4), name='V_psi')
+        >>>     the_frozen_V = build_MLP_computation_graph(obs_t_prime_ph, 1, (4, 4), name='frozen_V_psi')
+        >>> v_psy_key = get_current_scope_variables_graph_key('Tatget_network/V_psi')
         >>> print(v_psy_key)
         [<tf.Variable 'V_psi/hidden_1/kernel:0' shape=(4, 4) dtype=float32_ref>,
          <tf.Variable 'V_psi/hidden_1/bias:0' shape=(4,) dtype=float32_ref>,
@@ -44,14 +48,21 @@ def get_variables_graph_key(name: str) -> List[str]:
     :param name: variable name
     :return: a list of all variable parameter graph key
     """
+    assert not name.endswith('/')
+    
     scope_name = tf_cv1.get_variable_scope().name
     if len(scope_name) > 0:
         scope_name += '/' + name + '/'
     else:
         scope_name = name + '/'
     
+    return get_explicitely_graph_key_from(scope_name)
+
+
+def get_explicitely_graph_key_from(name: str) -> List[str]:
+    assert not name.endswith('/')
     param_key = tf_cv1.get_collection(
-        tf_cv1.GraphKeys.TRAINABLE_VARIABLES, scope=scope_name)
+        tf_cv1.GraphKeys.TRAINABLE_VARIABLES, scope=name)
     return param_key
 
 
