@@ -129,8 +129,16 @@ def test_SoftActorCritic_brain_Critic_V_BUILD_PASS(gym_and_tf_continuous_setup):
 
 # @pytest.mark.skip(reason="Temp: Mute for now")
 def test_SoftActorCritic_brain_Critic_Q_BUILD_PASS(gym_and_tf_continuous_setup):
-    obs_t_ph, act_ph, _, _, _, exp_spec, _ = gym_and_tf_continuous_setup
-    Q_theta_1, Q_theta_2 = SoftActorCriticBrain.build_critic_graph_q_theta(obs_t_ph, act_ph, exp_spec)
+    obs_t_ph, act_ph, _, _, _, exp_spec, playground = gym_and_tf_continuous_setup
+    
+    with tf_cv1.variable_scope(vocab.actor_network, reuse=tf_cv1.AUTO_REUSE):
+        pi, pi_log_p, policy_mu = SoftActorCriticBrain.build_gaussian_policy_graph(obs_t_ph, exp_spec, playground)
+    
+    with tf_cv1.variable_scope(vocab.critic_network, reuse=tf_cv1.AUTO_REUSE):
+        """ ---- Q_theta according to sampled action ---- """
+        Q_act_1, Q_act_2 = SoftActorCriticBrain.build_critic_graph_q_theta(obs_t_ph, act_ph, exp_spec)
+        """ ---- Q_theta according to the reparametrized policy ---- """
+        Q_pi_1, Q_pi_2 = SoftActorCriticBrain.build_critic_graph_q_theta(obs_t_ph, pi, exp_spec, reuse=True)
 
 
 # @pytest.mark.skip(reason="Temp: Mute for now")
@@ -145,10 +153,14 @@ def test_SoftActorCritic_brain_Critic_V_TRAIN_PASS(gym_and_tf_continuous_setup):
     
     with tf_cv1.variable_scope(vocab.critic_network, reuse=tf_cv1.AUTO_REUSE):
         V_psi, V_psi_frozen = SoftActorCriticBrain.build_critic_graph_v_psi(obs_t_ph, obs_t_prime_ph, exp_spec)
-        Q_theta_1, Q_theta_2 = SoftActorCriticBrain.build_critic_graph_q_theta(obs_t_ph, act_ph, exp_spec)
+        
+        """ ---- Q_theta according to sampled action ---- """
+        Q_act_1, Q_act_2 = SoftActorCriticBrain.build_critic_graph_q_theta(obs_t_ph, act_ph, exp_spec)
+        """ ---- Q_theta according to the reparametrized policy ---- """
+        Q_pi_1, Q_pi_2 = SoftActorCriticBrain.build_critic_graph_q_theta(obs_t_ph, pi, exp_spec, reuse=True)
     
-    V_psi_loss, V_psi_optimizer = SoftActorCriticBrain.critic_v_psi_train(V_psi, Q_theta_1,
-                                                                          Q_theta_2, pi_log_p,
+    V_psi_loss, V_psi_optimizer = SoftActorCriticBrain.critic_v_psi_train(V_psi, Q_pi_1,
+                                                                          Q_pi_2, pi_log_p,
                                                                           exp_spec,
                                                                           critic_lr_schedule,
                                                                           critic_global_grad_step)
@@ -159,16 +171,15 @@ def test_SoftActorCritic_brain_Critic_Q_TRAIN_PASS(gym_and_tf_continuous_setup):
     continuous_setup = gym_and_tf_continuous_setup
     obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground = continuous_setup
     
-    with tf_cv1.variable_scope(vocab.actor_network, reuse=tf_cv1.AUTO_REUSE):
-        pi, pi_log_p, policy_mu = SoftActorCriticBrain.build_gaussian_policy_graph(obs_t_ph, exp_spec, playground)
-    
     with tf_cv1.variable_scope(vocab.critic_network, reuse=tf_cv1.AUTO_REUSE):
         V_psi, V_psi_frozen = SoftActorCriticBrain.build_critic_graph_v_psi(obs_t_ph, obs_t_prime_ph, exp_spec)
-        Q_theta_1, Q_theta_2 = SoftActorCriticBrain.build_critic_graph_q_theta(obs_t_ph, act_ph, exp_spec)
+        
+        """ ---- Q_theta according to sampled action ---- """
+        Q_act_1, Q_act_2 = SoftActorCriticBrain.build_critic_graph_q_theta(obs_t_ph, act_ph, exp_spec)
     
     critic_lr_schedule, critic_global_grad_step = critic_learning_rate_scheduler(exp_spec)
     
-    q_theta_train_ops = SoftActorCriticBrain.critic_q_theta_train(V_psi_frozen, Q_theta_1, Q_theta_2, reward_t_ph,
+    q_theta_train_ops = SoftActorCriticBrain.critic_q_theta_train(V_psi_frozen, Q_act_1, Q_act_2, reward_t_ph,
                                                                   trj_done_t_ph, exp_spec, critic_lr_schedule,
                                                                   critic_global_grad_step)
 
@@ -182,8 +193,10 @@ def test_SoftActorCritic_brain_Actor_Pi_TRAIN_PASS(gym_and_tf_continuous_setup):
         pi, pi_log_p, policy_mu = SoftActorCriticBrain.build_gaussian_policy_graph(obs_t_ph, exp_spec, playground)
     
     with tf_cv1.variable_scope(vocab.critic_network, reuse=tf_cv1.AUTO_REUSE):
-        V_psi, V_psi_frozen = SoftActorCriticBrain.build_critic_graph_v_psi(obs_t_ph, obs_t_prime_ph, exp_spec)
-        Q_theta_1, Q_theta_2 = SoftActorCriticBrain.build_critic_graph_q_theta(obs_t_ph, act_ph, exp_spec)
+        """ ---- Q_theta according to sampled action ---- """
+        Q_act_1, Q_act_2 = SoftActorCriticBrain.build_critic_graph_q_theta(obs_t_ph, act_ph, exp_spec)
+        """ ---- Q_theta according to the reparametrized policy ---- """
+        Q_pi_1, Q_pi_2 = SoftActorCriticBrain.build_critic_graph_q_theta(obs_t_ph, pi, exp_spec, reuse=True)
     
     actor_kl_loss, actor_policy_optimizer_op = SoftActorCriticBrain.actor_train(pi_log_p,
-                                                                                Q_theta_1, Q_theta_2, exp_spec)
+                                                                                Q_pi_1, Q_pi_2, exp_spec)

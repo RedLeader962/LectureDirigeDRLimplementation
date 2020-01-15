@@ -80,11 +80,11 @@ class SoftActorCriticAgent(Agent):
     
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         # /// Actor computation graph //////////////////////////////////////////////////////////////////////////////////
-        with tf_cv1.variable_scope(vocab.actor_network, reuse=tf_cv1.AUTO_REUSE):
+        with tf_cv1.variable_scope(vocab.actor_network):
             pi, pi_log_p, self.policy_mu = build_gaussian_policy_graph(self.obs_t_ph, self.exp_spec, self.playground)
-        
+    
             self.policy_pi, self.pi_log_likelihood = apply_action_bound(pi, pi_log_p)
-        
+    
             """ ---- Adjust policy distribution result to action range  ---- """
             if self.playground.ACTION_SPACE.bounded_above:
                 self.policy_pi *= self.playground.ACTION_SPACE.high[0]
@@ -92,38 +92,42 @@ class SoftActorCriticAgent(Agent):
     
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         # /// Critic computation graph /////////////////////////////////////////////////////////////////////////////////
-        with tf_cv1.variable_scope(vocab.critic_network, reuse=tf_cv1.AUTO_REUSE):
+        with tf_cv1.variable_scope(vocab.critic_network):
             self.V_psi, self.V_psi_frozen = build_critic_graph_v_psi(self.obs_t_ph, self.obs_t_prime_ph, self.exp_spec)
-        
-            self.Q_theta_1, self.Q_theta_2 = build_critic_graph_q_theta(self.obs_t_ph, self.act_ph, self.exp_spec)
+    
+            """ ---- Q_theta according to sampled action ---- """
+            self.Q_act_1, self.Q_act_2 = build_critic_graph_q_theta(self.obs_t_ph, self.act_ph, self.exp_spec)
+            """ ---- Q_theta according to the reparametrized policy ---- """
+            self.Q_pi_1, self.Q_pi_2 = build_critic_graph_q_theta(self.obs_t_ph, self.policy_pi, self.exp_spec,
+                                                                  reuse=True)
     
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         # /// Actor & Critic Training ops //////////////////////////////////////////////////////////////////////////////
-        with tf_cv1.variable_scope(vocab.critic_training, reuse=tf_cv1.AUTO_REUSE):
+        with tf_cv1.variable_scope(vocab.critic_training):
             critic_lr_schedule, critic_global_grad_step = critic_learning_rate_scheduler(self.exp_spec)
     
             self.V_psi_loss, self.V_psi_optimizer = critic_v_psi_train(self.V_psi,
-                                                                       self.Q_theta_1,
-                                                                       self.Q_theta_2,
+                                                                       self.Q_pi_1,
+                                                                       self.Q_pi_2,
                                                                        self.pi_log_likelihood,
                                                                        self.exp_spec,
                                                                        critic_lr_schedule,
                                                                        critic_global_grad_step)
     
-            q_theta_train_ops = critic_q_theta_train(self.V_psi_frozen, self.Q_theta_1, self.Q_theta_2,
+            q_theta_train_ops = critic_q_theta_train(self.V_psi_frozen, self.Q_act_1, self.Q_act_2,
                                                      self.reward_t_ph,
                                                      self.trj_done_t_ph, self.exp_spec,
                                                      critic_lr_schedule, critic_global_grad_step)
 
         self.q_theta_1_loss, self.q_theta_2_loss, self.q_theta_1_optimizer, self.q_theta_2_optimizer = q_theta_train_ops
 
-        with tf_cv1.variable_scope(vocab.policy_training, reuse=tf_cv1.AUTO_REUSE):
+        with tf_cv1.variable_scope(vocab.policy_training):
             self.actor_kl_loss, self.actor_policy_optimizer_op = actor_train(self.pi_log_likelihood,
-                                                                             self.Q_theta_1, self.Q_theta_2,
+                                                                             self.Q_pi_1, self.Q_pi_2,
                                                                              self.exp_spec)
 
         """ ---- Target nework update: V_psi --> frozen_V_psi ---- """
-        with tf_cv1.variable_scope(vocab.target_update, reuse=tf_cv1.AUTO_REUSE):
+        with tf_cv1.variable_scope(vocab.target_update):
             self.V_psi_frozen_update_ops = update_frozen_v_psi_op(self.exp_spec['target_smoothing_coefficient'])
             self.init_frozen_v_psi_op = init_frozen_v_psi()
 
@@ -424,7 +428,7 @@ class SoftActorCriticAgent(Agent):
         if timecounter.global_count % self.exp_spec.log_metric_interval == 0:
             losses_op = [self.V_psi_loss, self.q_theta_1_loss, self.q_theta_2_loss, self.actor_kl_loss]
             policy_and_value_fct_op = [self.policy_pi, self.pi_log_likelihood, self.policy_mu,
-                                       self.V_psi, self.V_psi_frozen, self.Q_theta_1, self.Q_theta_2]
+                                       self.V_psi, self.V_psi_frozen, self.Q_act_1, self.Q_act_2]
     
             """ ---- Compute metric and collect ---- """
             metric = self.sess.run([*losses_op, *policy_and_value_fct_op], feed_dict=full_feed_dictionary)

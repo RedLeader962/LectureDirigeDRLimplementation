@@ -62,7 +62,7 @@ def apply_action_bound(policy_pi: tf.Tensor, policy_pi_log_likelihood: tf.Tensor
     :param policy_pi_log_likelihood:
     :return: squashed_policy_pi, squashed_policy_pi_log_likelihood
     """
-    with tf_cv1.variable_scope(vocab.squashing_fct, reuse=True):
+    with tf_cv1.variable_scope(vocab.squashing_fct):
         # (nice to have) todo:implement --> a numericaly stable version : see p8 HW5c Sergey Levine DRL course
         squashed_policy_pi = tf_cv1.tanh(policy_pi)
         num_corr = tf_cv1.reduce_sum(tf_cv1.log(1 - squashed_policy_pi ** 2 + NUM_STABILITY_CORRECTION),
@@ -213,42 +213,47 @@ def build_critic_graph_v_psi(obs_t_ph: tf.Tensor, obs_t_prime_ph: tf.Tensor, exp
     return v_psi, frozen_v_psi
 
 
-def build_critic_graph_q_theta(obs_t_ph: tf.Tensor, act_t_ph: tf.Tensor, exp_spec: ExperimentSpec) -> Tuple[
+def build_critic_graph_q_theta(obs_t_ph: tf.Tensor, action: tf.Tensor, exp_spec: ExperimentSpec, reuse=None) -> Tuple[
     tf.Tensor, ...]:
     """
     Critic network theta 1 & 2
             input: the observations collected 's_t' & the executed action 'a_t' at timestep t
             output: the logits of Q_1 and Q_2
 
+    :param obs_t_ph:
+    :param action: either the 'act_t_ph' placeholder or the gaussian 'policy_py'
+    :param exp_spec:
     :return: q_theta_1, q_theta_2
     """
     if USE_KERAS_LAYER:
         mlp = build_KERAS_MLP_computation_graph
     else:
         mlp = build_MLP_computation_graph
-
+    
     # with tf_cv1.variable_scope(vocab.critic_network):
     """ ---- Concat graph input: observation & action ---- """
-    inputs = tf_cv1.concat([obs_t_ph, act_t_ph], axis=-1)
-
+    inputs = tf_cv1.concat([obs_t_ph, action], axis=-1)
+    
     """ ---- Build parameter '_theta_1' as a multilayer perceptron ---- """
-    q_theta_1 = mlp(inputs, 1, exp_spec.theta_nn_h_layer_topo,
-                    hidden_layers_activation=exp_spec.theta_hidden_layers_activation,
-                    output_layers_activation=exp_spec.theta_output_layers_activation,
-                    name=vocab.Q_theta_1)
-
+    with tf_cv1.variable_scope(vocab.Q_theta_1, reuse=reuse):
+        q_theta_1 = mlp(inputs, 1, exp_spec.theta_nn_h_layer_topo,
+                        hidden_layers_activation=exp_spec.theta_hidden_layers_activation,
+                        output_layers_activation=exp_spec.theta_output_layers_activation)
+        
+        q_theta_1 = tf_cv1.squeeze(q_theta_1, axis=1)
+    
     """ ---- Build parameter '_theta_2' as a multilayer perceptron ---- """
-    q_theta_2 = mlp(inputs, 1, exp_spec.theta_nn_h_layer_topo,
-                    hidden_layers_activation=exp_spec.theta_hidden_layers_activation,
-                    output_layers_activation=exp_spec.theta_output_layers_activation,
-                    name=vocab.Q_theta_2)
-
-    q_theta_1 = tf_cv1.squeeze(q_theta_1, axis=1)
-    q_theta_2 = tf_cv1.squeeze(q_theta_2, axis=1)
+    with tf_cv1.variable_scope(vocab.Q_theta_2, reuse=reuse):
+        q_theta_2 = mlp(inputs, 1, exp_spec.theta_nn_h_layer_topo,
+                        hidden_layers_activation=exp_spec.theta_hidden_layers_activation,
+                        output_layers_activation=exp_spec.theta_output_layers_activation)
+        
+        q_theta_2 = tf_cv1.squeeze(q_theta_2, axis=1)
+    
     return q_theta_1, q_theta_2
 
 
-def actor_train(policy_pi_log_likelihood: tf.Tensor, q_theta_1: tf.Tensor, q_theta_2: tf.Tensor,
+def actor_train(policy_pi_log_likelihood: tf.Tensor, Q_pi_1: tf.Tensor, Q_pi_2: tf.Tensor,
                 exp_spec: ExperimentSpec) -> Tuple[tf.Tensor, tf.Operation]:
     """
     Actor loss
@@ -261,29 +266,31 @@ def actor_train(policy_pi_log_likelihood: tf.Tensor, q_theta_1: tf.Tensor, q_the
 
     :return: actor_kl_loss, actor_policy_optimizer_op
     """
-
+    
     alpha = exp_spec['alpha']
-
+    
     # with tf_cv1.variable_scope(vocab.policy_training):
-
-    # min_q_theta = tf_cv1.minimum(q_theta_1, q_theta_2)
-    #
-    # """ ---- Build the Kullback-Leibler divergence loss function ---- """
-    # actor_kl_loss = tf_cv1.reduce_mean(alpha * policy_pi_log_likelihood - min_q_theta,
-    #                                    name=vocab.actor_kl_loss)
-    #
-
+    
     """ ---- Build the Kullback-Leibler divergence loss function ---- """
-    actor_kl_loss = tf_cv1.reduce_mean(alpha * policy_pi_log_likelihood - q_theta_1,
+    # ... Investigate ..................................................................................................
+    # (nice to have) todo:investigate?? --> check wether to use min_Q1_Q2 or Q_1.
+    #                                       SAC paper talk about using min_Q1_Q2 but no implementation use it:
+    
+    min_q_theta = tf_cv1.minimum(Q_pi_1, Q_pi_2)
+    actor_kl_loss = tf_cv1.reduce_mean(alpha * policy_pi_log_likelihood - min_q_theta,
                                        name=vocab.actor_kl_loss)
-
+    
+    # actor_kl_loss = tf_cv1.reduce_mean(alpha * policy_pi_log_likelihood - Q_pi_1,
+    #                                    name=vocab.actor_kl_loss)
+    # .......................................................................................... Investigate ...(end)...
+    
     """ ---- Actor optimizer & learning rate scheduler ---- """
     actor_lr_schedule, actor_global_grad_step = learning_rate_scheduler(
         max_gradient_step_expected=exp_spec['max_gradient_step_expected'],
         learning_rate=exp_spec.learning_rate,
         lr_decay_rate=exp_spec['actor_lr_decay_rate'],
         name_sufix='actor')
-
+    
     var_list = get_explicitely_graph_key_from(vocab.actor_network)
     assert len(var_list) is not 0
     actor_policy_optimizer_op = tf_cv1.train.AdamOptimizer(learning_rate=actor_lr_schedule
@@ -295,7 +302,7 @@ def actor_train(policy_pi_log_likelihood: tf.Tensor, q_theta_1: tf.Tensor, q_the
     return actor_kl_loss, actor_policy_optimizer_op
 
 
-def critic_v_psi_train(v_psi: tf.Tensor, q_theta_1: tf.Tensor, q_theta_2: tf.Tensor,
+def critic_v_psi_train(V_psi: tf.Tensor, Q_pi_1: tf.Tensor, Q_pi_2: tf.Tensor,
                        policy_pi_log_likelihood: tf.Tensor, exp_spec: ExperimentSpec, critic_lr_schedule,
                        critic_global_grad_step) -> Tuple[tf.Tensor, tf.Operation]:
     """
@@ -303,6 +310,13 @@ def critic_v_psi_train(v_psi: tf.Tensor, q_theta_1: tf.Tensor, q_theta_2: tf.Ten
                 input:
                 output: the Mean Squared Error (MSE)
 
+    :param V_psi:
+    :param Q_pi_1: Q_theta_1 according to the reparametrized policy
+    :param Q_pi_2: Q_theta_2 according to the reparametrized policy
+    :param policy_pi_log_likelihood:
+    :param exp_spec:
+    :param critic_lr_schedule:
+    :param critic_global_grad_step:
     :return: v_loss, v_psi_optimizer
     """
     alpha = exp_spec['alpha']
@@ -311,12 +325,12 @@ def critic_v_psi_train(v_psi: tf.Tensor, q_theta_1: tf.Tensor, q_theta_2: tf.Ten
     # with tf_cv1.variable_scope(vocab.critic_loss):
     
     """ ---- Build the Mean Square Error loss function ---- """
-    with tf_cv1.variable_scope(vocab.V_psi_loss, reuse=True):
-        min_q_theta = tf_cv1.minimum(q_theta_1, q_theta_2)
+    with tf_cv1.variable_scope(vocab.V_psi_loss):
+        min_q_theta = tf_cv1.minimum(Q_pi_1, Q_pi_2)
         
         v_psi_target = tf_cv1.stop_gradient(min_q_theta - alpha * policy_pi_log_likelihood)
         
-        v_loss = 0.5 * tf.reduce_mean((v_psi_target - v_psi) ** 2)
+        v_loss = 0.5 * tf.reduce_mean((v_psi_target - V_psi) ** 2)
         
         """ ---- Critic optimizer & learning rate scheduler ---- """
         # critic_lr_schedule, critic_global_grad_step = critic_learning_rate_scheduler(exp_spec)
