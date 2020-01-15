@@ -253,31 +253,31 @@ SAC_Pendulum_hparam.update(
         'comment':                       '',
         'prefered_environment':          'Pendulum-v0',
         'expected_reward_goal':          -160,
-        'max_epoch':                     50,
-        'timestep_per_epoch':            5000,
+        'max_epoch':                     250,
+        'timestep_per_epoch':            1000,
         'max_gradient_step_expected':    250000,
         'actor_lr_decay_rate':           1.0,  # Note: set to 1.0 to swith OFF scheduler
         'critic_lr_decay_rate':          1.0,  # Note: set to 1.0 to swith OFF scheduler
         'batch_size_in_ts':              100,  # SAC paper:256, SpinningUp:100
-        'learning_rate':                 0.003,  # SAC paper: 30e-4
-        'critic_learning_rate':          0.003,  # SAC paper: 30e-4
-        
+        'learning_rate':                 0.006,  # SAC paper: 30e-4
+        'critic_learning_rate':          0.006,  # SAC paper: 30e-4
+    
         # HW5: recover a standard max expected return objective as alpha --> 0, SpinningUp=0.2, SAC paper=1.0
         'alpha':                         0.2,
         'max_eval_trj':                  20,  #SpiningUp: 10
-        
-        'reward_scaling':                [-1.0, 1.0, 2.0, -2.0, 5.0, -5.0, -10.0],
-        
+    
+        'reward_scaling':                [2.0, 5.0, 10.0, 1.0, -1.0, -2.0, -5.0],
+    
         'target_smoothing_coefficient':  0.995,  # SAC paper: 0.005 (1 <==> HARD TARGET update), SpiningUp: 0.995,
         'target_update_interval':        10,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
-        
+    
         'pool_capacity':                 int(1e5),  # SAC paper & SpinningUp: 1e6
         'min_pool_size':                 10000,  # SpinningUp: 10000
-        
-        'render_env_every_What_epoch':   1,
+    
+        'render_env_every_What_epoch':   5,
         'render_env_eval_interval':      10,
-        'print_metric_every_what_epoch': 5,
-        'log_metric_interval':           100,
+        'print_metric_every_what_epoch': 10,
+        'log_metric_interval':           50,
         'note':                          ''
         }
     )
