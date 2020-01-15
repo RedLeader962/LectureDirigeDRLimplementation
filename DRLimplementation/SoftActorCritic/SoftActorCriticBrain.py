@@ -65,10 +65,29 @@ def apply_action_bound(policy_pi: tf.Tensor, policy_pi_log_likelihood: tf.Tensor
     with tf_cv1.variable_scope(vocab.squashing_fct):
         # (nice to have) todo:implement --> a numericaly stable version : see p8 HW5c Sergey Levine DRL course
         squashed_policy_pi = tf_cv1.tanh(policy_pi)
-        num_corr = tf_cv1.reduce_sum(tf_cv1.log(1 - squashed_policy_pi ** 2 + NUM_STABILITY_CORRECTION),
-                                     axis=1)
-        squashed_policy_pi_log_likelihood = policy_pi_log_likelihood - num_corr
-        return squashed_policy_pi, squashed_policy_pi_log_likelihood
+    
+        # \\\ My bloc \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+        # num_corr = tf_cv1.reduce_sum(tf_cv1.log(1 - squashed_policy_pi ** 2 + NUM_STABILITY_CORRECTION),
+        #                              axis=1)
+        # squashed_policy_pi_log_likelihood = policy_pi_log_likelihood - num_corr
+        # return squashed_policy_pi, squashed_policy_pi_log_likelihood
+        # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ My bloc \\\(end)\\\
+    
+        # /// Original bloc ////////////////////////////////////////////////////////////////////////////////////////////
+        # (Priority) todo:investigate?? --> Source from SpinningUp:
+        # pi = tf.tanh(pi)
+    
+        def clip_but_pass_gradient(x, l=-1., u=1.):
+            clip_up = tf.cast(x > u, tf.float32)
+            clip_low = tf.cast(x < l, tf.float32)
+            return x + tf.stop_gradient((u - x) * clip_up + (l - x) * clip_low)
+    
+        # To avoid evil machine precision error, strictly clip 1-pi**2 to [0,1] range.
+        policy_pi_log_likelihood -= tf.reduce_sum(tf.log(clip_but_pass_gradient(
+            1 - squashed_policy_pi ** 2, l=0, u=1) + 1e-6), axis=1)
+    
+        return squashed_policy_pi, policy_pi_log_likelihood
+        # //////////////////////////////////////////////////////////////////////////////////// Original bloc ///(end)///
 
 
 def build_gaussian_policy_graph(obs_t_ph: tf.Tensor, exp_spec: ExperimentSpec,
@@ -91,7 +110,7 @@ def build_gaussian_policy_graph(obs_t_ph: tf.Tensor, exp_spec: ExperimentSpec,
     :return: policy_pi, policy_pi_log_likelihood, policy_mu
     """
     # with tf_cv1.variable_scope(vocab.actor_network):
-
+    
     # ::Discrete case
     if isinstance(playground.env.action_space, gym.spaces.Discrete):
         raise ValueError("Discrete environment are not compatible with this Soft Actor-Critic implementation")
@@ -116,7 +135,7 @@ def build_gaussian_policy_graph(obs_t_ph: tf.Tensor, exp_spec: ExperimentSpec,
                                                         name=vocab.phi)
 
             policy_mu = keras.layers.Dense(playground.ACTION_CHOICES,
-                                           activation=tf_cv1.tanh,
+                                           activation=exp_spec['phi_output_layers_activation'],  # tf_cv1.tanh,
                                            name=vocab.policy_mu)(phi_mlp)
 
             policy_log_std = keras.layers.Dense(playground.ACTION_CHOICES,
@@ -135,7 +154,7 @@ def build_gaussian_policy_graph(obs_t_ph: tf.Tensor, exp_spec: ExperimentSpec,
 
             policy_mu = tf_cv1.layers.dense(phi_mlp,
                                             playground.ACTION_CHOICES,
-                                            activation=tf_cv1.tanh,
+                                            activation=exp_spec['phi_output_layers_activation'],  # tf_cv1.tanh,
                                             name=vocab.policy_mu)
 
             policy_log_std = tf_cv1.layers.dense(phi_mlp,
@@ -177,7 +196,7 @@ def build_gaussian_policy_graph(obs_t_ph: tf.Tensor, exp_spec: ExperimentSpec,
               "{} yet.\n\n".format(playground.env.action_space))
         raise NotImplementedError
     
-    return policy_pi, policy_pi_log_likelihood, policy_mu
+    return policy_pi, policy_pi_log_likelihood, tf_cv1.tanh(policy_mu)
 
 
 def build_critic_graph_v_psi(obs_t_ph: tf.Tensor, obs_t_prime_ph: tf.Tensor, exp_spec: ExperimentSpec) -> Tuple[
@@ -213,93 +232,40 @@ def build_critic_graph_v_psi(obs_t_ph: tf.Tensor, obs_t_prime_ph: tf.Tensor, exp
     return v_psi, frozen_v_psi
 
 
-def build_critic_graph_q_theta(obs_t_ph: tf.Tensor, action: tf.Tensor, exp_spec: ExperimentSpec, reuse=None) -> Tuple[
+def build_critic_graph_q_theta(obs_t_ph: tf.Tensor, act_t_ph: tf.Tensor, policy_py: tf.Tensor,
+                               exp_spec: ExperimentSpec, name: str) -> Tuple[
     tf.Tensor, ...]:
     """
     Critic network theta 1 & 2
             input: the observations collected 's_t' & the executed action 'a_t' at timestep t
-            output: the logits of Q_1 and Q_2
+            output: the logits of Q_1 according to sampled action and to the gaussian 'policy_py'
 
-    :param obs_t_ph:
-    :param action: either the 'act_t_ph' placeholder or the gaussian 'policy_py'
-    :param exp_spec:
-    :return: q_theta_1, q_theta_2
+    :return: Q_action, Q_policy
     """
     if USE_KERAS_LAYER:
         mlp = build_KERAS_MLP_computation_graph
     else:
         mlp = build_MLP_computation_graph
     
-    # with tf_cv1.variable_scope(vocab.critic_network):
-    """ ---- Concat graph input: observation & action ---- """
-    inputs = tf_cv1.concat([obs_t_ph, action], axis=-1)
-    
-    """ ---- Build parameter '_theta_1' as a multilayer perceptron ---- """
-    with tf_cv1.variable_scope(vocab.Q_theta_1, reuse=reuse):
-        q_theta_1 = mlp(inputs, 1, exp_spec.theta_nn_h_layer_topo,
-                        hidden_layers_activation=exp_spec.theta_hidden_layers_activation,
-                        output_layers_activation=exp_spec.theta_output_layers_activation)
+    with tf_cv1.variable_scope(name):
+        inputs_obs_act = tf_cv1.concat([obs_t_ph, act_t_ph], axis=-1)
+        Q_action = mlp(inputs_obs_act, 1, exp_spec.theta_nn_h_layer_topo,
+                       hidden_layers_activation=exp_spec.theta_hidden_layers_activation,
+                       output_layers_activation=exp_spec.theta_output_layers_activation,
+                       name="mlp")
         
-        q_theta_1 = tf_cv1.squeeze(q_theta_1, axis=1)
+        Q_action = tf_cv1.squeeze(Q_action, axis=1)
     
-    """ ---- Build parameter '_theta_2' as a multilayer perceptron ---- """
-    with tf_cv1.variable_scope(vocab.Q_theta_2, reuse=reuse):
-        q_theta_2 = mlp(inputs, 1, exp_spec.theta_nn_h_layer_topo,
-                        hidden_layers_activation=exp_spec.theta_hidden_layers_activation,
-                        output_layers_activation=exp_spec.theta_output_layers_activation)
+    with tf_cv1.variable_scope(name, reuse=True):
+        inputs_obs_pi = tf_cv1.concat([obs_t_ph, policy_py], axis=-1)
+        Q_policy = mlp(inputs_obs_pi, 1, exp_spec.theta_nn_h_layer_topo,
+                       hidden_layers_activation=exp_spec.theta_hidden_layers_activation,
+                       output_layers_activation=exp_spec.theta_output_layers_activation,
+                       name="mlp")
         
-        q_theta_2 = tf_cv1.squeeze(q_theta_2, axis=1)
+        Q_policy = tf_cv1.squeeze(Q_policy, axis=1)
     
-    return q_theta_1, q_theta_2
-
-
-def actor_train(policy_pi_log_likelihood: tf.Tensor, Q_pi_1: tf.Tensor, Q_pi_2: tf.Tensor,
-                exp_spec: ExperimentSpec) -> Tuple[tf.Tensor, tf.Operation]:
-    """
-    Actor loss
-        input:
-        output:
-
-    note: Hyperparameter alpha (aka Temperature, Entropy regularization coefficient )
-      |    Control the trade-off between exploration-exploitation
-      |    We recover the standard maximum expected return objective (the Q-fct) as alpha --> 0
-
-    :return: actor_kl_loss, actor_policy_optimizer_op
-    """
-    
-    alpha = exp_spec['alpha']
-    
-    # with tf_cv1.variable_scope(vocab.policy_training):
-    
-    """ ---- Build the Kullback-Leibler divergence loss function ---- """
-    # ... Investigate ..................................................................................................
-    # (nice to have) todo:investigate?? --> check wether to use min_Q1_Q2 or Q_1.
-    #                                       SAC paper talk about using min_Q1_Q2 but no implementation use it:
-    
-    min_q_theta = tf_cv1.minimum(Q_pi_1, Q_pi_2)
-    actor_kl_loss = tf_cv1.reduce_mean(alpha * policy_pi_log_likelihood - min_q_theta,
-                                       name=vocab.actor_kl_loss)
-    
-    # actor_kl_loss = tf_cv1.reduce_mean(alpha * policy_pi_log_likelihood - Q_pi_1,
-    #                                    name=vocab.actor_kl_loss)
-    # .......................................................................................... Investigate ...(end)...
-    
-    """ ---- Actor optimizer & learning rate scheduler ---- """
-    actor_lr_schedule, actor_global_grad_step = learning_rate_scheduler(
-        max_gradient_step_expected=exp_spec['max_gradient_step_expected'],
-        learning_rate=exp_spec.learning_rate,
-        lr_decay_rate=exp_spec['actor_lr_decay_rate'],
-        name_sufix='actor')
-    
-    var_list = get_explicitely_graph_key_from(vocab.actor_network)
-    assert len(var_list) is not 0
-    actor_policy_optimizer_op = tf_cv1.train.AdamOptimizer(learning_rate=actor_lr_schedule
-                                                           ).minimize(loss=actor_kl_loss,
-                                                                      var_list=var_list,
-                                                                      global_step=actor_global_grad_step,
-                                                                      # name=vocab.policy_optimizer
-                                                                      )
-    return actor_kl_loss, actor_policy_optimizer_op
+    return Q_action, Q_policy
 
 
 def critic_v_psi_train(V_psi: tf.Tensor, Q_pi_1: tf.Tensor, Q_pi_2: tf.Tensor,
@@ -350,40 +316,6 @@ def critic_v_psi_train(V_psi: tf.Tensor, Q_pi_1: tf.Tensor, Q_pi_2: tf.Tensor,
     return v_loss, v_psi_optimizer
 
 
-def update_frozen_v_psi_op(tau: float) -> tf.Operation:
-    """
-    Utility function: fetch all V_psi & frozen_V_psi graph key and update frozen_V_psi network
-    :param tau: target_smoothing_coefficient
-    :return: the update op
-    """
-    with tf_cv1.variable_scope(vocab.frozen_V_psi_update_ops, reuse=True):
-        frozen_v_psi_update_ops = _update_frozen_v_psi_op(tau)
-    return frozen_v_psi_update_ops
-
-
-def init_frozen_v_psi() -> tf.Operation:
-    """
-    Pass a exact copy of the weight of V_psi to frozen_V_psi
-    :return: the cloning op
-    """
-    with tf_cv1.variable_scope(vocab.frozen_V_psi + '_init_ops', reuse=True):
-        init_frozen_V_psi_op = update_frozen_v_psi_op(1.0)
-    return init_frozen_V_psi_op
-
-
-def _update_frozen_v_psi_op(tau):
-    """Construct the target update op
-    :param tau: target_smoothing_coefficient
-    :return: the update op
-    """
-    v_psi_graph_key = get_explicitely_graph_key_from(vocab.critic_network + '/' + vocab.V_psi)
-    frozen_v_psi_graph_key = get_explicitely_graph_key_from(vocab.critic_network + '/' + vocab.frozen_V_psi)
-    assert len(v_psi_graph_key) is not 0
-    assert len(frozen_v_psi_graph_key) is not 0
-    frozen_v_psi_update_ops = update_nn_weights(v_psi_graph_key, frozen_v_psi_graph_key, tau)
-    return frozen_v_psi_update_ops
-
-
 def critic_q_theta_train(frozen_v_psi: tf.Tensor, q_theta_1: tf.Tensor, q_theta_2: tf.Tensor, rew_ph: tf.Tensor,
                          trj_done_ph: tf.Tensor, exp_spec: ExperimentSpec,
                          critic_lr_schedule, critic_global_grad_step
@@ -413,10 +345,10 @@ def critic_q_theta_train(frozen_v_psi: tf.Tensor, q_theta_1: tf.Tensor, q_theta_
     
     """ ---- Build the Mean Square Error loss function ---- """
     # with tf_cv1.variable_scope(vocab.critic_loss):
-    with tf_cv1.variable_scope(vocab.Q_theta_1_loss, reuse=True):
+    with tf_cv1.variable_scope(vocab.Q_theta_1_loss):
         q_theta_1_loss = 0.5 * tf.reduce_mean((q_target - q_theta_1) ** 2)
-    
-    with tf_cv1.variable_scope(vocab.Q_theta_2_loss, reuse=True):
+
+    with tf_cv1.variable_scope(vocab.Q_theta_2_loss):
         q_theta_2_loss = 0.5 * tf.reduce_mean((q_target - q_theta_2) ** 2)
     
     """ ---- Critic optimizer & learning rate scheduler ---- """
@@ -430,16 +362,100 @@ def critic_q_theta_train(frozen_v_psi: tf.Tensor, q_theta_1: tf.Tensor, q_theta_
     q_theta_1_optimizer = tf_cv1.train.AdamOptimizer(learning_rate=critic_lr_schedule
                                                      ).minimize(loss=q_theta_1_loss,
                                                                 var_list=var_list_1,
-                                                                # global_step=critic_global_grad_step   
+                                                                # global_step=critic_global_grad_step
                                                                 )
-    
+
     q_theta_2_optimizer = tf_cv1.train.AdamOptimizer(learning_rate=critic_lr_schedule
                                                      ).minimize(loss=q_theta_2_loss,
                                                                 var_list=var_list_2,
                                                                 # global_step=critic_global_grad_step
                                                                 )
-    
+
     return q_theta_1_loss, q_theta_2_loss, q_theta_1_optimizer, q_theta_2_optimizer
+
+
+def actor_train(policy_pi_log_likelihood: tf.Tensor, Q_pi_1: tf.Tensor, Q_pi_2: tf.Tensor,
+                exp_spec: ExperimentSpec) -> Tuple[tf.Tensor, tf.Operation]:
+    """
+    Actor loss
+        input:
+        output:
+
+    note: Hyperparameter alpha (aka Temperature, Entropy regularization coefficient )
+      |    Control the trade-off between exploration-exploitation
+      |    We recover the standard maximum expected return objective (the Q-fct) as alpha --> 0
+
+    :return: actor_kl_loss, actor_policy_optimizer_op
+    """
+    
+    alpha = exp_spec['alpha']
+    
+    # with tf_cv1.variable_scope(vocab.policy_training):
+    
+    """ ---- Build the Kullback-Leibler divergence loss function ---- """
+    # ... Investigate ..................................................................................................
+    # (nice to have) todo:investigate?? --> check wether to use min_Q1_Q2 or Q_1.
+    #                                       SAC paper talk about using min_Q1_Q2
+    #                                       but no implementation use it (SpinningUp, SAC original impl, ... ):
+    
+    min_q_theta = tf_cv1.minimum(Q_pi_1, Q_pi_2)
+    actor_kl_loss = tf_cv1.reduce_mean(alpha * policy_pi_log_likelihood - min_q_theta,
+                                       name=vocab.actor_kl_loss)
+    
+    # actor_kl_loss = tf_cv1.reduce_mean(alpha * policy_pi_log_likelihood - Q_pi_1,
+    #                                    name=vocab.actor_kl_loss)
+    # .......................................................................................... Investigate ...(end)...
+    
+    """ ---- Actor optimizer & learning rate scheduler ---- """
+    actor_lr_schedule, actor_global_grad_step = learning_rate_scheduler(
+        max_gradient_step_expected=exp_spec['max_gradient_step_expected'],
+        learning_rate=exp_spec.learning_rate,
+        lr_decay_rate=exp_spec['actor_lr_decay_rate'],
+        name_sufix='actor')
+    
+    var_list = get_explicitely_graph_key_from(vocab.actor_network)
+    assert len(var_list) is not 0
+    actor_policy_optimizer_op = tf_cv1.train.AdamOptimizer(learning_rate=actor_lr_schedule
+                                                           ).minimize(loss=actor_kl_loss,
+                                                                      var_list=var_list,
+                                                                      global_step=actor_global_grad_step,
+                                                                      # name=vocab.policy_optimizer
+                                                                      )
+    return actor_kl_loss, actor_policy_optimizer_op
+
+
+def update_frozen_v_psi_op(tau: float) -> tf.Operation:
+    """
+    Utility function: fetch all V_psi & frozen_V_psi graph key and update frozen_V_psi network
+    :param tau: target_smoothing_coefficient
+    :return: the update op
+    """
+    with tf_cv1.variable_scope(vocab.frozen_V_psi_update_ops):
+        frozen_v_psi_update_ops = _update_frozen_v_psi_op(tau)
+    return frozen_v_psi_update_ops
+
+
+def init_frozen_v_psi() -> tf.Operation:
+    """
+    Pass a exact copy of the weight of V_psi to frozen_V_psi
+    :return: the cloning op
+    """
+    with tf_cv1.variable_scope(vocab.frozen_V_psi + '_init_ops'):
+        init_frozen_V_psi_op = update_frozen_v_psi_op(1.0)
+    return init_frozen_V_psi_op
+
+
+def _update_frozen_v_psi_op(tau):
+    """Construct the target update op
+    :param tau: target_smoothing_coefficient
+    :return: the update op
+    """
+    v_psi_graph_key = get_explicitely_graph_key_from(vocab.critic_network + '/' + vocab.V_psi)
+    frozen_v_psi_graph_key = get_explicitely_graph_key_from(vocab.critic_network + '/' + vocab.frozen_V_psi)
+    assert len(v_psi_graph_key) is not 0
+    assert len(frozen_v_psi_graph_key) is not 0
+    frozen_v_psi_update_ops = update_nn_weights(v_psi_graph_key, frozen_v_psi_graph_key, tau)
+    return frozen_v_psi_update_ops
 
 
 def critic_learning_rate_scheduler(exp_spec: ExperimentSpec):

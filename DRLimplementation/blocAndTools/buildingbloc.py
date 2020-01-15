@@ -173,6 +173,14 @@ def data_container_class_representation(class_instance, class_name: str, space_f
     return repr_str
 
 
+def list_representation(list_instance: list, list_name: str):
+    tr_str = "%s\n[" % list_name
+    for trainable in list_instance:
+        tr_str += '\t' + str(trainable) + '\n'
+    tr_str += ']\n'
+    return tr_str
+
+
 class GymPlayground(object):
     
     def __init__(self, environment_name='LunarLanderContinuous-v2', print_env_info=False):
@@ -627,7 +635,7 @@ def learning_rate_scheduler(max_gradient_step_expected: int, learning_rate: floa
     :return:                            the decayed learning rate , the gradient step counter
     :rtype:                             Tuple[tf_cv1.Tensor, tf_cv1.Variable]
     """
-    assert isinstance(lr_decay_rate, float)
+    # assert isinstance(lr_decay_rate, float)
 
     if name_sufix is not None:
         name_sufix += '_'

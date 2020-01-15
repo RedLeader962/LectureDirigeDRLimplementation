@@ -4,7 +4,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from typing import Any
-import random
 
 import numpy as np
 import tensorflow as tf
@@ -17,6 +16,7 @@ from SoftActorCritic.SoftActorCriticBrain import (
     )
 from blocAndTools import ConsolPrintLearningStats, buildingbloc as bloc
 from blocAndTools.agent import Agent
+from blocAndTools.buildingbloc import list_representation
 from blocAndTools.logger.basic_trajectory_logger import BasicTrajectoryLogger
 from blocAndTools.discrete_time_counter import DiscreteTimestepCounter
 from blocAndTools.experiment_clicker import ExperimentClicker
@@ -60,47 +60,47 @@ class SoftActorCriticAgent(Agent):
     
     def _build_computation_graph(self):
         """ Build the Policy_phi, V_psi and Q_theta computation graph as multi-layer perceptron """
-    
+
         self._set_random_seed()
-    
+
         # (nice to have) todo:implement --> add init hook:
         # Note: Second environment for policy evaluation
         self.evaluation_playground = bloc.GymPlayground(environment_name=self.exp_spec.prefered_environment)
-    
+
         """ ---- Adjust return threshold for model saving ---- """
         self.exp_spec.expected_reward_goal *= self.exp_spec['reward_scaling']
-    
+
         """ ---- Placeholder ---- """
         self.obs_t_ph = bloc.build_observation_placeholder(self.playground, name=vocab.obs_t_ph)
         self.obs_t_prime_ph = bloc.build_observation_placeholder(self.playground, name=vocab.obs_tPrime_ph)
         self.act_ph = bloc.build_action_placeholder(self.playground, name=vocab.act_ph)
-    
+
         self.reward_t_ph = tf_cv1.placeholder(dtype=tf.float32, shape=(None,), name=vocab.rew_ph)
         self.trj_done_t_ph = tf_cv1.placeholder(dtype=tf.float32, shape=(None,), name=vocab.trj_done_ph)
-    
+
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         # /// Actor computation graph //////////////////////////////////////////////////////////////////////////////////
         with tf_cv1.variable_scope(vocab.actor_network):
             pi, pi_log_p, self.policy_mu = build_gaussian_policy_graph(self.obs_t_ph, self.exp_spec, self.playground)
-    
+
             self.policy_pi, self.pi_log_likelihood = apply_action_bound(pi, pi_log_p)
-    
+
             """ ---- Adjust policy distribution result to action range  ---- """
             if self.playground.ACTION_SPACE.bounded_above:
                 self.policy_pi *= self.playground.ACTION_SPACE.high[0]
                 self.policy_mu *= self.playground.ACTION_SPACE.high[0]
-    
+
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         # /// Critic computation graph /////////////////////////////////////////////////////////////////////////////////
         with tf_cv1.variable_scope(vocab.critic_network):
             self.V_psi, self.V_psi_frozen = build_critic_graph_v_psi(self.obs_t_ph, self.obs_t_prime_ph, self.exp_spec)
     
-            """ ---- Q_theta according to sampled action ---- """
-            self.Q_act_1, self.Q_act_2 = build_critic_graph_q_theta(self.obs_t_ph, self.act_ph, self.exp_spec)
-            """ ---- Q_theta according to the reparametrized policy ---- """
-            self.Q_pi_1, self.Q_pi_2 = build_critic_graph_q_theta(self.obs_t_ph, self.policy_pi, self.exp_spec,
-                                                                  reuse=True)
-    
+            """ ---- Q_theta {1,2} according to sampled action & according to the reparametrized policy---- """
+            self.Q_act_1, self.Q_pi_1 = build_critic_graph_q_theta(self.obs_t_ph, self.act_ph, self.policy_pi,
+                                                                   self.exp_spec, name=vocab.Q_theta_1)
+            self.Q_act_2, self.Q_pi_2 = build_critic_graph_q_theta(self.obs_t_ph, self.act_ph, self.policy_pi,
+                                                                   self.exp_spec, name=vocab.Q_theta_2)
+
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         # /// Actor & Critic Training ops //////////////////////////////////////////////////////////////////////////////
         with tf_cv1.variable_scope(vocab.critic_training):
@@ -131,8 +131,14 @@ class SoftActorCriticAgent(Agent):
             self.V_psi_frozen_update_ops = update_frozen_v_psi_op(self.exp_spec['target_smoothing_coefficient'])
             self.init_frozen_v_psi_op = init_frozen_v_psi()
 
+        tr_str = list_representation(tf_cv1.get_collection_ref(tf_cv1.GraphKeys.TRAINABLE_VARIABLES),
+                                     ":: TRAINABLE_VARIABLES")
+        print(tr_str)
+
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         # /// Summary ops //////////////////////////////////////////////////////////////////////////////////////////////
+
+        # region :: Summary placholders & ops ...
         """ ---- By Epoch summary: RETURNS & LENGHT ---- """
         self.summary_avg_trjs_return_ph = tf_cv1.placeholder(
             tf.float32, name='summary_ph/' + 'stoPi_stage_avg_trjs_return_ph')
@@ -143,59 +149,58 @@ class SoftActorCriticAgent(Agent):
             tf.float32, name='summary_ph/' + 'stoPi_stage_avg_trjs_len_ph')
         tf_cv1.summary.scalar('Epoch_average_trj_lenght_stochastic_pi)', self.summary_avg_trjs_len_ph,
                               family=vocab.Trajectory_lenght)
-    
+
         self.summary_eval_avg_trjs_return_ph = tf_cv1.placeholder(
             tf.float32, name='summary_ph/' + 'detPi_stage_avg_trjs_return_ph')
         tf_cv1.summary.scalar('Epoch_average_trj_return_deterministic_pi)', self.summary_eval_avg_trjs_return_ph,
                               family=vocab.G)
-    
+
         self.summary_eval_avg_trjs_len_ph = tf_cv1.placeholder(
             tf.float32, name='summary_ph/' + 'detPi_stage_avg_trjs_len_ph')
         tf_cv1.summary.scalar('Epoch_average_trj_lenght_deterministic_pi)', self.summary_eval_avg_trjs_len_ph,
                               family=vocab.Trajectory_lenght)
-    
+
         """ ---- By Epoch summary: LOSS ---- """
         self.summary_avg_trjs_Vloss_ph = tf_cv1.placeholder(tf.float32, name='summary_ph/' + 'Critic_V_loss_ph')
         tf_cv1.summary.scalar('critic_v_loss', self.summary_avg_trjs_Vloss_ph, family=vocab.loss)
-    
+
         self.summary_avg_trjs_Q1loss_ph = tf_cv1.placeholder(tf.float32, name='summary_ph/' + 'Critic_Q1_loss_ph')
         tf_cv1.summary.scalar('critic_q_1_loss', self.summary_avg_trjs_Q1loss_ph, family=vocab.loss)
-    
+
         self.summary_avg_trjs_Q2loss_ph = tf_cv1.placeholder(tf.float32, name='summary_ph/' + 'Critic_Q2_loss_ph')
         tf_cv1.summary.scalar('critic_q_2_loss', self.summary_avg_trjs_Q2loss_ph, family=vocab.loss)
-    
+
         self.summary_avg_trjs_pi_loss_ph = tf_cv1.placeholder(tf.float32, name='summary_ph/' + 'policy_loss_ph')
         tf_cv1.summary.scalar('policy_loss', self.summary_avg_trjs_pi_loss_ph, family=vocab.loss)
-    
+
         """ ---- By Epoch summary: POLICY & VALUE fct ---- """
-    
+
         self.summary_avg_pi_log_likelihood_ph = tf_cv1.placeholder(tf.float32, name='summary_ph/' + 'pi_log_p_ph')
         tf_cv1.summary.scalar('policy_log_likelihood', self.summary_avg_pi_log_likelihood_ph, family=vocab.policy)
-    
+
         # self.summary_avg_policy_pi_ph = tf_cv1.placeholder(tf.float32, name='summary_ph/' + 'policy_pi_ph')
         # tf_cv1.summary.scalar('policy_py', self.summary_avg_policy_pi_ph, family=vocab.policy)
         #
         # self.summary_avg_policy_mu_ph = tf_cv1.placeholder(tf.float32, name='summary_ph/' + 'policy_mu_ph')
         # tf_cv1.summary.scalar('policy_mu', self.summary_avg_policy_mu_ph, family=vocab.policy)
-    
+
         self.summary_avg_V_value_ph = tf_cv1.placeholder(tf.float32, name='summary_ph/' + 'V_values_ph')
         tf_cv1.summary.scalar('V_values', self.summary_avg_V_value_ph, family=vocab.values)
-    
+
         self.summary_avg_frozen_V_value_ph = tf_cv1.placeholder(tf.float32, name='summary_ph/' + 'frozen_V_values_ph')
         tf_cv1.summary.scalar('frozen_V_values', self.summary_avg_frozen_V_value_ph, family=vocab.values)
-    
+
         self.summary_avg_Q1_value_ph = tf_cv1.placeholder(tf.float32, name='summary_ph/' + 'Q1_values_ph')
         tf_cv1.summary.scalar('Q1_values', self.summary_avg_Q1_value_ph, family=vocab.values)
-    
+
         self.summary_avg_Q2_value_ph = tf_cv1.placeholder(tf.float32, name='summary_ph/' + 'Q2_values_ph')
         tf_cv1.summary.scalar('Q2_values', self.summary_avg_Q2_value_ph, family=vocab.values)
-    
+
         self.summary_epoch_op = tf_cv1.summary.merge_all()
-    
+
         """ ---- Distribution summary ---- """
-    
         self.summary_hist_policy_pi = tf_cv1.summary.histogram('policy_py_tensor', self.policy_pi, family=vocab.policy)
-    
+
         """ ---- By Trajectory summary ---- """
         # self.summary_sto_pi_TRJ_return_ph = tf_cv1.placeholder(tf.float32,
         #                                                        name='summary_ph/' + 'summary_stoPi_trj_return_ph')
@@ -210,17 +215,17 @@ class SoftActorCriticAgent(Agent):
         #
         # self.summary_TRJ_op = tf_cv1.summary.merge([self.summary_sto_pi_TRJ_return_op,
         #                                             self.summary_sto_pi_TRJ_lenght_op])
+
+        # endregion
         return None
 
-    def _select_action_given_policy(self, sess: tf_cv1.Session, obs_t: Any, deterministic: bool = True, **kwargs):
+    def _select_action_given_policy(self, obs_t: Any, deterministic: bool = True, **kwargs: bool):
         """ Make the final policy deterministic at training end for best performance
         
             deterministic policy  -->  'exploiTation'
             stochastic policy     -->  'exploRation'
             
-        :param sess: the curent session
         :param obs_t: a environment observation
-        :param deterministic: use the policy distribution mean instead of a sample from the policy distribution
         :return: a selected action
         """
         if deterministic:
@@ -229,7 +234,7 @@ class SoftActorCriticAgent(Agent):
         else:
             """ ---- The 'exploRation' policy ---- """
             the_policy = self.policy_pi
-
+    
         obs_t_flat = bloc.format_single_step_observation(obs_t)
         act_t = self.sess.run(the_policy, feed_dict={self.obs_t_ph: obs_t_flat})
         act_t = act_t.ravel()  # for continuous action space.
@@ -253,23 +258,32 @@ class SoftActorCriticAgent(Agent):
         self.experiment_counter = ExperimentClicker()
         self.epoch_metric_logger = EpochMetricLogger()
         consol_print_learning_stats.change_progress_bar_lenght(4)
-        
+
+        """ ---- Build a small fixed obs sample for TF summary distribution of policy_py  ---- """
+        small_fixed_obs_sample = []
+        obs = self.playground.env.reset()
+        for sample in range(100):
+            act_t = self.playground.env.action_space.sample()
+            obs, _, _, _ = self.playground.env.step(act_t)
+            small_fixed_obs_sample.append(obs)
+        self.small_fixed_obs_sample_feed_dict = {self.obs_t_ph: small_fixed_obs_sample}
+
         print(":: SoftActorCritic agent reporting for training ")
-        
+
         """ ---- Warm-up the computation graph and start learning! ---- """
         with tf_cv1.Session() as sess:
             self.sess = sess
             self.sess.run(tf_cv1.global_variables_initializer())  # initialize random variable in the computation graph
-
+    
             consol_print_learning_stats.start_the_crazy_experiment()
-
+    
             # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
             #    Training loop
             # //////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+    
             """ ---- copy V_psi_frozen parameter to V_psi ---- """
             self.sess.run(self.init_frozen_v_psi_op)
-
+    
             """ ---- Simulator: Epochs ---- """
             timecounter.reset_global_count()
             for epoch in range(self.exp_spec.max_epoch):
@@ -288,41 +302,41 @@ class SoftActorCriticAgent(Agent):
                 while timecounter.per_epoch_count < self.exp_spec['timestep_per_epoch']:
                     timecounter.reset_local_count()
                     consol_print_learning_stats.next_glorious_trajectory()
-    
+
                     # ... investigate ..................................................................................
                     obs_t = self.playground.env.reset()
-    
+
                     # (nice to have) todo:investigate?? --> check if it make a difference to pre instantiate :
                     # obs_t, reward_t, trj_done = self.playground.env.reset(), 0.0, False
                     # obs_t_prime = np.copy(obs_t)
                     # act_t = self.playground.env.action_space.sample()
                     # .......................................................................... investigate ...(end)...
-    
+
                     """ ---- Simulator: time-steps ---- """
                     while True:
                         timecounter.step_all()
-        
+
                         if timecounter.global_count > self.exp_spec['min_pool_size']:
                             # self._render_trajectory_on_condition(epoch, render_env, trj_idx)
-            
+
                             """ ---- Agent: act in the environment using the stochastic policy---- """
-                            act_t = self._select_action_given_policy(sess, obs_t, deterministic=False)
+                            act_t = self._select_action_given_policy(obs_t, deterministic=False)
                         else:
                             """ ---- Agent: act randomly at first for better exploration ---- """
                             act_t = self.playground.env.action_space.sample()
-        
+
                         obs_t_prime, reward_t, trj_done, _ = self.playground.env.step(act_t)
-        
+
                         """ ---- Agent: collect current timestep events ---- """
                         self.pool_manager.collect_OAnORD(obs_t, act_t, obs_t_prime, reward_t, trj_done)
-        
+
                         obs_t = obs_t_prime
-        
+
                         if (timecounter.local_count % self.exp_spec['gradient_step_interval'] == 0
                                 and self.pool_manager.current_pool_size > self.exp_spec['min_pool_size']):
                             """ ---- 'Soft Policy Evaluation' & 'Policy Improvement' step ---- """
                             self._perform_gradient_step(consol_print_learning_stats, timecounter=timecounter)
-        
+
                         if trj_done:
                             """ ---- Simulator: trajectory as ended --> compute training stats ---- """
                             trj_return, trj_lenght = self.pool_manager.trajectory_ended()
@@ -357,7 +371,7 @@ class SoftActorCriticAgent(Agent):
                     epoch_eval_mean_trjs_return = self.epoch_metric_logger.agent_eval_mean_trjs_return
                     epoch_eval_mean_trjs_lenght = self.epoch_metric_logger.agent_eval_mean_trjs_lenght
                     epoch_mean_policy_loss = self.epoch_metric_logger.mean_pi_loss
-    
+
                     epoch_metric = [
                         epoch_eval_mean_trjs_return,
                         epoch_eval_mean_trjs_lenght,
@@ -435,9 +449,8 @@ class SoftActorCriticAgent(Agent):
             self.epoch_metric_logger.append_all_epoch_metric(*metric)
     
             """ ---- policy_pi summmary ---- """
-            obs_single_sample = random.sample(replay_batch.obs_t, 1)
-            obs_single_sample_feed_dict = {self.obs_t_ph: obs_single_sample}
-            epoch_sumarry_histo = self.sess.run(self.summary_hist_policy_pi, feed_dict=obs_single_sample_feed_dict)
+            epoch_sumarry_histo = self.sess.run(self.summary_hist_policy_pi,
+                                                feed_dict=self.small_fixed_obs_sample_feed_dict)
             self.writer.add_summary(epoch_sumarry_histo, global_step=timecounter.global_count)
 
         """ ---- 'Soft Policy Evaluation' step ---- """
@@ -484,7 +497,7 @@ class SoftActorCriticAgent(Agent):
         :return: None
         """
         epoch += 1
-        trajectory_logger = BasicTrajectoryLogger()
+        eval_trajectory_logger = BasicTrajectoryLogger()
         cycle_indexer = CycleIndexer(cycle_lenght=10)
         eval_trj_returns = []
         eval_trj_lenghts = []
@@ -502,32 +515,32 @@ class SoftActorCriticAgent(Agent):
     
                 self._render_eval_trj_on_condition(epoch, render_env, run)
     
-                act_t = self._select_action_given_policy(sess, observation, deterministic=True)
+                act_t = self._select_action_given_policy(observation, deterministic=True)
                 observation, reward, done, _ = self.evaluation_playground.env.step(act_t)
     
-                trajectory_logger.push(reward)
+                eval_trajectory_logger.push(reward)
     
                 if done:
-                    self.epoch_metric_logger.append_agent_eval_trj_metric(trajectory_logger.the_return,
-                                                                          trajectory_logger.lenght)
-                    eval_trj_returns.append(trajectory_logger.the_return)
-                    eval_trj_lenghts.append(trajectory_logger.lenght)
-
-                    print("\r     ↳ {:^3} :: Agent evaluation {:>4}  ".format(epoch, run + 1),
+                    self.epoch_metric_logger.append_agent_eval_trj_metric(eval_trajectory_logger.the_return,
+                                                                          eval_trajectory_logger.lenght)
+                    eval_trj_returns.append(eval_trajectory_logger.the_return)
+                    eval_trj_lenghts.append(eval_trajectory_logger.lenght)
+        
+                    print("\r     ↳ {:^3} :: Evaluation run {:>4}  |".format(epoch, run + 1),
                           ">" * cycle_indexer.i, " " * cycle_indexer.j,
-                          # "  got return {:>8.2f}   after  {:>4}  timesteps".format(trajectory_logger.the_return,
-                          # trajectory_logger.lenght),
+                          "  got return {:>8.2f}   after  {:>4}  timesteps".format(eval_trajectory_logger.the_return,
+                                                                                   eval_trajectory_logger.lenght),
                           sep='', end='', flush=True)
-
-                    trajectory_logger.reset()
+        
+                    eval_trajectory_logger.reset()
                     break
 
         eval_trj_return = np.mean(eval_trj_returns)
         eval_trj_lenght = np.mean(eval_trj_lenghts)
 
-        print("\r     ↳ {:^3} :: Agent evaluation   avg return: {:>8.4f}   avg trj lenght:  {:>4}".format(epoch,
-                                                                                                          eval_trj_return,
-                                                                                                          eval_trj_lenght))
+        print("\r     ↳ {:^3} :: Evaluation runs | avg return: {:>8.4f}   avg trj lenght:  {:>4}".format(epoch,
+                                                                                                         eval_trj_return,
+                                                                                                         eval_trj_lenght))
         return None
 
     def _render_eval_trj_on_condition(self, epoch, render_env, trj_collected_in_that_epoch):
@@ -535,13 +548,15 @@ class SoftActorCriticAgent(Agent):
         if (render_env and (epoch % self.exp_spec.render_env_every_What_epoch == 0)
                 and trj_collected_in_that_epoch % self.exp_spec['render_env_eval_interval'] == 0):
             self.evaluation_playground.env.env.render()  # keep environment rendering turned OFF during unit test
+        return None
 
     def _save_learned_model(self, batch_average_trjs_return: float, epoch, sess: tf_cv1.Session) -> None:
         if batch_average_trjs_return >= float(self.exp_spec.expected_reward_goal):
             print("\n\n    ::  {} batch avg return reached".format(batch_average_trjs_return))
             self._save_checkpoint(epoch, sess, self.exp_spec.algo_name, batch_average_trjs_return)
-        elif self.experiment_counter.gradient_step_count % 100000 == 0:
-            self._save_checkpoint(epoch, sess, self.exp_spec.algo_name, batch_average_trjs_return)
+        elif self.experiment_counter.gradient_step_count % 10000 == 0:
+            self._save_checkpoint(epoch, sess, self.exp_spec.algo_name, batch_average_trjs_return, silent=True)
+        return None
 
     def __del__(self):
         # (nice to have) todo:assessment --> is it linked to the 'experiment_runner' rerun error (fail at second rerun)

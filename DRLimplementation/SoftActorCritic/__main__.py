@@ -148,7 +148,7 @@ SAC_base_hparam = {
     
     'target_smoothing_coefficient':   0.005,  # SAC paper: 0.005 (1 <==> HARD TARGET update), SpiningUp: 0.995,
     'target_update_interval':         1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
-    'gradient_step_interval':         1,
+    'gradient_step_interval':         1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 4 for HARD TARGET update
     
     # HW5: recover a standard max expected return objective as alpha --> 0, SpinningUp alpha=0.2
     'alpha':                          0.95,
@@ -196,7 +196,7 @@ SAC_MountainCar_hparam = {
     
     'expected_reward_goal':           90,  # Note: trigger model save on reach
     'max_epoch':                      50,
-    'timestep_per_epoch':             10000,
+    'timestep_per_epoch':             5000,
     
     'reward_scaling':                 [3.0, 6.0, 12.0, 24.0, 48.0],
     
@@ -252,33 +252,39 @@ SAC_Pendulum_hparam.update(
         'rerun_tag':                     'RewardScaleTest',
         'comment':                       '',
         'prefered_environment':          'Pendulum-v0',
-        'expected_reward_goal':          -160,
-        'max_epoch':                     250,
-        'timestep_per_epoch':            1000,
+        'expected_reward_goal':          (-561),
+        'max_epoch':                     50,
+        'timestep_per_epoch':            5000,
         'max_gradient_step_expected':    250000,
         'actor_lr_decay_rate':           1.0,  # Note: set to 1.0 to swith OFF scheduler
         'critic_lr_decay_rate':          1.0,  # Note: set to 1.0 to swith OFF scheduler
-        'batch_size_in_ts':              100,  # SAC paper:256, SpinningUp:100
-        'learning_rate':                 0.006,  # SAC paper: 30e-4
-        'critic_learning_rate':          0.006,  # SAC paper: 30e-4
-    
+        'batch_size_in_ts':              100,  # SAC paper:256, SpinningUp:100  # todo: 256
+        'learning_rate':                 0.003,  # SAC paper: 30e-4 SpinningUp: 0.001
+        'critic_learning_rate':          0.003,  # SAC paper: 30e-4 SpinningUp: 0.001
+        
         # HW5: recover a standard max expected return objective as alpha --> 0, SpinningUp=0.2, SAC paper=1.0
-        'alpha':                         0.2,
-        'max_eval_trj':                  20,  #SpiningUp: 10
-    
-        'reward_scaling':                [2.0, 5.0, 10.0, 1.0, -1.0, -2.0, -5.0],
-    
-        'target_smoothing_coefficient':  0.995,  # SAC paper: 0.005 (1 <==> HARD TARGET update), SpiningUp: 0.995,
-        'target_update_interval':        10,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
-    
-        'pool_capacity':                 int(1e5),  # SAC paper & SpinningUp: 1e6
+        'alpha':                         0.2,  # todo: 1.0
+        'max_eval_trj':                  20,  #SpiningUp: 10    # todo: 10
+        
+        'reward_scaling':                1.0,  # [2.0, 5.0, 10.0, 1.0, -1.0, -2.0, -5.0], # SpinningUp: 1.0
+        
+        'target_smoothing_coefficient':  0.99,
+        # SAC paper: 0.005 (1.0 <==> HARD TARGET update), SpiningUp: 0.995, # todo: 0.05
+        'target_update_interval':        1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
+        'gradient_step_interval':        1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 4 for HARD TARGET update
+        
+        'pool_capacity':                 int(1e6),  # SAC paper & SpinningUp: 1e6
         'min_pool_size':                 10000,  # SpinningUp: 10000
-    
+        
+        'theta_nn_h_layer_topo':         (16,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+        'phi_nn_h_layer_topo':           (16,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+        'psi_nn_h_layer_topo':           (16,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+        
         'render_env_every_What_epoch':   5,
-        'render_env_eval_interval':      10,
+        'render_env_eval_interval':      3,
         'print_metric_every_what_epoch': 10,
         'log_metric_interval':           50,
-        'note':                          ''
+        'note':                          '(Proof of life) Should reach Avg Return close to ~ -560'
         }
     )
 
@@ -399,6 +405,9 @@ parser.add_argument('-d', '--discounted', default=None, type=bool,
 
 parser.add_argument('--playLunar', action='store_true', help='Play a trained Soft Actor-Critic agent on the '
                                                              'LunarLanderContinuous-v2 environment')
+
+parser.add_argument('--playPendulum', action='store_true', help='Play a trained Soft Actor-Critic agent on the '
+                                                                'Pendulum environment')
 # (Ice-box) todo:implement --> select agent hparam to play by command line:
 
 parser.add_argument('--play_for', type=int, default=10,
@@ -418,47 +427,56 @@ args = parser.parse_args()
 # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ** * * * * *
 consol_width = 90
 
-if args.playLunar:
+if args.playPendulum:
     # (Ice-box) todo:implement --> load hparam dict from the config.txt
     
-    raise NotImplementedError  # (CRITICAL) todo:implement --> play trainned agent from command line::
-
-#     """ ---- Play LunarLander run ---- """
-#     BATCH_AAC_LunarLander_freezed_hparam = {
-#         'rerun_tag':                      'BBOOT-Lunar-T',
-#         'paramameter_set_name':           'Batch-AAC-Split-nn',
-#         'comment':                        '',
-#         'AgentType':                      BatchActorCriticAgent,
-#         'Network':                        NetworkType.Split,
-#         'Target':                         TargetType.Bootstrap,
-#         'algo_name':                      'Batch ActorCritic',
-#         'prefered_environment':           'LunarLander-v2',
-#         'expected_reward_goal':           195,  # trigger model save on reach
-#         'batch_size_in_ts':               4000,
-#         'max_epoch':                      220,
-#         'discounted_reward_to_go':        True,
-#         'discout_factor':                 0.9999,
-#         'learning_rate':                  0.01,
-#         'critic_learning_rate':           0.001,
-#         'actor_lr_decay_rate':            0.01,
-#         'critic_lr_decay_rate':           0.01,
-#         'critique_loop_len':              80,
-#         'theta_nn_h_layer_topo':          (84, 84),
-#         'theta_hidden_layers_activation': tf.nn.relu,  # tf.nn.tanh,
-#         'theta_output_layers_activation': None,
-#         'render_env_every_What_epoch':    5,
-#         'print_metric_every_what_epoch':  5,
-#         'note':                           '(!) It work 1 time out of 3 time: BBOOT-Lunar-T --> reached ~200 '
-#                                           'History: BBOOT-Lunar-N-batch_size_in_ts=2500 --> reached ~200 '
-#                                           'History: BBOOT-Lunar-K-critic_learning_rate=(0.001) '
-#                                           '                 --> Reached avg return ~156 for 30/80 epoch'
-#         }
-#
-#     chekpoint_dir = "Run-BBOOT-Lunar-T-max_epoch=220-0-Batch-AAC-Split-nn()-d10h18m15s22/checkpoint/"
-#     # run_dir = chekpoint_dir + "Batch_ActorCritic_agent-211-116"
-#     run_dir = chekpoint_dir + "Batch_ActorCritic_agent-210-78"
-#
-#     play_agent(run_dir, BATCH_AAC_LunarLander_freezed_hparam, args, record=args.record)
+    SAC_Pendulum_freezed_hparam = dict(SAC_base_hparam)
+    SAC_Pendulum_freezed_hparam.update(
+        {
+            'rerun_tag':                     'RewardScaleTest',
+            'comment':                       '',
+            'prefered_environment':          'Pendulum-v0',
+            'expected_reward_goal':          (-561),
+            'max_epoch':                     50,
+            'timestep_per_epoch':            5000,
+            'max_gradient_step_expected':    250000,
+            'actor_lr_decay_rate':           1.0,  # Note: set to 1.0 to swith OFF scheduler
+            'critic_lr_decay_rate':          1.0,  # Note: set to 1.0 to swith OFF scheduler
+            'batch_size_in_ts':              100,  # SAC paper:256, SpinningUp:100  # todo: 256
+            'learning_rate':                 0.003,  # SAC paper: 30e-4 SpinningUp: 0.001
+            'critic_learning_rate':          0.003,  # SAC paper: 30e-4 SpinningUp: 0.001
+            
+            # HW5: recover a standard max expected return objective as alpha --> 0, SpinningUp=0.2, SAC paper=1.0
+            'alpha':                         0.2,  # todo: 1.0
+            'max_eval_trj':                  20,  #SpiningUp: 10    # todo: 10
+            
+            'reward_scaling':                1.0,  # [2.0, 5.0, 10.0, 1.0, -1.0, -2.0, -5.0], # SpinningUp: 1.0
+            
+            'target_smoothing_coefficient':  0.99,
+            # SAC paper: 0.005 (1.0 <==> HARD TARGET update), SpiningUp: 0.995, # todo: 0.05
+            'target_update_interval':        1,
+            # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
+            'gradient_step_interval':        1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 4 for HARD TARGET update
+            
+            'pool_capacity':                 int(1e6),  # SAC paper & SpinningUp: 1e6
+            'min_pool_size':                 10000,  # SpinningUp: 10000
+            
+            'theta_nn_h_layer_topo':         (16,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+            'phi_nn_h_layer_topo':           (16,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+            'psi_nn_h_layer_topo':           (16,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+            
+            'render_env_every_What_epoch':   5,
+            'render_env_eval_interval':      3,
+            'print_metric_every_what_epoch': 10,
+            'log_metric_interval':           50,
+            'note':                          '(Proof of life) Should reach Avg Return close to ~ -560'
+            }
+        )
+    
+    chekpoint_dir = "Run-RewardScaleTest-0-SAC()-d15h12m51s20"
+    
+    run_dir = chekpoint_dir + "/checkpoint/" + "Soft_Actor_Critic_agent--487-49"
+    play_agent(run_dir, SAC_Pendulum_freezed_hparam, args, record=args.record)
 
 else:
     hparam = None
