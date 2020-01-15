@@ -71,7 +71,7 @@ from blocAndTools.experiment_runner import (
         'reward_scaling': float                     The most important hymperparameter for SAC (1.0 <==> no scaling)
     /--- Target network update -----------------------------------------------------------------------------------------
         'target_update_interval': int               1000 for HARD TARGET update, 1 for EXPONENTIAL MOVING AVERAGE
-        'target_smoothing_coefficient': float       (tau, polyak update coeficient)
+        'target_smoothing_coefficient': float       (tau, 𝛌 coeficient)
                                                      Control over the EXPONENTIAL MOVING AVERAGE
                                                      the SAC paper recommand ~ 0.005
                                                      (SpiningUp = 0.995 with 'target_update_interval' = 1)
@@ -81,8 +81,7 @@ from blocAndTools.experiment_runner import (
     /--- Policy related ------------------------------------------------------------------------------------------------
         'alpha': float                              (aka Temperature, Entropy regularization coefficient )
                                                     Control the trade-off between exploration-exploitation
-                                                    We recover the standard maximum expected return objective,
-                                                     aka the Q-fct, as alpha --> 0
+                                                    alpha = 0 <==> SAC become a standard max expected return objective
                                                     SpinningUp=0.2, SAC paper=1.0
         
     /--- Policy evaluation ---------------------------------------------------------------------------------------------
@@ -137,21 +136,27 @@ SAC_base_hparam = {
     'max_epoch':                      50,
     'timestep_per_epoch':             5000,
     
-    'reward_scaling':                 5.0,  # the only hparam requiring tuning
+    # (!) Note: The only hparam requiring carefull tuning. Can be [0.0 < rewS <= 1.0]
+    'reward_scaling':                 1.0,  # SAC paper: 3, 10, 30  SpinningUp: 1.0
     
     'discout_factor':                 0.99,  # SAC paper: 0.99
-    'learning_rate':                  0.003,  # SAC paper: 30e-4
-    'critic_learning_rate':           0.003,  # SAC paper: 30e-4
+    'learning_rate':                  0.003,  # SAC paper: 30e-4 SpinningUp: 0.001
+    'critic_learning_rate':           0.003,  # SAC paper: 30e-4 SpinningUp: 0.001
     'max_gradient_step_expected':     250000,
     'actor_lr_decay_rate':            1.0,  # Note: set to 1.0 to swith OFF scheduler
     'critic_lr_decay_rate':           1.0,  # Note: set to 1.0 to swith OFF scheduler
     
-    'target_smoothing_coefficient':   0.005,  # SAC paper: 0.005 (1 <==> HARD TARGET update), SpiningUp: 0.995,
-    'target_update_interval':         1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
-    'gradient_step_interval':         1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 4 for HARD TARGET update
+    # Note: HARD TARGET update vs EXPONENTIAL MOVING AVERAGE (EMA)
+    #  |                                        EMA         HARD TARGET
+    #  |        target_smoothing_coefficient:   1.0         0.005
+    #  |        target_update_interval:         1           1000
+    #  |        gradient_step_interval:         1           4 (except for rlLab humanoid)
+    'target_smoothing_coefficient':   0.005,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
+    'target_update_interval':         1,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
+    'gradient_step_interval':         1,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
     
-    # HW5: recover a standard max expected return objective as alpha --> 0, SpinningUp alpha=0.2
-    'alpha':                          0.95,
+    # Note: alpha = 0 <==> SAC become a standard max expected return objective
+    'alpha':                          0.95,  # SpinningUp=0.2, SAC paper=1.0
     'max_eval_trj':                   10,  #SpiningUp: 10
     
     'pool_capacity':                  int(1e6),  # SAC paper & SpinningUp: 1e6
@@ -186,52 +191,24 @@ SAC_base_hparam = {
 # - spec:
 #    - max_episode_steps: 999
 #    - reward_threshold: 90.0       #  The reward threshold before the task is considered solved
-SAC_MountainCar_hparam = {
-    'rerun_tag':                      'MonCar',
-    'paramameter_set_name':           'SAC',
-    'comment':                        '',
-    'algo_name':                      'Soft Actor Critic',
-    'AgentType':                      SoftActorCriticAgent,
-    'prefered_environment':           'MountainCarContinuous-v0',
-    
-    'expected_reward_goal':           90,  # Note: trigger model save on reach
-    'max_epoch':                      50,
-    'timestep_per_epoch':             5000,
-    
-    'reward_scaling':                 [3.0, 6.0, 12.0, 24.0, 48.0],
-    
-    'discout_factor':                 0.99,  # SAC paper: 0.99
-    'learning_rate':                  0.003,  # SAC paper: 30e-4
-    'critic_learning_rate':           0.003,  # SAC paper: 30e-4
-    'max_gradient_step_expected':     5000000,
-    'actor_lr_decay_rate':            1.0,  # Note: set to 1.0 to swith OFF scheduler
-    'critic_lr_decay_rate':           1.0,  # Note: set to 1.0 to swith OFF scheduler
-    
-    'target_smoothing_coefficient':   1.0,  # SAC paper: EXPONENTIAL MOVING AVERAGE ~ 0.005, 1 <==> HARD TARGET update
-    'target_update_interval':         1000,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
-    'gradient_step_interval':         1,
-    
-    'alpha':                          1,  # HW5: we recover a standard max expected return objective as alpha --> 0
-    'max_eval_trj':                   10,  #SpiningUp: 10
-    
-    'pool_capacity':                  int(1e6),  # SAC paper & SpinningUp: 1e6
-    'min_pool_size':                  8000,
-    'batch_size_in_ts':               64,  # SAC paper:256, SpinningUp:100
-    
-    'theta_nn_h_layer_topo':          (200, 200),  # SAC paper:(256, 256), SpinningUp:(400, 300)
-    'theta_hidden_layers_activation': tf.nn.relu,
-    'theta_output_layers_activation': None,
-    'phi_nn_h_layer_topo':            (200, 200),  # SAC paper:(256, 256), SpinningUp:(400, 300)
-    'phi_hidden_layers_activation':   tf.nn.relu,
-    'phi_output_layers_activation':   None,
-    'psi_nn_h_layer_topo':            (200, 200),  # SAC paper:(256, 256), SpinningUp:(400, 300)
-    'psi_hidden_layers_activation':   tf.nn.relu,
-    'psi_output_layers_activation':   None,
-    
-    'render_env_every_What_epoch':    5,
-    'print_metric_every_what_epoch':  5,
-    'note':                           ''
-    }
+SAC_MountainCar_hparam = dict(SAC_base_hparam)
+SAC_MountainCar_hparam.update(
+    {
+        'rerun_tag':                     'MonCar',
+        'paramameter_set_name':          'SAC',
+        'comment':                       '',
+        'algo_name':                     'Soft Actor Critic',
+        'AgentType':                     SoftActorCriticAgent,
+        'prefered_environment':          'MountainCarContinuous-v0',
+        'expected_reward_goal':          90,  # Note: trigger model save on reach
+        'reward_scaling':                [1.0, 0.8],
+        'render_env_every_What_epoch':   5,
+        'render_env_eval_interval':      5,
+        'print_metric_every_what_epoch': 5,
+        'log_metric_interval':           500,
+        'note':                          '',
+        }
+    )
 
 # 'Pendulum-v0'
 # - action_space:  Box(1,)
@@ -258,24 +235,30 @@ SAC_Pendulum_hparam.update(
         'max_gradient_step_expected':    250000,
         'actor_lr_decay_rate':           1.0,  # Note: set to 1.0 to swith OFF scheduler
         'critic_lr_decay_rate':          1.0,  # Note: set to 1.0 to swith OFF scheduler
-        'batch_size_in_ts':              100,  # SAC paper:256, SpinningUp:100  # todo: 256
+        'batch_size_in_ts':              100,  # SAC paper:256, SpinningUp:100  # todo: [64, 256]
         'learning_rate':                 0.003,  # SAC paper: 30e-4 SpinningUp: 0.001
         'critic_learning_rate':          0.003,  # SAC paper: 30e-4 SpinningUp: 0.001
-    
-        # HW5: recover a standard max expected return objective as alpha --> 0, SpinningUp=0.2, SAC paper=1.0
-        'alpha':                         0.2,  # todo: 1.0
+        
+        # Note: alpha = 0 <==> SAC become a standard max expected return objective
+        'alpha':                         0.2,  # todo: [1.0, 0.5, 0.0] # SpinningUp=0.2, SAC paper=1.0
         'max_eval_trj':                  20,  #SpiningUp: 10    # todo: 10
-    
-        'reward_scaling':                [2.0, 5.0, 10.0],  # SpinningUp: 1.0
-    
-        'target_smoothing_coefficient':  0.99,
-        # SAC paper: 0.005 (1.0 <==> HARD TARGET update), SpiningUp: 0.995, # todo: 0.05
-        'target_update_interval':        1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
-        'gradient_step_interval':        1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 4 for HARD TARGET update
-    
+        
+        # (!) Note: The only hparam requiring carefull tuning. Can be [0.0 < rewS <= 1.0]
+        # SAC paper: 3, 10, 30  SpinningUp: 1.0
+        'reward_scaling':                [0.8, 0.5, 0.3],  # todo: [5.0, 10.0, 100.0]
+        
+        # Note: HARD TARGET update vs EXPONENTIAL MOVING AVERAGE (EMA)
+        #  |                                        EMA         HARD TARGET
+        #  |        target_smoothing_coefficient:   1.0         0.005
+        #  |        target_update_interval:         1           1000
+        #  |        gradient_step_interval:         1           4 (except for rlLab humanoid)
+        'target_smoothing_coefficient':  0.99,  # todo: 0.05 # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
+        'target_update_interval':        1,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
+        'gradient_step_interval':        1,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
+        
         'pool_capacity':                 int(1e6),  # SAC paper & SpinningUp: 1e6
         'min_pool_size':                 10000,  # SpinningUp: 10000
-    
+        
         'theta_nn_h_layer_topo':         (16,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
         'phi_nn_h_layer_topo':           (16,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
         'psi_nn_h_layer_topo':           (16,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
@@ -319,11 +302,11 @@ SAC_LunarLander_hparam.update(
         'comment':                       '',
         'prefered_environment':          'LunarLanderContinuous-v2',
         'expected_reward_goal':          190,  # goal: 200
-        'reward_scaling':                3.0,
-        'render_env_every_What_epoch':   1,
-        'render_env_eval_interval':      5,
-        'print_metric_every_what_epoch': 5,
-        'log_metric_interval':           500,
+        'reward_scaling':                [1.0, 0.8, 2.0],
+        'render_env_every_What_epoch':   5,
+        'render_env_eval_interval':      3,
+        'print_metric_every_what_epoch': 10,
+        'log_metric_interval':           50,
         'note':                          ''
         }
     )

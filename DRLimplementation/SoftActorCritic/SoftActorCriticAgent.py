@@ -549,7 +549,7 @@ class SoftActorCriticAgent(Agent):
 
     def _save_learned_model(self, batch_average_trjs_return: float, epoch, sess: tf_cv1.Session) -> None:
         if batch_average_trjs_return >= float(self.exp_spec.expected_reward_goal):
-            print("\n\n    ::  {} batch avg return reached".format(batch_average_trjs_return))
+            print("\n\n    ::  {:>4f} batch avg return reached".format(batch_average_trjs_return))
             self._save_checkpoint(epoch, sess, self.exp_spec.algo_name, batch_average_trjs_return)
         elif self.experiment_counter.gradient_step_count % 10000 == 0:
             self._save_checkpoint(epoch, sess, self.exp_spec.algo_name, batch_average_trjs_return, silent=True)
