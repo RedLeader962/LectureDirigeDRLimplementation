@@ -67,9 +67,6 @@ class SoftActorCriticAgent(Agent):
         # Note: Second environment for policy evaluation
         self.evaluation_playground = bloc.GymPlayground(environment_name=self.exp_spec.prefered_environment)
 
-        """ ---- Adjust return threshold for model saving ---- """
-        self.exp_spec.expected_reward_goal *= self.exp_spec['reward_scaling']
-
         """ ---- Placeholder ---- """
         self.obs_t_ph = bloc.build_observation_placeholder(self.playground, name=vocab.obs_t_ph)
         self.obs_t_prime_ph = bloc.build_observation_placeholder(self.playground, name=vocab.obs_tPrime_ph)

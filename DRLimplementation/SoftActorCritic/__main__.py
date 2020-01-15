@@ -261,21 +261,21 @@ SAC_Pendulum_hparam.update(
         'batch_size_in_ts':              100,  # SAC paper:256, SpinningUp:100  # todo: 256
         'learning_rate':                 0.003,  # SAC paper: 30e-4 SpinningUp: 0.001
         'critic_learning_rate':          0.003,  # SAC paper: 30e-4 SpinningUp: 0.001
-        
+    
         # HW5: recover a standard max expected return objective as alpha --> 0, SpinningUp=0.2, SAC paper=1.0
         'alpha':                         0.2,  # todo: 1.0
         'max_eval_trj':                  20,  #SpiningUp: 10    # todo: 10
-        
-        'reward_scaling':                1.0,  # [2.0, 5.0, 10.0, 1.0, -1.0, -2.0, -5.0], # SpinningUp: 1.0
-        
+    
+        'reward_scaling':                [2.0, 5.0, 10.0],  # SpinningUp: 1.0
+    
         'target_smoothing_coefficient':  0.99,
         # SAC paper: 0.005 (1.0 <==> HARD TARGET update), SpiningUp: 0.995, # todo: 0.05
         'target_update_interval':        1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
         'gradient_step_interval':        1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 4 for HARD TARGET update
-        
+    
         'pool_capacity':                 int(1e6),  # SAC paper & SpinningUp: 1e6
         'min_pool_size':                 10000,  # SpinningUp: 10000
-        
+    
         'theta_nn_h_layer_topo':         (16,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
         'phi_nn_h_layer_topo':           (16,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
         'psi_nn_h_layer_topo':           (16,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
