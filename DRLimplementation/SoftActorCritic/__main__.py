@@ -240,7 +240,7 @@ SAC_Pendulum_hparam.update(
         'critic_learning_rate':          0.003,  # SAC paper: 30e-4 SpinningUp: 0.001
     
         # Note: alpha = 0 <==> SAC become a standard max expected return objective
-        'alpha':                         0.2,  # todo: [1.0, 0.5, 0.0] # SpinningUp=0.2, SAC paper=1.0
+        'alpha':                         0.2,  # todo: [1.0, 0.5, 0.0] # SAC paper=1.0 SpinningUp=0.2
         'max_eval_trj':                  20,  #SpiningUp: 10    # todo: 10
     
         # (!) Note: The only hparam requiring carefull tuning. Can be [0.0 < rewS <= 1.0]
@@ -258,7 +258,7 @@ SAC_Pendulum_hparam.update(
         
         'pool_capacity':                 int(1e6),  # SAC paper & SpinningUp: 1e6
         'min_pool_size':                 10000,  # SpinningUp: 10000
-        
+    
         'theta_nn_h_layer_topo':         (16,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
         'phi_nn_h_layer_topo':           (16,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
         'psi_nn_h_layer_topo':           (16,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
@@ -267,37 +267,24 @@ SAC_Pendulum_hparam.update(
         'render_env_eval_interval':      3,
         'print_metric_every_what_epoch': 10,
         'log_metric_interval':           50,
-        'note':                          '(Proof of life) Should reach Avg Return close to ~ -560'
+        'note':                          '(Proof of life) Should reach Avg Return close to ~ -560',
         }
     )
 
 # (!) Experiment --> en cours
 SAC_Pendulum_hparam.update(
     {
-        'rerun_tag':                    'AlphaTest',
-        'comment':                      '',
+        'rerun_tag':                    'TargetUpdateTest',
+        'comment':                      'SAC paper EMA and Alpha',
         'expected_reward_goal':         (-130),
-        'alpha':                        [1.0, 0.5, 0.0],  # SpinningUp=0.2, SAC paper=1.0
+        'alpha':                        1.0,  # SAC paper=1.0 SpinningUp=0.2
         'reward_scaling':               0.4,
-        'target_smoothing_coefficient': 0.99,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
+        'target_smoothing_coefficient': 0.005,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
         'target_update_interval':       1,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
         'gradient_step_interval':       1,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
+        'note':                         '',
         }
     )
-
-# Experiment todo:
-# SAC_Pendulum_hparam.update(
-#   {
-#       'rerun_tag':                     'TargetUpdateTest',
-#       'comment':                       'EMA As in SAC paper',
-#       'expected_reward_goal':          (-130),
-#       'alpha':                         1.0,
-#       'reward_scaling':                0.4,
-#       'target_smoothing_coefficient':  0.005,  # todo: 0.05 # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
-#       'target_update_interval':        1,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
-#       'gradient_step_interval':        1,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
-#   }
-# )
 
 # Experiment todo:
 # SAC_Pendulum_hparam.update(
@@ -305,13 +292,29 @@ SAC_Pendulum_hparam.update(
 #       'rerun_tag':                     'TargetUpdateTest',
 #       'comment':                       'HardTarget As in SAC paper',
 #       'expected_reward_goal':          (-130),
-#       'alpha':                         1.0,
+#       'alpha':                         1.0,   # SAC paper=1.0 SpinningUp=0.2
 #       'reward_scaling':                0.4,
-#       'target_smoothing_coefficient':  1.0,  # todo: 0.05 # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
+#       'target_smoothing_coefficient':  1.0,   # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
 #       'target_update_interval':        1000,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
 #       'gradient_step_interval':        4,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
+#       'note':                          '',
 #   }
 # )
+
+# Experiment todo:
+# SAC_Pendulum_hparam.update(
+#     {
+#         'rerun_tag':                    'AlphaTest',
+#         'comment':                      '',
+#         'expected_reward_goal':         (-130),
+#         'alpha':                        [1.0, 0.75, 0.5, 0.25 0.0],   # SAC paper=1.0 SpinningUp=0.2
+#         'reward_scaling':               0.4,
+#         'target_smoothing_coefficient': 0.99,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
+#         'target_update_interval':       1,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
+#         'gradient_step_interval':       1,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
+#         'note':                          '',
+#         }
+#     )
 
 
 # 'LunarLanderContinuous-v2'
@@ -471,15 +474,15 @@ if args.playPendulum:
             'batch_size_in_ts':              100,  # SAC paper:256, SpinningUp:100
             'learning_rate':                 0.003,  # SAC paper: 30e-4 SpinningUp: 0.001
             'critic_learning_rate':          0.003,  # SAC paper: 30e-4 SpinningUp: 0.001
-        
+    
             # Note: alpha = 0 <==> SAC become a standard max expected return objective
             'alpha':                         0.2,  # SpinningUp=0.2, SAC paper=1.0
             'max_eval_trj':                  20,  #SpiningUp: 10
-        
+    
             # (!) Note: The only hparam requiring carefull tuning. Can be [0.0 < rewS <= 1.0]
             # SAC paper: 3, 10, 30  SpinningUp: 1.0
             'reward_scaling':                0.3,  # Done: RewardScaleTest [0.8, 0.5, 0.3]
-        
+    
             # Note: HARD TARGET update vs EXPONENTIAL MOVING AVERAGE (EMA)
             #  |                                        EMA         HARD TARGET
             #  |        target_smoothing_coefficient:   1.0         0.005
@@ -488,14 +491,14 @@ if args.playPendulum:
             'target_smoothing_coefficient':  0.99,
             'target_update_interval':        1,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
             'gradient_step_interval':        1,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
-        
+    
             'pool_capacity':                 int(1e6),  # SAC paper & SpinningUp: 1e6
             'min_pool_size':                 10000,  # SpinningUp: 10000
-        
+    
             'theta_nn_h_layer_topo':         (16,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
             'phi_nn_h_layer_topo':           (16,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
             'psi_nn_h_layer_topo':           (16,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
-        
+    
             'render_env_every_What_epoch':   5,
             'render_env_eval_interval':      3,
             'print_metric_every_what_epoch': 10,
