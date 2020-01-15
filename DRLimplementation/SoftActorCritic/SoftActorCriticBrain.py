@@ -74,7 +74,7 @@ def apply_action_bound(policy_pi: tf.Tensor, policy_pi_log_likelihood: tf.Tensor
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ My bloc \\\(end)\\\
     
         # /// Original bloc ////////////////////////////////////////////////////////////////////////////////////////////
-        # (Priority) todo:investigate?? --> Source from SpinningUp:
+        # (Priority) todo:investigate?? --> Source from SpinningUp: Squashing function
         # pi = tf.tanh(pi)
     
         def clip_but_pass_gradient(x, l=-1., u=1.):
@@ -109,7 +109,6 @@ def build_gaussian_policy_graph(obs_t_ph: tf.Tensor, exp_spec: ExperimentSpec,
 
     :return: policy_pi, policy_pi_log_likelihood, policy_mu
     """
-    # with tf_cv1.variable_scope(vocab.actor_network):
     
     # ::Discrete case
     if isinstance(playground.env.action_space, gym.spaces.Discrete):
@@ -286,33 +285,26 @@ def critic_v_psi_train(V_psi: tf.Tensor, Q_pi_1: tf.Tensor, Q_pi_2: tf.Tensor,
     :return: v_loss, v_psi_optimizer
     """
     alpha = exp_spec['alpha']
-    
-    # with tf_cv1.variable_scope(vocab.critic_training):
-    # with tf_cv1.variable_scope(vocab.critic_loss):
-    
+
     """ ---- Build the Mean Square Error loss function ---- """
     with tf_cv1.variable_scope(vocab.V_psi_loss):
         min_q_theta = tf_cv1.minimum(Q_pi_1, Q_pi_2)
-        
-        v_psi_target = tf_cv1.stop_gradient(min_q_theta - alpha * policy_pi_log_likelihood)
-        
-        v_loss = 0.5 * tf.reduce_mean((v_psi_target - V_psi) ** 2)
-        
-        """ ---- Critic optimizer & learning rate scheduler ---- """
-        # critic_lr_schedule, critic_global_grad_step = critic_learning_rate_scheduler(exp_spec)
     
+        v_psi_target = tf_cv1.stop_gradient(min_q_theta - alpha * policy_pi_log_likelihood)
+    
+        v_loss = 0.5 * tf.reduce_mean((v_psi_target - V_psi) ** 2)
+
+    """ ---- Fetch all tensor from V_psi and frozen_V_psi for update ---- """
+    # (nice to have) todo:investigate?? --> find a other way to pass the network weight between the V and frozen_V:
     var_list = get_explicitely_graph_key_from(vocab.critic_network + '/' + vocab.V_psi)
     assert len(var_list) is not 0
+
+    """ ---- Critic optimizer ---- """
     v_psi_optimizer = tf_cv1.train.AdamOptimizer(learning_rate=critic_lr_schedule
                                                  ).minimize(loss=v_loss,
                                                             var_list=var_list,
                                                             global_step=critic_global_grad_step)
-    
-    # (nice to have) todo:investigate?? --> find a other way to pass the network weight between the V and frozen_V:
-    
-    """ ---- Fetch all tensor from V_psi and frozen_V_psi for update ---- """
-    # frozen_v_psi_update_ops = update_frozen_v_psi_op(tau)
-    
+
     return v_loss, v_psi_optimizer
 
 
@@ -329,19 +321,9 @@ def critic_q_theta_train(frozen_v_psi: tf.Tensor, q_theta_1: tf.Tensor, q_theta_
     :param critic_global:
     :return: q_theta_1_loss, q_theta_2_loss, q_theta_1_optimizer, q_theta_2_optimizer
     """
-    # with tf_cv1.variable_scope(vocab.critic_training):
-    
-    # ... investigate
-    # ...................................................................................................
-    # (Priority) todo:investigate?? --> does the squeeze introduce a error?:
-    # q_target = tf_cv1.stop_gradient(
-    #     exp_spec['reward_scaling'] * rew_ph + (1 - trj_done_ph) * exp_spec.discout_factor * tf_cv1.squeeze(
-    #         frozen_v_psi))
     
     q_target = tf_cv1.stop_gradient(
         exp_spec['reward_scaling'] * rew_ph + exp_spec.discout_factor * (1 - trj_done_ph) * frozen_v_psi)
-    # ........................................................................................... investigate ...(
-    # end)...
     
     """ ---- Build the Mean Square Error loss function ---- """
     # with tf_cv1.variable_scope(vocab.critic_loss):
@@ -389,8 +371,6 @@ def actor_train(policy_pi_log_likelihood: tf.Tensor, Q_pi_1: tf.Tensor, Q_pi_2: 
     """
     
     alpha = exp_spec['alpha']
-    
-    # with tf_cv1.variable_scope(vocab.policy_training):
     
     """ ---- Build the Kullback-Leibler divergence loss function ---- """
     # ... Investigate ..................................................................................................

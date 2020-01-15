@@ -238,15 +238,15 @@ SAC_Pendulum_hparam.update(
         'batch_size_in_ts':              100,  # SAC paper:256, SpinningUp:100  # todo: [64, 256]
         'learning_rate':                 0.003,  # SAC paper: 30e-4 SpinningUp: 0.001
         'critic_learning_rate':          0.003,  # SAC paper: 30e-4 SpinningUp: 0.001
-        
+    
         # Note: alpha = 0 <==> SAC become a standard max expected return objective
         'alpha':                         0.2,  # todo: [1.0, 0.5, 0.0] # SpinningUp=0.2, SAC paper=1.0
         'max_eval_trj':                  20,  #SpiningUp: 10    # todo: 10
-        
+    
         # (!) Note: The only hparam requiring carefull tuning. Can be [0.0 < rewS <= 1.0]
         # SAC paper: 3, 10, 30  SpinningUp: 1.0
-        'reward_scaling':                [0.8, 0.5, 0.3],  # todo: [5.0, 10.0, 100.0]
-        
+        'reward_scaling':                0.3,  # Done: [0.8, 0.5, 0.3], todo: [5.0, 10.0, 100.0]
+    
         # Note: HARD TARGET update vs EXPONENTIAL MOVING AVERAGE (EMA)
         #  |                                        EMA         HARD TARGET
         #  |        target_smoothing_coefficient:   1.0         0.005
@@ -262,7 +262,7 @@ SAC_Pendulum_hparam.update(
         'theta_nn_h_layer_topo':         (16,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
         'phi_nn_h_layer_topo':           (16,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
         'psi_nn_h_layer_topo':           (16,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
-        
+    
         'render_env_every_What_epoch':   5,
         'render_env_eval_interval':      3,
         'print_metric_every_what_epoch': 10,
@@ -270,6 +270,49 @@ SAC_Pendulum_hparam.update(
         'note':                          '(Proof of life) Should reach Avg Return close to ~ -560'
         }
     )
+
+# (!) Experiment --> en cours
+SAC_Pendulum_hparam.update(
+    {
+        'rerun_tag':                    'AlphaTest',
+        'comment':                      '',
+        'expected_reward_goal':         (-130),
+        'alpha':                        [1.0, 0.5, 0.0],  # SpinningUp=0.2, SAC paper=1.0
+        'reward_scaling':               0.4,
+        'target_smoothing_coefficient': 0.99,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
+        'target_update_interval':       1,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
+        'gradient_step_interval':       1,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
+        }
+    )
+
+# Experiment todo:
+# SAC_Pendulum_hparam.update(
+#   {
+#       'rerun_tag':                     'TargetUpdateTest',
+#       'comment':                       'EMA As in SAC paper',
+#       'expected_reward_goal':          (-130),
+#       'alpha':                         1.0,
+#       'reward_scaling':                0.4,
+#       'target_smoothing_coefficient':  0.005,  # todo: 0.05 # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
+#       'target_update_interval':        1,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
+#       'gradient_step_interval':        1,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
+#   }
+# )
+
+# Experiment todo:
+# SAC_Pendulum_hparam.update(
+#   {
+#       'rerun_tag':                     'TargetUpdateTest',
+#       'comment':                       'HardTarget As in SAC paper',
+#       'expected_reward_goal':          (-130),
+#       'alpha':                         1.0,
+#       'reward_scaling':                0.4,
+#       'target_smoothing_coefficient':  1.0,  # todo: 0.05 # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
+#       'target_update_interval':        1000,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
+#       'gradient_step_interval':        4,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
+#   }
+# )
+
 
 # 'LunarLanderContinuous-v2'
 # - action_space:  Box(2,) ⟶ [main engine, left-right engines]
@@ -372,7 +415,7 @@ parser.add_argument('--trainMontainCar', action='store_true',
 
 parser.add_argument('--trainPendulum', action='store_true', help='Train on Pendulum a Soft Actor-Critic agent')
 
-# todo:unit-test --> problem: rerun error
+# (Ice-box) todo:unit-test --> problem: rerun error
 parser.add_argument('--trainPendulumTESTrerun', action='store_true', help='Train on Pendulum a Soft Actor-Critic agent')
 
 parser.add_argument('--trainLunarLander', action='store_true', help='Train on LunarLander a Soft Actor-Critic agent')
@@ -425,29 +468,34 @@ if args.playPendulum:
             'max_gradient_step_expected':    250000,
             'actor_lr_decay_rate':           1.0,  # Note: set to 1.0 to swith OFF scheduler
             'critic_lr_decay_rate':          1.0,  # Note: set to 1.0 to swith OFF scheduler
-            'batch_size_in_ts':              100,  # SAC paper:256, SpinningUp:100  # todo: 256
+            'batch_size_in_ts':              100,  # SAC paper:256, SpinningUp:100
             'learning_rate':                 0.003,  # SAC paper: 30e-4 SpinningUp: 0.001
             'critic_learning_rate':          0.003,  # SAC paper: 30e-4 SpinningUp: 0.001
-            
-            # HW5: recover a standard max expected return objective as alpha --> 0, SpinningUp=0.2, SAC paper=1.0
-            'alpha':                         0.2,  # todo: 1.0
-            'max_eval_trj':                  20,  #SpiningUp: 10    # todo: 10
-            
-            'reward_scaling':                1.0,  # [2.0, 5.0, 10.0, 1.0, -1.0, -2.0, -5.0], # SpinningUp: 1.0
-            
+        
+            # Note: alpha = 0 <==> SAC become a standard max expected return objective
+            'alpha':                         0.2,  # SpinningUp=0.2, SAC paper=1.0
+            'max_eval_trj':                  20,  #SpiningUp: 10
+        
+            # (!) Note: The only hparam requiring carefull tuning. Can be [0.0 < rewS <= 1.0]
+            # SAC paper: 3, 10, 30  SpinningUp: 1.0
+            'reward_scaling':                0.3,  # Done: RewardScaleTest [0.8, 0.5, 0.3]
+        
+            # Note: HARD TARGET update vs EXPONENTIAL MOVING AVERAGE (EMA)
+            #  |                                        EMA         HARD TARGET
+            #  |        target_smoothing_coefficient:   1.0         0.005
+            #  |        target_update_interval:         1           1000
+            #  |        gradient_step_interval:         1           4 (except for rlLab humanoid)
             'target_smoothing_coefficient':  0.99,
-            # SAC paper: 0.005 (1.0 <==> HARD TARGET update), SpiningUp: 0.995, # todo: 0.05
-            'target_update_interval':        1,
-            # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
-            'gradient_step_interval':        1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 4 for HARD TARGET update
-            
+            'target_update_interval':        1,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
+            'gradient_step_interval':        1,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
+        
             'pool_capacity':                 int(1e6),  # SAC paper & SpinningUp: 1e6
             'min_pool_size':                 10000,  # SpinningUp: 10000
-            
+        
             'theta_nn_h_layer_topo':         (16,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
             'phi_nn_h_layer_topo':           (16,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
             'psi_nn_h_layer_topo':           (16,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
-            
+        
             'render_env_every_What_epoch':   5,
             'render_env_eval_interval':      3,
             'print_metric_every_what_epoch': 10,
@@ -455,10 +503,10 @@ if args.playPendulum:
             'note':                          '(Proof of life) Should reach Avg Return close to ~ -560'
             }
         )
-    
-    chekpoint_dir = "Run-RewardScaleTest-0-SAC()-d15h12m51s20"
-    
-    run_dir = chekpoint_dir + "/checkpoint/" + "Soft_Actor_Critic_agent--487-49"
+
+    chekpoint_dir = "Run-RewardScaleTest-reward_scaling=0.3-0-SAC()-d15h16m36s40"
+
+    run_dir = chekpoint_dir + "/checkpoint/" + "Soft_Actor_Critic_agent--100-49"
     play_agent(run_dir, SAC_Pendulum_freezed_hparam, args, record=args.record)
 
 else:

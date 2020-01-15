@@ -287,10 +287,6 @@ class SoftActorCriticAgent(Agent):
                 timecounter.reset_per_epoch_count()
                 timecounter.reset_local_count()
 
-                # (Ice-Boxed) todo:implement --> add 'global_timestep_max' to hparam:
-                # if global_timestep_idx >= self.exp_spec['global_timestep_max']:
-                #     break
-
                 consol_print_learning_stats.next_glorious_epoch()
                 self.epoch_metric_logger.new_epoch(epoch)
 
@@ -300,14 +296,7 @@ class SoftActorCriticAgent(Agent):
                     timecounter.reset_local_count()
                     consol_print_learning_stats.next_glorious_trajectory()
 
-                    # ... investigate ..................................................................................
                     obs_t = self.playground.env.reset()
-
-                    # (nice to have) todo:investigate?? --> check if it make a difference to pre instantiate :
-                    # obs_t, reward_t, trj_done = self.playground.env.reset(), 0.0, False
-                    # obs_t_prime = np.copy(obs_t)
-                    # act_t = self.playground.env.action_space.sample()
-                    # .......................................................................... investigate ...(end)...
 
                     """ ---- Simulator: time-steps ---- """
                     while True:
