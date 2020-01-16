@@ -125,24 +125,28 @@ class Agent(object, metaclass=ABCMeta):
         :yield: (epoch, epoch_loss, batch_average_trjs_return, batch_average_trjs_lenght)
         """
         raise NotImplementedError
-    
+
     def _render_trajectory_on_condition(self, epoch, render_env, trj_collected_in_that_epoch):
         if (render_env and (epoch % self.exp_spec.render_env_every_What_epoch == 0)
                 and trj_collected_in_that_epoch == 0):
             self.playground.env.env.render()  # keep environment rendering turned OFF during unit test
-    
+
     def _save_learned_model(self, batch_average_trjs_return: float, epoch, sess: tf_cv1.Session) -> None:
         if batch_average_trjs_return >= float(self.exp_spec.expected_reward_goal):
             print("\n\n    ::  {} batch avg return reached".format(batch_average_trjs_return))
             self._save_checkpoint(epoch, sess, self.exp_spec.algo_name, batch_average_trjs_return)
-    
-    def _save_checkpoint(self, epoch: int, sess: tf_cv1.Session, algo_name: str, batch_avrj_trjs_return,
-                         silent=False) -> None:
+
+    def _save_checkpoint(self, epoch: int, sess: tf_cv1.Session, algo_name: str, batch_avrj_trjs_return, silent=False,
+                         goal_reached=False) -> None:
         cleaned_name = algo_name.replace(" ", "_")
-        self.saver.save(sess, '{}/checkpoint/{}_agent-{}'.format(self.this_run_dir, cleaned_name,
-                                                                 int(batch_avrj_trjs_return)),
-                        global_step=epoch)
-        
+        if goal_reached:
+            self.saver.save(sess, '{}/goal_reached/{}-goal-{}'.format(self.this_run_dir, cleaned_name,
+                                                                      int(batch_avrj_trjs_return)), global_step=epoch)
+    
+        else:
+            self.saver.save(sess, '{}/checkpoint/{}-{}'.format(self.this_run_dir, cleaned_name,
+                                                               int(batch_avrj_trjs_return)), global_step=epoch)
+    
         if not silent:
             print("    ↳ {} network parameters were saved\n".format(algo_name))
             return None
@@ -209,14 +213,14 @@ class Agent(object, metaclass=ABCMeta):
                     if done:
                         eval_trj_returns.append(eval_trajectory_logger.the_return)
                         eval_trj_lenghts.append(eval_trajectory_logger.lenght)
-        
+
                         print("\r     ↳ :: run {:^2}  |".format(run + 1),
                               ">" * cycle_indexer.i, " " * cycle_indexer.j,
                               "  got return {:>8.2f}   after  {:>4}  timesteps".format(
                                   eval_trajectory_logger.the_return,
                                   eval_trajectory_logger.lenght),
                               sep='', end='', flush=True)
-        
+
                         eval_trajectory_logger.reset()
                         break
             eval_trj_return = np.mean(eval_trj_returns)

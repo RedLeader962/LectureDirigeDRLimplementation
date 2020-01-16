@@ -27,6 +27,8 @@ Invoke Soft Actor-Critic agent (SAC) using
             [--trainPendulum]: Train on Pendulum gym env a Soft Actor-Critic agent
         - For 'LunarLanderContinuous-v2' environment:
             [--trainLunarLander]: Train on LunarLander a Soft Actor-Critic agent
+        - Experimentation utility:
+            [--trainExperimentBuffer]: Run a batch of experiment spec
 
     Gym continuous environment ex:
         Classic control
@@ -123,6 +125,7 @@ from blocAndTools.experiment_runner import (
 (!) Note: to trigger hyperparameter search, enclose search space values inside a list ex: [(16, 32), (64, 64), (84, 84)]
 
 """
+experiment_buffer = []
 
 SAC_base_hparam = {
     'rerun_tag':                      '',
@@ -177,7 +180,10 @@ SAC_base_hparam = {
     'render_env_eval_interval':       5,
     'print_metric_every_what_epoch':  5,
     'log_metric_interval':            500,
-    'note':                           ''
+    'note':                           '',
+    
+    'SpinningUpSquashing':            True,  # (Priority) todo:assessment --> compare with mine: remove when done
+    'SpinningUpGaussian':             True,  # (Priority) todo:assessment --> compare with mine: remove when done
     }
 
 # 'MountainCarContinuous-v0'
@@ -271,26 +277,105 @@ SAC_Pendulum_hparam.update(
         }
     )
 
-# (!) Experiment --> en cours
-SAC_Pendulum_hparam.update(
+# (!) Experiment >>> Done: Todo:
+# ... Mine vs SpinningUp fonction ......................................................................................
+SAC_Pendulum_MySquashing_MyGaussian_hparam = dict(SAC_Pendulum_hparam)
+SAC_Pendulum_MySquashing_MyGaussian_hparam.update(
     {
-        'rerun_tag':                    'TargetUpdateTest',
-        'comment':                      'SAC paper EMA and Alpha',
-        'expected_reward_goal':         (-130),
+        'rerun_tag':                    'MineVsSpinningUp',
+        'comment':                      'BothMySquashingMyGaussian',
+        'expected_reward_goal':         (-150),
         'alpha':                        1.0,  # SAC paper=1.0 SpinningUp=0.2
         'reward_scaling':               0.4,
         'target_smoothing_coefficient': 0.005,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
         'target_update_interval':       1,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
         'gradient_step_interval':       1,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
         'note':                         '',
+        'SpinningUpSquashing':          False,
+        'SpinningUpGaussian':           False,
         }
     )
+experiment_buffer.append(SAC_Pendulum_MySquashing_MyGaussian_hparam)
 
-# Experiment todo:
-# SAC_Pendulum_hparam.update(
+SAC_Pendulum_MySquashing_hparam = dict(SAC_Pendulum_hparam)
+SAC_Pendulum_MySquashing_hparam.update(
+    {
+        'rerun_tag':                    'MineVsSpinningUp',
+        'comment':                      'OnlyMySquashing',
+        'expected_reward_goal':         (-150),
+        'alpha':                        1.0,  # SAC paper=1.0 SpinningUp=0.2
+        'reward_scaling':               0.4,
+        'target_smoothing_coefficient': 0.005,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
+        'target_update_interval':       1,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
+        'gradient_step_interval':       1,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
+        'note':                         '',
+        'SpinningUpSquashing':          False,
+        'SpinningUpGaussian':           True,
+        }
+    )
+experiment_buffer.append(SAC_Pendulum_MySquashing_hparam)
+
+SAC_Pendulum_MyGaussian_hparam = dict(SAC_Pendulum_hparam)
+SAC_Pendulum_MyGaussian_hparam.update(
+    {
+        'rerun_tag':                    'MineVsSpinningUp',
+        'comment':                      'OnlyMyGaussian',
+        'expected_reward_goal':         (-150),
+        'alpha':                        1.0,  # SAC paper=1.0 SpinningUp=0.2
+        'reward_scaling':               0.4,
+        'target_smoothing_coefficient': 0.005,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
+        'target_update_interval':       1,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
+        'gradient_step_interval':       1,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
+        'note':                         '',
+        'SpinningUpSquashing':          True,
+        'SpinningUpGaussian':           False,
+        }
+    )
+experiment_buffer.append(SAC_Pendulum_MyGaussian_hparam)
+
+SAC_Pendulum_SpinningUp_Squashing_and_Gaussian_hparam = dict(SAC_Pendulum_hparam)
+SAC_Pendulum_SpinningUp_Squashing_and_Gaussian_hparam.update(
+    {
+        'rerun_tag':                    'MineVsSpinningUp',
+        'comment':                      'NoneMySquashingMyGaussian',
+        'expected_reward_goal':         (-150),
+        'alpha':                        1.0,  # SAC paper=1.0 SpinningUp=0.2
+        'reward_scaling':               0.4,
+        'target_smoothing_coefficient': 0.005,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
+        'target_update_interval':       1,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
+        'gradient_step_interval':       1,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
+        'note':                         '',
+        'SpinningUpSquashing':          True,
+        'SpinningUpGaussian':           True,
+        }
+    )
+experiment_buffer.append(SAC_Pendulum_SpinningUp_Squashing_and_Gaussian_hparam)
+# .............................................................................. Mine vs SpinningUp fonction ...(end)...
+
+# ... Target Update experimentation ....................................................................................
+# Experiment >>> Done: Todo: rerun
+# SAC_Pendulum_EMA_hparam = dict(SAC_Pendulum_hparam)
+# SAC_Pendulum_EMA_hparam.update(
+#     {
+#         'rerun_tag':                    'TargetUpdateTest',
+#         'comment':                      'SAC paper EMA and Alpha',
+#         'expected_reward_goal':         (-130),
+#         'alpha':                        1.0,  # SAC paper=1.0 SpinningUp=0.2
+#         'reward_scaling':               0.4,
+#         'target_smoothing_coefficient': 0.005,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
+#         'target_update_interval':       1,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
+#         'gradient_step_interval':       1,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
+#         'note':                         '',
+#         }
+#     )
+# experiment_buffer.append(SAC_Pendulum_EMA_hparam)
+
+# Experiment >>> Done: rerun todo:
+# SAC_Pendulum_HardTarget_hparam = dict(SAC_Pendulum_hparam)
+# SAC_Pendulum_HardTarget_hparam.update(
 #   {
 #       'rerun_tag':                     'TargetUpdateTest',
-#       'comment':                       'HardTarget As in SAC paper',
+#       'comment':                       'SAC paper HardTarget and Alpha',
 #       'expected_reward_goal':          (-130),
 #       'alpha':                         1.0,   # SAC paper=1.0 SpinningUp=0.2
 #       'reward_scaling':                0.4,
@@ -300,8 +385,10 @@ SAC_Pendulum_hparam.update(
 #       'note':                          '',
 #   }
 # )
+# experiment_buffer.append(SAC_Pendulum_HardTarget_hparam)
+# ............................................................................ Target Update experimentation ...(end)...
 
-# Experiment todo:
+# Experiment >>> Done:  todo: rerun
 # SAC_Pendulum_hparam.update(
 #     {
 #         'rerun_tag':                    'AlphaTest',
@@ -409,10 +496,15 @@ parser = argparse.ArgumentParser(description=(
     "          [--trainPendulum]: Train on Pendulum gym env a Soft Actor-Critic agent\n"
     "     - 'LunarLanderContinuous-v2' environment:\n"
     "          [--trainLunarLander]: Train on LunarLander a Soft Actor-Critic agent\n"
+    "     - Experimentation utility:\n"
+    "          [--trainExperimentBuffer]: Run a batch of experiment spec\n"
 ),
     epilog="=============================================================================\n")
 
 # parser.add_argument('--env', type=str, default='CartPole-v0')
+parser.add_argument('--trainExperimentBuffer', action='store_true',
+                    help='Utility: Train a Soft Actor-Critic agent on a batch of experiment spec')
+
 parser.add_argument('--trainMontainCar', action='store_true',
                     help='Train on Montain Car gym env a Soft Actor-Critic agent')
 
@@ -539,6 +631,11 @@ else:
         """ ---- Harder environment [--trainLunarLander] ---- """
         hparam, key, values_search_set = run_experiment(
             SAC_LunarLander_hparam, args, test_hparam, rerun_nb=args.rerun)
+
+    elif args.trainExperimentBuffer:
+        """ ---- Run batch of experiment ---- """
+        for expSpec in experiment_buffer:
+            hparam, key, values_search_set = run_experiment(expSpec, args, test_hparam, rerun_nb=args.rerun)
 
     else:
         raise NotImplementedError

@@ -13,6 +13,7 @@ import blocAndTools.tensorflowbloc
 from SoftActorCritic.SoftActorCriticBrain import (
     actor_train, apply_action_bound, build_critic_graph_q_theta, build_critic_graph_v_psi, build_gaussian_policy_graph,
     critic_q_theta_train, critic_v_psi_train, critic_learning_rate_scheduler, init_frozen_v_psi, update_frozen_v_psi_op,
+    apply_action_bound_SpinningUp, build_gaussian_policy_graph_SpinningUp,
     )
 from blocAndTools import ConsolPrintLearningStats, buildingbloc as bloc
 from blocAndTools.agent import Agent
@@ -78,10 +79,21 @@ class SoftActorCriticAgent(Agent):
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         # /// Actor computation graph //////////////////////////////////////////////////////////////////////////////////
         with tf_cv1.variable_scope(vocab.actor_network):
-            pi, pi_log_p, self.policy_mu = build_gaussian_policy_graph(self.obs_t_ph, self.exp_spec, self.playground)
-
-            self.policy_pi, self.pi_log_likelihood = apply_action_bound(pi, pi_log_p)
-
+    
+            # (Priority) todo:assessment --> compare with mine: remove when done
+            if self.exp_spec['SpinningUpGaussian']:
+                pi, pi_log_p, self.policy_mu = build_gaussian_policy_graph_SpinningUp(self.obs_t_ph, self.exp_spec,
+                                                                                      self.playground)
+            else:
+                pi, pi_log_p, self.policy_mu = build_gaussian_policy_graph(self.obs_t_ph, self.exp_spec,
+                                                                           self.playground)
+    
+            # (Priority) todo:assessment --> compare with mine: remove when done
+            if self.exp_spec['SpinningUpSquashing']:
+                self.policy_pi, self.pi_log_likelihood = apply_action_bound_SpinningUp(pi, pi_log_p)
+            else:
+                self.policy_pi, self.pi_log_likelihood = apply_action_bound(pi, pi_log_p)
+    
             """ ---- Adjust policy distribution result to action range  ---- """
             if self.playground.ACTION_SPACE.bounded_above:
                 self.policy_pi *= self.playground.ACTION_SPACE.high[0]
@@ -539,7 +551,7 @@ class SoftActorCriticAgent(Agent):
     def _save_learned_model(self, batch_average_trjs_return: float, epoch, sess: tf_cv1.Session) -> None:
         if batch_average_trjs_return >= float(self.exp_spec.expected_reward_goal):
             print("\n\n    ::  {:>4f} batch avg return reached".format(batch_average_trjs_return))
-            self._save_checkpoint(epoch, sess, self.exp_spec.algo_name, batch_average_trjs_return)
+            self._save_checkpoint(epoch, sess, self.exp_spec.algo_name, batch_average_trjs_return, goal_reached=True)
         elif self.experiment_counter.gradient_step_count % 10000 == 0:
             self._save_checkpoint(epoch, sess, self.exp_spec.algo_name, batch_average_trjs_return, silent=True)
         return None

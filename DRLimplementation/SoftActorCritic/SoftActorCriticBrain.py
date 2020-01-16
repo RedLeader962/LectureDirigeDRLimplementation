@@ -67,21 +67,44 @@ def apply_action_bound(policy_pi: tf.Tensor, policy_pi_log_likelihood: tf.Tensor
         squashed_policy_pi = tf_cv1.tanh(policy_pi)
     
         # \\\ My bloc \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-        # num_corr = tf_cv1.reduce_sum(tf_cv1.log(1 - squashed_policy_pi ** 2 + NUM_STABILITY_CORRECTION),
-        #                              axis=1)
-        # squashed_policy_pi_log_likelihood = policy_pi_log_likelihood - num_corr
-        # return squashed_policy_pi, squashed_policy_pi_log_likelihood
+        num_corr = tf_cv1.reduce_sum(tf_cv1.log(1 - squashed_policy_pi ** 2 + NUM_STABILITY_CORRECTION),
+                                     axis=1)
+        squashed_policy_pi_log_likelihood = policy_pi_log_likelihood - num_corr
+        return squashed_policy_pi, squashed_policy_pi_log_likelihood
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ My bloc \\\(end)\\\
-    
+
+
+# (Priority) todo:assessment --> compare with mine: remove when done
+def apply_action_bound_SpinningUp(policy_pi: tf.Tensor, policy_pi_log_likelihood: tf.Tensor) -> Tuple[tf.Tensor, ...]:
+    """
+    Apply a invertible squashing function (tanh) to bound the actions sampled from the policy distribution in a
+    finite interval (See the Soft Actor-Critic paper, appendice C)
+
+        Sum_i log(1-tanh^2(z_i))
+
+        with z_i = squashed_policy_pi
+
+    In the limit as z_i --> inf, the 1-tanh^2(z_i) goes to 0
+    ==>
+    this can cause numerical instability that we mitigate by adding a small constant NUM_STABILITY_CORRECTION
+
+    :param policy_pi:
+    :param policy_pi_log_likelihood:
+    :return: squashed_policy_pi, squashed_policy_pi_log_likelihood
+    """
+    with tf_cv1.variable_scope(vocab.squashing_fct):
+        # (nice to have) todo:implement --> a numericaly stable version : see p8 HW5c Sergey Levine DRL course
+        squashed_policy_pi = tf_cv1.tanh(policy_pi)
+        
         # /// Original bloc ////////////////////////////////////////////////////////////////////////////////////////////
         # (Priority) todo:investigate?? --> Source from SpinningUp: Squashing function
         # pi = tf.tanh(pi)
-    
+        
         def clip_but_pass_gradient(x, l=-1., u=1.):
             clip_up = tf.cast(x > u, tf.float32)
             clip_low = tf.cast(x < l, tf.float32)
             return x + tf.stop_gradient((u - x) * clip_up + (l - x) * clip_low)
-    
+        
         # To avoid evil machine precision error, strictly clip 1-pi**2 to [0,1] range.
         policy_pi_log_likelihood -= tf.reduce_sum(tf.log(clip_but_pass_gradient(
             1 - squashed_policy_pi ** 2, l=0, u=1) + 1e-6), axis=1)
@@ -163,32 +186,113 @@ def build_gaussian_policy_graph(obs_t_ph: tf.Tensor, exp_spec: ExperimentSpec,
 
         # /// My bloc //////////////////////////////////////////////////////////////////////////////////////////////////
         # # Note: clip log standard deviation as in the sac_original_paper/sac/distributions/normal.py
-        # policy_log_std = tf_cv1.clip_by_value(policy_log_std, POLICY_LOG_STD_CAP_MIN, POLICY_LOG_STD_CAP_MAX)
-        #
-        # """ ---- Build the policy for continuous space ---- """
-        # policy_distribution = tfp.distributions.MultivariateNormalDiag(loc=policy_mu,
-        #                                                                scale_diag=tf_cv1.exp(policy_log_std),
-        #                                                                allow_nan_stats=False)
-        # policy_pi = policy_distribution.sample(name=vocab.policy_pi)
-        # policy_pi_log_likelihood = policy_distribution.log_prob(policy_pi,
-        #                                                         name=vocab.policy_pi_log_likelihood)
+        policy_log_std = tf_cv1.clip_by_value(policy_log_std, POLICY_LOG_STD_CAP_MIN, POLICY_LOG_STD_CAP_MAX)
+
+        """ ---- Build the policy for continuous space ---- """
+        policy_distribution = tfp.distributions.MultivariateNormalDiag(loc=policy_mu,
+                                                                       scale_diag=tf_cv1.exp(policy_log_std),
+                                                                       allow_nan_stats=False)
+        policy_pi = policy_distribution.sample(name=vocab.policy_pi)
+        policy_pi_log_likelihood = policy_distribution.log_prob(policy_pi,
+                                                                name=vocab.policy_pi_log_likelihood)
         # ////////////////////////////////////////////////////////////////////////////////////////// My bloc ///(end)///
 
+    # ::Other gym environment
+    else:
+        print("\n>>> The agent implementation does not support that environment space "
+              "{} yet.\n\n".format(playground.env.action_space))
+        raise NotImplementedError
+
+    return policy_pi, policy_pi_log_likelihood, tf_cv1.tanh(policy_mu)
+
+
+# (Priority) todo:assessment --> compare with mine: remove when done
+def build_gaussian_policy_graph_SpinningUp(obs_t_ph: tf.Tensor, exp_spec: ExperimentSpec,
+                                           playground: GymPlayground) -> Tuple[tf_cv1.Tensor, ...]:
+    """
+    The ACTOR graph(aka the policy network)
+    A gaussian policy with state-dependent learnable mean and variance
+
+        1. Actor network phi
+            input: the observations collected
+            output:
+                - policy_mu layer --> the logits of each action in the action space as the mean of the Multivariate
+                Normal distribution
+                - policy_log_std layer --> the log standard deviation for the Multivariate Normal distribution
+
+        2. Policy
+            input: the actor network policy_mu and policy_log_std layers
+            output: the sampled actions in the action space + corresponding log likelihood
+
+    :return: policy_pi, policy_pi_log_likelihood, policy_mu
+    """
+    
+    # ::Discrete case
+    if isinstance(playground.env.action_space, gym.spaces.Discrete):
+        raise ValueError("Discrete environment are not compatible with this Soft Actor-Critic implementation")
+    
+    # ::Continuous case
+    elif isinstance(playground.env.action_space, gym.spaces.Box):
+        """ ---- Assess the input shape compatibility ---- """
+        are_compatible = obs_t_ph.shape.as_list()[-1] == playground.OBSERVATION_SPACE.shape[0]
+        assert are_compatible, ("the obs_t_ph is incompatible with environment, "
+                                "{} != {}").format(obs_t_ph.shape.as_list()[-1],
+                                                   playground.OBSERVATION_SPACE.shape[0])
+        
+        """ ---- Build parameter PHI as a multilayer perceptron ---- """
+        if USE_KERAS_LAYER:
+            print(':: Use Keras style Dense layer')
+            phi_mlp = build_KERAS_MLP_computation_graph(obs_t_ph, playground.ACTION_CHOICES,
+                                                        exp_spec['phi_nn_h_layer_topo'],
+                                                        hidden_layers_activation=exp_spec[
+                                                            'phi_hidden_layers_activation'],
+                                                        output_layers_activation=exp_spec[
+                                                            'phi_hidden_layers_activation'],
+                                                        name=vocab.phi)
+            
+            policy_mu = keras.layers.Dense(playground.ACTION_CHOICES,
+                                           activation=exp_spec['phi_output_layers_activation'],  # tf_cv1.tanh,
+                                           name=vocab.policy_mu)(phi_mlp)
+            
+            policy_log_std = keras.layers.Dense(playground.ACTION_CHOICES,
+                                                activation=tf_cv1.tanh,
+                                                name=vocab.policy_log_std)(phi_mlp)
+        
+        else:
+            print(':: Use legacy tensorFlow Dense layer')
+            phi_mlp = build_MLP_computation_graph(obs_t_ph, playground.ACTION_CHOICES,
+                                                  exp_spec['phi_nn_h_layer_topo'],
+                                                  hidden_layers_activation=exp_spec[
+                                                      'phi_hidden_layers_activation'],
+                                                  output_layers_activation=exp_spec[
+                                                      'phi_hidden_layers_activation'],
+                                                  name=vocab.phi)
+            
+            policy_mu = tf_cv1.layers.dense(phi_mlp,
+                                            playground.ACTION_CHOICES,
+                                            activation=exp_spec['phi_output_layers_activation'],  # tf_cv1.tanh,
+                                            name=vocab.policy_mu)
+            
+            policy_log_std = tf_cv1.layers.dense(phi_mlp,
+                                                 playground.ACTION_CHOICES,
+                                                 activation=tf_cv1.tanh,
+                                                 name=vocab.policy_log_std)
+        
         # \\\ Original bloc \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         # (Priority) todo:assessment --> SpinningUp SAC implementation of the gaussian policy:
         def gaussian_likelihood(x, mu, log_std):
             pre_sum = -0.5 * (((x - mu) / (tf.exp(log_std) + NUM_STABILITY_CORRECTION)) ** 2 + 2 * log_std + np.log(
                 2 * np.pi))
             return tf.reduce_sum(pre_sum, axis=1)
-
+        
         policy_log_std = POLICY_LOG_STD_CAP_MIN + 0.5 * (POLICY_LOG_STD_CAP_MAX - POLICY_LOG_STD_CAP_MIN) * (
                 policy_log_std + 1)
-
+        
         std = tf.exp(policy_log_std)
         policy_pi = policy_mu + tf.random_normal(tf.shape(policy_mu)) * std
         policy_pi_log_likelihood = gaussian_likelihood(policy_pi, policy_mu, policy_log_std)
         # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ Original bloc \\\(end)\\\
-
+    
     # ::Other gym environment
     else:
         print("\n>>> The agent implementation does not support that environment space "
