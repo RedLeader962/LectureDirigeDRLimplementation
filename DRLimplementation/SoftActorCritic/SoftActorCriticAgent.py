@@ -4,6 +4,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from typing import Any
+from warnings import warn, showwarning
 
 import numpy as np
 import tensorflow as tf
@@ -80,24 +81,40 @@ class SoftActorCriticAgent(Agent):
         # /// Actor computation graph //////////////////////////////////////////////////////////////////////////////////
         with tf_cv1.variable_scope(vocab.actor_network):
     
-            # (Priority) todo:assessment --> compare with mine: remove when done
+            # ... Implementation detail assesment ......................................................................
+            # (Priority) todo:assessment --> SpinningUpGaussian:compare with mine & remove when done
+            try:
+                self.exp_spec['SpinningUpSquashing']
+            except KeyError:
+                self.exp_spec.set_experiment_spec({'SpinningUpSquashing': False})
+                print("\n(!) ExperimentSpec Keyword 'SpinningUpSquashing' does not exist. Assume False")
+    
+            try:
+                self.exp_spec['SpinningUpGaussian']
+            except KeyError:
+                self.exp_spec.set_experiment_spec({'SpinningUpGaussian': False})
+                print("\n(!) ExperimentSpec Keyword 'SpinningUpGaussian' does not exist. Assume False")
+    
             if self.exp_spec['SpinningUpGaussian']:
                 # pi, pi_log_p, self.policy_mu = build_gaussian_policy_graph_SpinningUp(self.obs_t_ph, self.exp_spec,
                 #                                                                       self.playground)
-                raise NotImplementedError  # todo: remove
+                raise NotImplementedError
             else:
+                print(":: Use my build_gaussian_policy_graph() implementation")
                 pi, pi_log_p, self.policy_mu = build_gaussian_policy_graph(self.obs_t_ph, self.exp_spec,
                                                                            self.playground)
     
-            # (Priority) todo:assessment --> compare with mine: remove when done
+            # (Priority) todo:assessment --> SpinningUpSquashing:compare with mine & remove when done
             if self.exp_spec['SpinningUpSquashing']:
                 # self.policy_pi, self.pi_log_likelihood = apply_action_bound_SpinningUp(pi, pi_log_p)
-                raise NotImplementedError  # todo: remove
+                raise NotImplementedError
             else:
+                print(":: Use my squashing function implementation")
                 self.policy_pi, self.pi_log_likelihood = apply_action_bound(pi, pi_log_p)
     
+            # .............................................................. Implementation detail assesment ...(end)...
             """ ---- Adjust policy distribution result to action range  ---- """
-            if self.playground.ACTION_SPACE.bounded_above:
+            if self.playground.ACTION_SPACE.bounded_above.all():
                 self.policy_pi *= self.playground.ACTION_SPACE.high[0]
                 self.policy_mu *= self.playground.ACTION_SPACE.high[0]
 
@@ -105,7 +122,7 @@ class SoftActorCriticAgent(Agent):
         # /// Critic computation graph /////////////////////////////////////////////////////////////////////////////////
         with tf_cv1.variable_scope(vocab.critic_network):
             self.V_psi, self.V_psi_frozen = build_critic_graph_v_psi(self.obs_t_ph, self.obs_t_prime_ph, self.exp_spec)
-    
+
             """ ---- Q_theta {1,2} according to sampled action & according to the reparametrized policy---- """
             self.Q_act_1, self.Q_pi_1 = build_critic_graph_q_theta(self.obs_t_ph, self.act_ph, self.policy_pi,
                                                                    self.exp_spec, name=vocab.Q_theta_1)
@@ -116,7 +133,7 @@ class SoftActorCriticAgent(Agent):
         # /// Actor & Critic Training ops //////////////////////////////////////////////////////////////////////////////
         with tf_cv1.variable_scope(vocab.critic_training):
             critic_lr_schedule, critic_global_grad_step = critic_learning_rate_scheduler(self.exp_spec)
-    
+
             self.V_psi_loss, self.V_psi_optimizer = critic_v_psi_train(self.V_psi,
                                                                        self.Q_pi_1,
                                                                        self.Q_pi_2,
@@ -124,7 +141,7 @@ class SoftActorCriticAgent(Agent):
                                                                        self.exp_spec,
                                                                        critic_lr_schedule,
                                                                        critic_global_grad_step)
-    
+
             q_theta_train_ops = critic_q_theta_train(self.V_psi_frozen, self.Q_act_1, self.Q_act_2,
                                                      self.reward_t_ph,
                                                      self.trj_done_t_ph, self.exp_spec,
@@ -245,7 +262,7 @@ class SoftActorCriticAgent(Agent):
         else:
             """ ---- The 'exploRation' policy ---- """
             the_policy = self.policy_pi
-    
+
         obs_t_flat = bloc.format_single_step_observation(obs_t)
         act_t = self.sess.run(the_policy, feed_dict={self.obs_t_ph: obs_t_flat})
         act_t = act_t.ravel()  # for continuous action space.
@@ -285,16 +302,16 @@ class SoftActorCriticAgent(Agent):
         with tf_cv1.Session() as sess:
             self.sess = sess
             self.sess.run(tf_cv1.global_variables_initializer())  # initialize random variable in the computation graph
-    
+
             consol_print_learning_stats.start_the_crazy_experiment()
-    
+
             # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
             #    Training loop
             # //////////////////////////////////////////////////////////////////////////////////////////////////////////
-    
+
             """ ---- copy V_psi_frozen parameter to V_psi ---- """
             self.sess.run(self.init_frozen_v_psi_op)
-    
+
             """ ---- Simulator: Epochs ---- """
             timecounter.reset_global_count()
             for epoch in range(self.exp_spec.max_epoch):
@@ -443,11 +460,11 @@ class SoftActorCriticAgent(Agent):
             losses_op = [self.V_psi_loss, self.q_theta_1_loss, self.q_theta_2_loss, self.actor_kl_loss]
             policy_and_value_fct_op = [self.policy_pi, self.pi_log_likelihood, self.policy_mu,
                                        self.V_psi, self.V_psi_frozen, self.Q_act_1, self.Q_act_2]
-    
+
             """ ---- Compute metric and collect ---- """
             metric = self.sess.run([*losses_op, *policy_and_value_fct_op], feed_dict=full_feed_dictionary)
             self.epoch_metric_logger.append_all_epoch_metric(*metric)
-    
+
             """ ---- policy_pi summmary ---- """
             epoch_sumarry_histo = self.sess.run(self.summary_hist_policy_pi,
                                                 feed_dict=self.small_fixed_obs_sample_feed_dict)
@@ -525,13 +542,13 @@ class SoftActorCriticAgent(Agent):
                                                                           eval_trajectory_logger.lenght)
                     eval_trj_returns.append(eval_trajectory_logger.the_return)
                     eval_trj_lenghts.append(eval_trajectory_logger.lenght)
-        
+
                     print("\r     ↳ {:^3} :: Evaluation run {:>4}  |".format(epoch, run + 1),
                           ">" * cycle_indexer.i, " " * cycle_indexer.j,
                           "  got return {:>8.2f}   after  {:>4}  timesteps".format(eval_trajectory_logger.the_return,
                                                                                    eval_trajectory_logger.lenght),
                           sep='', end='', flush=True)
-        
+
                     eval_trajectory_logger.reset()
                     break
 
@@ -561,7 +578,7 @@ class SoftActorCriticAgent(Agent):
     def __del__(self):
         # (nice to have) todo:assessment --> is it linked to the 'experiment_runner' rerun error (fail at second rerun)
         tf_cv1.reset_default_graph()
-    
+
         self.playground.env.env.close()
         self.evaluation_playground.env.env.close()
         print(":: SAC agent >>> CLOSED")

@@ -19,12 +19,15 @@ import tensorflow as tf
 from BasicPolicyGradient.REINFORCEagent import REINFORCEagent
 from blocAndTools.buildingbloc import ExperimentSpec
 
-# Note: About Gamma value (aka the discout factor)
-#       Big difference between 0.9 and 0.999.
-#       Also you need to take into account the experiment average number of step per episode
-#
-#           Example with experiment average step of 100:
-#              0.9^100 = 0.000026 vs 0.99^100 = 0.366003 vs 0.999^100 = 0.904792
+""" Note: About Gamma value (aka the discout factor)
+      |    Big difference between 0.9 and 0.999.
+      |    Also you need to take into account the experiment average number of step per episode
+      |
+      |        Example of 'discounted return' over 100 timestep:
+      |           0.9^100 --> 0.000026 vs 0.99^100 --> 0.366003 vs 0.999^100 --> 0.904792
+      |
+      |    Meaning a agent with Gamma=0.9 is short-sighted and one with Gamma=0.9999 is farsighted or clairvoyant
+"""
 
 cartpole_hparam = {
     'paramameter_set_name':           'Basic',

@@ -91,6 +91,20 @@ def gym_and_tf_continuous_pendulum_setup():
     tf_cv1.reset_default_graph()
 
 
+@pytest.fixture
+def gym_and_tf_continuous_LunarLander_setup():
+    """
+    :return: obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground
+    """
+    exp_spec = bloc.ExperimentSpec()
+    unit_test_Lunar_hparam = dict(unit_test_hparam)
+    unit_test_Lunar_hparam.update({'prefered_environment': 'LunarLanderContinuous-v2'})
+    exp_spec.set_experiment_spec(unit_test_Lunar_hparam)
+    
+    yield exp_spec
+    tf_cv1.reset_default_graph()
+
+
 # --- ActorCritic_agent -------------------------------------------------------------------------------------------
 # @pytest.mark.skip(reason="Work fine. Mute for now")
 def test_SoftActorCritic_agent_INSTANTIATE_AGENT_MontainCar_PASS(gym_and_tf_continuous_montain_car_setup):
@@ -99,9 +113,15 @@ def test_SoftActorCritic_agent_INSTANTIATE_AGENT_MontainCar_PASS(gym_and_tf_cont
 
 
 # @pytest.mark.skip(reason="Work fine. Mute for now")
-def test_SoftActorCritic_agent_INSTANTIATE_AGENT_pendulum_PASS(gym_and_tf_continuous_pendulum_setup):
+def test_SoftActorCritic_agent_INSTANTIATE_AGENT_Pendulum_PASS(gym_and_tf_continuous_pendulum_setup):
     exp_spec = gym_and_tf_continuous_pendulum_setup
     sac_agent_pendulum = SoftActorCriticAgent(exp_spec)
+
+
+# @pytest.mark.skip(reason="Work fine. Mute for now")
+def test_SoftActorCritic_agent_INSTANTIATE_AGENT_Lunar_PASS(gym_and_tf_continuous_LunarLander_setup):
+    exp_spec = gym_and_tf_continuous_LunarLander_setup
+    sac_agent_lunar = SoftActorCriticAgent(exp_spec)
 
 
 # @pytest.mark.skip(reason="Work fine. Mute for now")
@@ -112,7 +132,14 @@ def test_SoftActorCritic_agent_TRAIN_AGENT_MontainCar_PASS(gym_and_tf_continuous
 
 
 # @pytest.mark.skip(reason="Work fine. Mute for now")
-def test_SoftActorCritic_agent_TRAIN_AGENT_pendulum_PASS(gym_and_tf_continuous_pendulum_setup):
+def test_SoftActorCritic_agent_TRAIN_AGENT_Pendulum_PASS(gym_and_tf_continuous_pendulum_setup):
     exp_spec = gym_and_tf_continuous_pendulum_setup
     sac_agent_pendulum = SoftActorCriticAgent(exp_spec)
     sac_agent_pendulum.train()
+
+
+# @pytest.mark.skip(reason="Work fine. Mute for now")
+def test_SoftActorCritic_agent_TRAIN_AGENT_Lunar_PASS(gym_and_tf_continuous_LunarLander_setup):
+    exp_spec = gym_and_tf_continuous_LunarLander_setup
+    sac_agent_lunar = SoftActorCriticAgent(exp_spec)
+    sac_agent_lunar.train()
