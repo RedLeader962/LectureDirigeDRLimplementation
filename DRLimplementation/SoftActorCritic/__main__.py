@@ -21,8 +21,8 @@ Invoke Soft Actor-Critic agent (SAC) using
                                                                         [--help] [--testRun]`
 
         Choose < trainExperimentSpecification > between the following:
-        - For 'MountainCarContinuous-v0' environment:
-            [--trainMontainCar]: Train on Montain Car gym env a Soft Actor-Critic agent
+        - For 'BipedalWalker-v2' environment:
+            [--trainBipedalWalker]: Train on Bipedal Walker gym env a Soft Actor-Critic agent
         - For 'Pendulum-v0' environment:
             [--trainPendulum]: Train on Pendulum gym env a Soft Actor-Critic agent
         - For 'LunarLanderContinuous-v2' environment:
@@ -151,7 +151,7 @@ SAC_base_hparam = {
     
     # Note: HARD TARGET update vs EXPONENTIAL MOVING AVERAGE (EMA)
     #  |                                        EMA         HARD TARGET
-    #  |        target_smoothing_coefficient:   1.0         0.005
+    #  |        target_smoothing_coefficient:   0.005       1.0
     #  |        target_update_interval:         1           1000
     #  |        gradient_step_interval:         1           4 (except for rlLab humanoid)
     'target_smoothing_coefficient':   0.005,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
@@ -163,7 +163,7 @@ SAC_base_hparam = {
     'max_eval_trj':                   10,  #SpiningUp: 10
     
     'pool_capacity':                  int(1e6),  # SAC paper & SpinningUp: 1e6
-    'min_pool_size':                  5000,  # SpinningUp: 10000
+    'min_pool_size':                  10000,  # SpinningUp: 10000
     'batch_size_in_ts':               100,  # SAC paper:256, SpinningUp:100
     
     'theta_nn_h_layer_topo':          (200, 200),  # SAC paper:(256, 256), SpinningUp:(400, 300)
@@ -182,10 +182,11 @@ SAC_base_hparam = {
     'log_metric_interval':            500,
     'note':                           '',
     
-    'SpinningUpSquashing':            True,  # (Priority) todo:assessment --> compare with mine: remove when done
-    'SpinningUpGaussian':             True,  # (Priority) todo:assessment --> compare with mine: remove when done
+    'SpinningUpSquashing':            False,  # (Priority) todo:assessment --> compare with mine: remove when done
+    'SpinningUpGaussian':             False,  # (Priority) todo:assessment --> compare with mine: remove when done
     }
 
+# ::: MontainCar experiment ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # 'MountainCarContinuous-v0'
 # - action_space:  Box(1,)
 #    - high: [1.]
@@ -197,25 +198,27 @@ SAC_base_hparam = {
 # - spec:
 #    - max_episode_steps: 999
 #    - reward_threshold: 90.0       #  The reward threshold before the task is considered solved
-SAC_MountainCar_hparam = dict(SAC_base_hparam)
-SAC_MountainCar_hparam.update(
-    {
-        'rerun_tag':                     'MonCar',
-        'paramameter_set_name':          'SAC',
-        'comment':                       '',
-        'algo_name':                     'Soft Actor Critic',
-        'AgentType':                     SoftActorCriticAgent,
-        'prefered_environment':          'MountainCarContinuous-v0',
-        'expected_reward_goal':          90,  # Note: trigger model save on reach
-        'reward_scaling':                [1.0, 0.8],
-        'render_env_every_What_epoch':   5,
-        'render_env_eval_interval':      5,
-        'print_metric_every_what_epoch': 5,
-        'log_metric_interval':           500,
-        'note':                          '',
-        }
-    )
+# - Avg reward assement:   -0.033343435949857496
+# SAC_MountainCar_hparam = dict(SAC_base_hparam)
+# SAC_MountainCar_hparam.update(
+#     {
+#         'rerun_tag':                     'MonCar',
+#         'paramameter_set_name':          'SAC',
+#         'comment':                       '',
+#         'algo_name':                     'Soft Actor Critic',
+#         'AgentType':                     SoftActorCriticAgent,
+#         'prefered_environment':          'MountainCarContinuous-v0',
+#         'expected_reward_goal':          90,  # Note: trigger model save on reach
+#         'reward_scaling':                [10.0, 20.0],
+#         'render_env_every_What_epoch':   5,
+#         'render_env_eval_interval':      5,
+#         'print_metric_every_what_epoch': 5,
+#         'log_metric_interval':           500,
+#         'note':                          '',
+#         }
+#     )
 
+# ::: Pendulum experiment ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # 'Pendulum-v0'
 # - action_space:  Box(1,)
 #    - high: [2.]
@@ -227,12 +230,13 @@ SAC_MountainCar_hparam.update(
 # - spec:
 #    - max_episode_steps: 200
 #    - reward_threshold: None       #  The reward threshold before the task is considered solved
+# - Avg reward assement:  -4.863037248615252
 #
 # Gym: https://gym.openai.com/envs/MountainCarContinuous-v0/
-SAC_Pendulum_hparam = dict(SAC_base_hparam)
-SAC_Pendulum_hparam.update(
+SAC_Pendulum_base_hparam = dict(SAC_base_hparam)
+SAC_Pendulum_base_hparam.update(
     {
-        'rerun_tag':                     'RewardScaleTest',
+        'rerun_tag':                     'BasePendulum',
         'comment':                       '',
         'prefered_environment':          'Pendulum-v0',
         'expected_reward_goal':          (-561),
@@ -244,18 +248,18 @@ SAC_Pendulum_hparam.update(
         'batch_size_in_ts':              100,  # SAC paper:256, SpinningUp:100  # todo: [64, 256]
         'learning_rate':                 0.003,  # SAC paper: 30e-4 SpinningUp: 0.001
         'critic_learning_rate':          0.003,  # SAC paper: 30e-4 SpinningUp: 0.001
-    
+        
         # Note: alpha = 0 <==> SAC become a standard max expected return objective
         'alpha':                         0.2,  # todo: [1.0, 0.5, 0.0] # SAC paper=1.0 SpinningUp=0.2
         'max_eval_trj':                  20,  #SpiningUp: 10    # todo: 10
-    
+        
         # (!) Note: The only hparam requiring carefull tuning. Can be [0.0 < rewS <= 1.0]
         # SAC paper: 3, 10, 30  SpinningUp: 1.0
-        'reward_scaling':                0.3,  # Done: [0.8, 0.5, 0.3], todo: [5.0, 10.0, 100.0]
-    
+        'reward_scaling':                0.3,
+        
         # Note: HARD TARGET update vs EXPONENTIAL MOVING AVERAGE (EMA)
         #  |                                        EMA         HARD TARGET
-        #  |        target_smoothing_coefficient:   1.0         0.005
+        #  |        target_smoothing_coefficient:   0.005       1.0
         #  |        target_update_interval:         1           1000
         #  |        gradient_step_interval:         1           4 (except for rlLab humanoid)
         'target_smoothing_coefficient':  0.99,  # todo: 0.05 # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
@@ -264,11 +268,11 @@ SAC_Pendulum_hparam.update(
         
         'pool_capacity':                 int(1e6),  # SAC paper & SpinningUp: 1e6
         'min_pool_size':                 10000,  # SpinningUp: 10000
-    
+        
         'theta_nn_h_layer_topo':         (16,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
         'phi_nn_h_layer_topo':           (16,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
         'psi_nn_h_layer_topo':           (16,),  # SAC paper:(256, 256), SpinningUp:(400, 300)
-    
+        
         'render_env_every_What_epoch':   5,
         'render_env_eval_interval':      3,
         'print_metric_every_what_epoch': 10,
@@ -277,91 +281,117 @@ SAC_Pendulum_hparam.update(
         }
     )
 
-# (!) Experiment >>> Done: Todo:
+# (!) Experiment >>> Done: (En cours) RewardScaling experiment
+# SAC_Pendulum_RewardScaling_hparam = dict(SAC_Pendulum_base_hparam)
+# SAC_Pendulum_RewardScaling_hparam.update(
+#     {
+#         'rerun_tag':                    'RewardScaling',
+#         'comment':                      'EMA',
+#         'prefered_environment':         'Pendulum-v0',
+#         'expected_reward_goal':         (-150),
+#
+#         # Note: alpha = 0 <==> SAC become a standard max expected return objective
+#         'alpha':                        1.0,  # SAC paper=1.0 SpinningUp=0.2
+#         'max_eval_trj':                 20,  # SpiningUp: 10
+#
+#         # (!) Note: The only hparam requiring carefull tuning. Can be [0.0 < rewS <= 1.0]
+#         # SAC paper: 3, 10, 30  SpinningUp: 1.0
+#         'reward_scaling':               [0.25, 0.5, 0.75, 1.0, 3.0, 10.0],
+#
+#         'target_smoothing_coefficient': 0.05,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
+#         'target_update_interval':       1,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
+#         'gradient_step_interval':       1,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
+#         'note':                         '',
+#         }
+#     )
+# experiment_buffer.append(SAC_Pendulum_RewardScaling_hparam)
+
+# (!) Experiment >>> Done: MineVsSpinningUp experiment
 # ... Mine vs SpinningUp fonction ......................................................................................
-SAC_Pendulum_MySquashing_MyGaussian_hparam = dict(SAC_Pendulum_hparam)
-SAC_Pendulum_MySquashing_MyGaussian_hparam.update(
-    {
-        'rerun_tag':                    'MineVsSpinningUp',
-        'comment':                      'BothMySquashingMyGaussian',
-        'expected_reward_goal':         (-150),
-        'alpha':                        1.0,  # SAC paper=1.0 SpinningUp=0.2
-        'reward_scaling':               0.4,
-        'target_smoothing_coefficient': 0.005,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
-        'target_update_interval':       1,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
-        'gradient_step_interval':       1,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
-        'note':                         '',
-        'SpinningUpSquashing':          False,
-        'SpinningUpGaussian':           False,
-        }
-    )
-experiment_buffer.append(SAC_Pendulum_MySquashing_MyGaussian_hparam)
-
-SAC_Pendulum_MySquashing_hparam = dict(SAC_Pendulum_hparam)
-SAC_Pendulum_MySquashing_hparam.update(
-    {
-        'rerun_tag':                    'MineVsSpinningUp',
-        'comment':                      'OnlyMySquashing',
-        'expected_reward_goal':         (-150),
-        'alpha':                        1.0,  # SAC paper=1.0 SpinningUp=0.2
-        'reward_scaling':               0.4,
-        'target_smoothing_coefficient': 0.005,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
-        'target_update_interval':       1,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
-        'gradient_step_interval':       1,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
-        'note':                         '',
-        'SpinningUpSquashing':          False,
-        'SpinningUpGaussian':           True,
-        }
-    )
-experiment_buffer.append(SAC_Pendulum_MySquashing_hparam)
-
-SAC_Pendulum_MyGaussian_hparam = dict(SAC_Pendulum_hparam)
-SAC_Pendulum_MyGaussian_hparam.update(
-    {
-        'rerun_tag':                    'MineVsSpinningUp',
-        'comment':                      'OnlyMyGaussian',
-        'expected_reward_goal':         (-150),
-        'alpha':                        1.0,  # SAC paper=1.0 SpinningUp=0.2
-        'reward_scaling':               0.4,
-        'target_smoothing_coefficient': 0.005,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
-        'target_update_interval':       1,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
-        'gradient_step_interval':       1,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
-        'note':                         '',
-        'SpinningUpSquashing':          True,
-        'SpinningUpGaussian':           False,
-        }
-    )
-experiment_buffer.append(SAC_Pendulum_MyGaussian_hparam)
-
-SAC_Pendulum_SpinningUp_Squashing_and_Gaussian_hparam = dict(SAC_Pendulum_hparam)
-SAC_Pendulum_SpinningUp_Squashing_and_Gaussian_hparam.update(
-    {
-        'rerun_tag':                    'MineVsSpinningUp',
-        'comment':                      'NoneMySquashingMyGaussian',
-        'expected_reward_goal':         (-150),
-        'alpha':                        1.0,  # SAC paper=1.0 SpinningUp=0.2
-        'reward_scaling':               0.4,
-        'target_smoothing_coefficient': 0.005,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
-        'target_update_interval':       1,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
-        'gradient_step_interval':       1,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
-        'note':                         '',
-        'SpinningUpSquashing':          True,
-        'SpinningUpGaussian':           True,
-        }
-    )
-experiment_buffer.append(SAC_Pendulum_SpinningUp_Squashing_and_Gaussian_hparam)
+# SAC_Pendulum_MySquashing_MyGaussian_hparam = dict(SAC_Pendulum_base_hparam)
+# SAC_Pendulum_MySquashing_MyGaussian_hparam.update(
+#     {
+#         'rerun_tag':                    'MineVsSpinningUp',
+#         'comment':                      'BothMySquashingMyGaussian',
+#         'expected_reward_goal':         (-150),
+#         'alpha':                        1.0,  # SAC paper=1.0 SpinningUp=0.2
+#         'reward_scaling':               0.4,
+#         'target_smoothing_coefficient': 0.005,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
+#         'target_update_interval':       1,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
+#         'gradient_step_interval':       1,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
+#         'note':                         '',
+#         'SpinningUpSquashing':          False,
+#         'SpinningUpGaussian':           False,
+#         }
+#     )
+# experiment_buffer.append(SAC_Pendulum_MySquashing_MyGaussian_hparam)
+#
+# SAC_Pendulum_MySquashing_hparam = dict(SAC_Pendulum_base_hparam)
+# SAC_Pendulum_MySquashing_hparam.update(
+#     {
+#         'rerun_tag':                    'MineVsSpinningUp',
+#         'comment':                      'OnlyMySquashing',
+#         'expected_reward_goal':         (-150),
+#         'alpha':                        1.0,  # SAC paper=1.0 SpinningUp=0.2
+#         'reward_scaling':               0.4,
+#         'target_smoothing_coefficient': 0.005,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
+#         'target_update_interval':       1,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
+#         'gradient_step_interval':       1,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
+#         'note':                         '',
+#         'SpinningUpSquashing':          False,
+#         'SpinningUpGaussian':           True,
+#         }
+#     )
+# experiment_buffer.append(SAC_Pendulum_MySquashing_hparam)
+#
+# SAC_Pendulum_MyGaussian_hparam = dict(SAC_Pendulum_base_hparam)
+# SAC_Pendulum_MyGaussian_hparam.update(
+#     {
+#         'rerun_tag':                    'MineVsSpinningUp',
+#         # 'comment':                      'OnlyMyGaussian',
+#         'comment':                      'OnlyMyGaussianTWO',
+#         'expected_reward_goal':         (-150),
+#         'alpha':                        1.0,  # SAC paper=1.0 SpinningUp=0.2
+#         'reward_scaling':               0.4,
+#         'target_smoothing_coefficient': 0.005,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
+#         'target_update_interval':       1,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
+#         'gradient_step_interval':       1,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
+#         'note':                         '',
+#         'SpinningUpSquashing':          True,
+#         'SpinningUpGaussian':           False,
+#         }
+#     )
+# experiment_buffer.append(SAC_Pendulum_MyGaussian_hparam)
+#
+# SAC_Pendulum_SpinningUp_Squashing_and_Gaussian_hparam = dict(SAC_Pendulum_base_hparam)
+# SAC_Pendulum_SpinningUp_Squashing_and_Gaussian_hparam.update(
+#     {
+#         'rerun_tag':                    'MineVsSpinningUp',
+#         'comment':                      'NoneMySquashingMyGaussian',
+#         'expected_reward_goal':         (-150),
+#         'alpha':                        1.0,  # SAC paper=1.0 SpinningUp=0.2
+#         'reward_scaling':               0.4,
+#         'target_smoothing_coefficient': 0.005,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
+#         'target_update_interval':       1,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
+#         'gradient_step_interval':       1,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
+#         'note':                         '',
+#         'SpinningUpSquashing':          True,
+#         'SpinningUpGaussian':           True,
+#         }
+#     )
+# experiment_buffer.append(SAC_Pendulum_SpinningUp_Squashing_and_Gaussian_hparam)
 # .............................................................................. Mine vs SpinningUp fonction ...(end)...
 
 # ... Target Update experimentation ....................................................................................
-# Experiment >>> Done: Todo: rerun
-# SAC_Pendulum_EMA_hparam = dict(SAC_Pendulum_hparam)
+# Experiment >>> Done: Todo: TargetUpdate experiment  rerun 5 time
+# SAC_Pendulum_EMA_hparam = dict(SAC_Pendulum_base_hparam)
 # SAC_Pendulum_EMA_hparam.update(
 #     {
-#         'rerun_tag':                    'TargetUpdateTest',
-#         'comment':                      'SAC paper EMA and Alpha',
-#         'expected_reward_goal':         (-130),
+#         'rerun_tag':                    'TargetUpdate',
+#         'comment':                      'EMA',
+#         'expected_reward_goal':         (-150),
 #         'alpha':                        1.0,  # SAC paper=1.0 SpinningUp=0.2
-#         'reward_scaling':               0.4,
+#         'reward_scaling':               0.5,
 #         'target_smoothing_coefficient': 0.005,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
 #         'target_update_interval':       1,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
 #         'gradient_step_interval':       1,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
@@ -369,16 +399,15 @@ experiment_buffer.append(SAC_Pendulum_SpinningUp_Squashing_and_Gaussian_hparam)
 #         }
 #     )
 # experiment_buffer.append(SAC_Pendulum_EMA_hparam)
-
-# Experiment >>> Done: rerun todo:
-# SAC_Pendulum_HardTarget_hparam = dict(SAC_Pendulum_hparam)
+#
+# SAC_Pendulum_HardTarget_hparam = dict(SAC_Pendulum_base_hparam)
 # SAC_Pendulum_HardTarget_hparam.update(
 #   {
-#       'rerun_tag':                     'TargetUpdateTest',
-#       'comment':                       'SAC paper HardTarget and Alpha',
-#       'expected_reward_goal':          (-130),
+#       'rerun_tag':                     'TargetUpdate',
+#       'comment':                       'HardTarget',
+#       'expected_reward_goal':          (-150),
 #       'alpha':                         1.0,   # SAC paper=1.0 SpinningUp=0.2
-#       'reward_scaling':                0.4,
+#       'reward_scaling':                0.5,
 #       'target_smoothing_coefficient':  1.0,   # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
 #       'target_update_interval':        1000,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
 #       'gradient_step_interval':        4,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
@@ -388,22 +417,24 @@ experiment_buffer.append(SAC_Pendulum_SpinningUp_Squashing_and_Gaussian_hparam)
 # experiment_buffer.append(SAC_Pendulum_HardTarget_hparam)
 # ............................................................................ Target Update experimentation ...(end)...
 
-# Experiment >>> Done:  todo: rerun
-# SAC_Pendulum_hparam.update(
+# Experiment >>> Done:  todo: Alpha experiment rerun 5 time
+# SAC_Pendulum_Alpha_hparam = dict(SAC_Pendulum_base_hparam)
+# SAC_Pendulum_Alpha_hparam.update(
 #     {
-#         'rerun_tag':                    'AlphaTest',
+#         'rerun_tag':                    'Alpha',
 #         'comment':                      '',
-#         'expected_reward_goal':         (-130),
+#         'expected_reward_goal':         (-150),
 #         'alpha':                        [1.0, 0.75, 0.5, 0.25 0.0],   # SAC paper=1.0 SpinningUp=0.2
 #         'reward_scaling':               0.4,
-#         'target_smoothing_coefficient': 0.99,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
+#         'target_smoothing_coefficient': 0.005,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
 #         'target_update_interval':       1,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
 #         'gradient_step_interval':       1,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
 #         'note':                          '',
 #         }
 #     )
+# experiment_buffer.append(SAC_Pendulum_Alpha_hparam)
 
-
+# ::: LunarLander experiment :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # 'LunarLanderContinuous-v2'
 # - action_space:  Box(2,) ⟶ [main engine, left-right engines]
 #    - high: [1. , 1.]
@@ -415,6 +446,7 @@ experiment_buffer.append(SAC_Pendulum_SpinningUp_Squashing_and_Gaussian_hparam)
 # - spec:
 #    - max_episode_steps: 1000
 #    - reward_threshold: 200       #  The reward threshold before the task is considered solved
+# - Avg reward assement: -98.78142879872294
 #
 # Landing pad is always at coordinates (0,0). Coordinates are the first two numbers in state vector.
 # Reward for moving from the top of the screen to landing pad and zero speed is about 100..140 points.
@@ -428,21 +460,115 @@ experiment_buffer.append(SAC_Pendulum_SpinningUp_Squashing_and_Gaussian_hparam)
 # Engine can't work with less than 50% power. S
 # econd value -1.0..-0.5 fire left engine, +0.5..+1.0 fire right engine, -0.5..0.5 off.
 # source: https://gym.openai.com/envs/LunarLanderContinuous-v2/
-SAC_LunarLander_hparam = dict(SAC_base_hparam)
-SAC_LunarLander_hparam.update(
+SAC_LunarLander_base_hparam = dict(SAC_base_hparam)
+SAC_LunarLander_base_hparam.update(
     {
-        'rerun_tag':                     'LunarLander',
-        'comment':                       '',
-        'prefered_environment':          'LunarLanderContinuous-v2',
-        'expected_reward_goal':          190,  # goal: 200
-        'reward_scaling':                [1.0, 0.8, 2.0],
-        'render_env_every_What_epoch':   5,
-        'render_env_eval_interval':      3,
-        'print_metric_every_what_epoch': 10,
-        'log_metric_interval':           50,
-        'note':                          ''
+        'rerun_tag':             'LunarLander',
+        'comment':               'base',
+        'prefered_environment':  'LunarLanderContinuous-v2',
+        'expected_reward_goal':  190,  # goal: 200
+        'reward_scaling':        0.03,
+        'theta_nn_h_layer_topo': (100, 100),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+        'phi_nn_h_layer_topo':   (100, 100),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+        'psi_nn_h_layer_topo':   (100, 100),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+        'note':                  ''
         }
     )
+
+# Experiment >>> Done:  todo: asses the proper reward_scaling, rerun 5
+SAC_LunarLander_rewardScale_hparam = dict(SAC_LunarLander_base_hparam)
+SAC_LunarLander_rewardScale_hparam.update(
+    {
+        'rerun_tag':      'LunarLander',
+        'comment':        'rewardScale',
+        'reward_scaling': [0.02, 0.03, 0.04],
+        'note':           ''
+        }
+    )
+experiment_buffer.append(SAC_LunarLander_rewardScale_hparam)
+
+# Experiment >>> Done:  todo: asses NN architecture, rerun 5
+# SAC_LunarLander_nnArchitecture_hparam = dict(SAC_LunarLander_base_hparam)
+# for nn in [(64,), (200,), (400,) (64, 64), (100, 100), (300, 300)]:
+#     nnstr = str(nn).strip('()')
+#     nnstr = nnstr.replace(', ', '-')
+#     SAC_LunarLander_nnArchitecture_hparam.update(
+#         {
+#             'rerun_tag':             'LunarLander',
+#             'comment':               'nnArchitecture{}'.format(nnstr),
+#             'theta_nn_h_layer_topo': nn,  # SAC paper:(256, 256), SpinningUp:(400, 300)
+#             'phi_nn_h_layer_topo':   nn,  # SAC paper:(256, 256), SpinningUp:(400, 300)
+#             'psi_nn_h_layer_topo':   nn,  # SAC paper:(256, 256), SpinningUp:(400, 300)
+#             'note':                  '',
+#             }
+#         )
+#     experiment_buffer.append(SAC_LunarLander_nnArchitecture_hparam)
+
+# ::: BipedalWalker experiment :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# 'BipedalWalker-v2'
+# - action_space:  Box(4,)
+#    - high: [1. 1. 1. 1. ]
+#    - low: [-1. -1. -1. -1.]
+# - observation_space:  Box(24,)
+#    - high: [inf ... ]
+#    - low: [-inf ... ]
+# - reward_range:  (-inf, inf)
+# - spec:
+#    - max_episode_steps: 1600
+#    - reward_threshold: 300       #  The reward threshold before the task is considered solved
+# - Avg reward assement: -98.28313092135646 & -98.84284579807118 (for Hardcore version)
+#
+# Note: inspected in interactive console via a playground<envName>.env  Gym instance property
+# Gym: https://gym.openai.com/envs/ ...
+SAC_BiWalker_base_hparam = dict(SAC_base_hparam)
+SAC_BiWalker_base_hparam.update(
+    {
+        'rerun_tag':                    'BiWalker',
+        'comment':                      'base',
+        'prefered_environment':         'BipedalWalker-v2',
+        'expected_reward_goal':         290,  # goal: 300
+        'max_epoch':                    100,
+        'timestep_per_epoch':           10000,
+        'alpha':                        1.0,  # SAC paper=1.0 SpinningUp=0.2
+        'reward_scaling':               0.03,
+        'target_smoothing_coefficient': 0.005,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
+        'target_update_interval':       1,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
+        'gradient_step_interval':       1,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
+        'theta_nn_h_layer_topo':        (256, 256),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+        'phi_nn_h_layer_topo':          (256, 256),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+        'psi_nn_h_layer_topo':          (256, 256),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+        'note':                         '',
+        }
+    )
+
+# Experiment >>> Done:  todo: asses the proper reward_scaling, rerun 5
+SAC_BiWalker_rewardScale_hparam = dict(SAC_BiWalker_base_hparam)
+SAC_BiWalker_rewardScale_hparam.update(
+    {
+        'rerun_tag':      'BiWalker',
+        'comment':        'rewardScale',
+        'reward_scaling': [0.02, 0.03, 0.04],
+        'note':           '',
+        }
+    )
+experiment_buffer.append(SAC_BiWalker_rewardScale_hparam)
+
+# Experiment >>> Done:  todo: asses the proper architecture, rerun 5
+# SAC_BiWalker_NN_architecture_hparam = dict(SAC_BiWalker_base_hparam)
+# for nn in [(64,), (200,), (400,) (64, 64), (100, 100), (300, 300)]:
+#     nnstr = str(nn).strip('()')
+#     nnstr = nnstr.replace(', ', '-')
+#     SAC_BiWalker_NN_architecture_hparam.update(
+#         {
+#             'rerun_tag':             'BiWalker',
+#             'comment':               'nnArchitecture{}'.format(nnstr),
+#             'theta_nn_h_layer_topo': nn,  # SAC paper:(256, 256), SpinningUp:(400, 300)
+#             'phi_nn_h_layer_topo':   nn,  # SAC paper:(256, 256), SpinningUp:(400, 300)
+#             'psi_nn_h_layer_topo':   nn,  # SAC paper:(256, 256), SpinningUp:(400, 300)
+#             'note':                  '',
+#             }
+#         )
+#     experiment_buffer.append(SAC_BiWalker_NN_architecture_hparam)
 
 # ... Test hparam ......................................................................................................
 test_hparam = dict(SAC_base_hparam)
@@ -451,17 +577,17 @@ test_hparam.update(
         'rerun_tag':             'TEST-RUN',
         'comment':               'TestSpec',
         'prefered_environment':  'Pendulum-v0',
-    
+        
         'max_epoch':             3,
         'timestep_per_epoch':    220,
-    
+        
         'expected_reward_goal':  -130,  # goal: 200
         'reward_scaling':        3.0,
-    
+        
         'pool_capacity':         int(1e2),  # SAC paper: 1e6
         'min_pool_size':         50,  # SpinningUp: 10000
         'batch_size_in_ts':      10,  # SAC paper:256, SpinningUp:100
-    
+        
         'theta_nn_h_layer_topo': (2, 2),  # SAC paper:(256, 256), SpinningUp:(400, 300)
         'phi_nn_h_layer_topo':   (2, 2),  # SAC paper:(256, 256), SpinningUp:(400, 300)
         'psi_nn_h_layer_topo':   (2, 2),  # SAC paper:(256, 256), SpinningUp:(400, 300)
@@ -487,11 +613,11 @@ parser = argparse.ArgumentParser(description=(
     "To play:\n"
     "     python -m SoftActorCritic --play [--play_for] [--help] [--testRun]\n\n"
     "To train:\n"
-    "     python -m SoftActorCritic --trainExperimentSpecification   [--rerun] [--renderTraining] [--discounted] "
+    "     python -m SoftActorCritic <trainExperimentSpecification>   [--rerun] [--renderTraining] [--discounted] "
     "[--help] [--testRun]\n\n"
-    "Choose --trainExperimentSpecification between the following:\n"
-    "     - 'MountainCarContinuous-v0':\n"
-    "          [--trainMontainCar]: Train on Montain Car gym env a Soft Actor-Critic agent\n"
+    "Choose <trainExperimentSpecification> between the following:\n"
+    "     - 'BipedalWalker-v2' :\n"
+    "       [--trainBipedalWalker]: Train on Bipedal Walker gym env a Soft Actor-Critic agent\n"
     "     - 'Pendulum-v0':\n"
     "          [--trainPendulum]: Train on Pendulum gym env a Soft Actor-Critic agent\n"
     "     - 'LunarLanderContinuous-v2' environment:\n"
@@ -505,8 +631,8 @@ parser = argparse.ArgumentParser(description=(
 parser.add_argument('--trainExperimentBuffer', action='store_true',
                     help='Utility: Train a Soft Actor-Critic agent on a batch of experiment spec')
 
-parser.add_argument('--trainMontainCar', action='store_true',
-                    help='Train on Montain Car gym env a Soft Actor-Critic agent')
+parser.add_argument('--trainBipedalWalker', action='store_true',
+                    help='Train on Bipedal Walker gym env a Soft Actor-Critic agent')
 
 parser.add_argument('--trainPendulum', action='store_true', help='Train on Pendulum a Soft Actor-Critic agent')
 
@@ -611,32 +737,32 @@ else:
     
     # --- training ----------------------------------------------------------------------------------------------------
     experiment_start_message(consol_width, args.rerun)
-
-    if args.trainMontainCar:
-        """ ---- Easy environment [--trainMontainCar] ---- """
-        hparam, key, values_search_set = run_experiment(SAC_MountainCar_hparam, args,
+    
+    if args.trainBipedalWalker:
+        """ ---- Easy environment [--trainBipedalWalker] ---- """
+        hparam, key, values_search_set = run_experiment(SAC_BiWalker_base_hparam, args,
                                                         test_hparam, rerun_nb=args.rerun)
-
+    
     elif args.trainPendulum:
         """ ---- Harder environment [--trainPendulum] ---- """
         hparam, key, values_search_set = run_experiment(
-            SAC_Pendulum_hparam, args, test_hparam, rerun_nb=args.rerun)
-
+            SAC_Pendulum_base_hparam, args, test_hparam, rerun_nb=args.rerun)
+    
     elif args.trainPendulumTESTrerun:
         """ ---- Harder environment [--trainPendulumTESTrerun] ---- """
         hparam, key, values_search_set = run_experiment(
             SAC_Pendulum_hparam_TEST_RERUN, args, test_hparam, rerun_nb=args.rerun)
-
+    
     elif args.trainLunarLander:
         """ ---- Harder environment [--trainLunarLander] ---- """
         hparam, key, values_search_set = run_experiment(
-            SAC_LunarLander_hparam, args, test_hparam, rerun_nb=args.rerun)
-
+            SAC_LunarLander_base_hparam, args, test_hparam, rerun_nb=args.rerun)
+    
     elif args.trainExperimentBuffer:
         """ ---- Run batch of experiment ---- """
         for expSpec in experiment_buffer:
             hparam, key, values_search_set = run_experiment(expSpec, args, test_hparam, rerun_nb=args.rerun)
-
+    
     else:
         raise NotImplementedError
     

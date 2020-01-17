@@ -82,15 +82,17 @@ class SoftActorCriticAgent(Agent):
     
             # (Priority) todo:assessment --> compare with mine: remove when done
             if self.exp_spec['SpinningUpGaussian']:
-                pi, pi_log_p, self.policy_mu = build_gaussian_policy_graph_SpinningUp(self.obs_t_ph, self.exp_spec,
-                                                                                      self.playground)
+                # pi, pi_log_p, self.policy_mu = build_gaussian_policy_graph_SpinningUp(self.obs_t_ph, self.exp_spec,
+                #                                                                       self.playground)
+                raise NotImplementedError  # todo: remove
             else:
                 pi, pi_log_p, self.policy_mu = build_gaussian_policy_graph(self.obs_t_ph, self.exp_spec,
                                                                            self.playground)
     
             # (Priority) todo:assessment --> compare with mine: remove when done
             if self.exp_spec['SpinningUpSquashing']:
-                self.policy_pi, self.pi_log_likelihood = apply_action_bound_SpinningUp(pi, pi_log_p)
+                # self.policy_pi, self.pi_log_likelihood = apply_action_bound_SpinningUp(pi, pi_log_p)
+                raise NotImplementedError  # todo: remove
             else:
                 self.policy_pi, self.pi_log_likelihood = apply_action_bound(pi, pi_log_p)
     

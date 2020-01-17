@@ -32,33 +32,33 @@ class ExperimentSpec:
         """
         # todo: add a param for the neural net configuration via a dict fed as a argument
         # (nice to have) todo:implement --> set_experiment_spec_JSON (taking json as argument):
-    
+
         self.algo_name = algo_name
         self.comment = comment
         self.paramameter_set_name = 'default'
         self.rerun_tag = None
         self.rerun_idx = 0
-    
+
         self.isTestRun = isTestRun
         self.prefered_environment = environment_name
         self.expected_reward_goal = expected_reward_goal
         self.show_plot = show_plot
-    
+
         self.batch_size_in_ts = batch_size_in_ts
         self.max_epoch = max_epoch
         self.discout_factor: float = discout_factor
         self.learning_rate = learning_rate
         self.discounted_reward_to_go = discounted_reward_to_go
-    
+
         self.theta_nn_h_layer_topo = theta_nn_hidden_layer_topology
         self.random_seed = random_seed
         self.theta_hidden_layers_activation: tf.Tensor = tf.nn.tanh
         self.theta_output_layers_activation: tf.Tensor = None
-    
+
         self.render_env_every_What_epoch = 100
         self.log_metric_interval = log_metric_interval
         self.print_metric_every_what_epoch = print_metric_every_what_epoch
-    
+
         self._assert_param()
     
     def _assert_param(self):
@@ -687,3 +687,20 @@ def he_initialization(input_op: tf.Tensor, nb_of_neuron: int, seed=None) -> tf.T
     stddev = 2 / np.sqrt(nb_of_input_unit + nb_of_neuron)
     initialized_tensor = tf.truncated_normal((nb_of_input_unit, nb_of_neuron), stddev=stddev, seed=seed)
     return initialized_tensor
+
+
+def gym_environment_reward_assesment(env: Union[TimeLimit, Any], sample_size: int = 10000) -> float:
+    """Tool to asses the reward size of a gym environment
+    
+    Exemple of use with a buildingbloc.GymPlayground object:
+        >>> playgroundLunar = GymPlayground('LunarLanderContinuous-v2')
+        >>> myEnv = playgroundLunar.env.env
+        >>> theAverageLunarLanderEnvReward = gym_environment_reward_assesment(myEnv, sample_size=1000)
+        
+    :param env: a Gym instanciated environment
+    :param sample_size: reward sample size
+    :return: the average environment reward
+    """
+    env.reset()
+    rewards = [env.step(env.action_space.sample())[1] for step in range(sample_size)]
+    return np.mean(rewards)
