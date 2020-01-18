@@ -74,9 +74,9 @@ from blocAndTools.experiment_runner import (
                                                         - The 'reward_scaling' coefficient must be tune based on
                                                             the avg reward magnitude
                                                           Avg mean reward (over 5000 samples) ex:
-                                                            MountainCarContinuous-v0: -0.033343435949857496
+                                                            MountainCarContinuous-v0: -0.03120409531395761
                                                                     vs
-                                                            LunarLanderContinuous-v2: -98.78142879872294
+                                                            LunarLanderContinuous-v2: -2.0004798743377448
                                                         - reward_scaling=0 <--> KILL the algorithm
                                                         - reward_scaling=1.0 <--> no scaling
                                                         - Note: It can land in [0 < rewS <= 1]
@@ -195,7 +195,7 @@ SAC_base_hparam = {
     'log_metric_interval':            500,
     'note':                           '',
     
-    'SpinningUpSquashing':            False,  # (Priority) todo:assessment --> compare with mine: remove when done
+    'SpinningUpSquashing':            False,  # (Ice boxed) todo:assessment --> compare with mine: remove when done
     'SpinningUpGaussian':             False,  # (Priority) todo:assessment --> compare with mine: remove when done
     }
 
@@ -211,7 +211,7 @@ SAC_base_hparam = {
 # - spec:
 #    - max_episode_steps: 999
 #    - reward_threshold: 90.0       #  The reward threshold before the task is considered solved
-# - Avg reward assement:   -0.033343435949857496
+# - Avg reward assement:   -0.03120409531395761
 
 SAC_MountainCar_hparam = dict(SAC_base_hparam)
 SAC_MountainCar_hparam.update(
@@ -245,7 +245,7 @@ SAC_MountainCar_hparam.update(
 # - spec:
 #    - max_episode_steps: 200
 #    - reward_threshold: None       #  The reward threshold before the task is considered solved
-# - Avg reward assement:  -4.863037248615252
+# - Avg reward assement:  -5.687553812910036
 #
 # Gym: https://gym.openai.com/envs/MountainCarContinuous-v0/
 SAC_Pendulum_base_hparam = dict(SAC_base_hparam)
@@ -459,7 +459,7 @@ SAC_Pendulum_Alpha_hparam.update(
 # - spec:
 #    - max_episode_steps: 1000
 #    - reward_threshold: 200       #  The reward threshold before the task is considered solved
-# - Avg reward assement: -98.78142879872294
+# - Avg reward assement: -2.0004798743377448
 #
 # Landing pad is always at coordinates (0,0). Coordinates are the first two numbers in state vector.
 # Reward for moving from the top of the screen to landing pad and zero speed is about 100..140 points.
@@ -481,6 +481,7 @@ SAC_LunarLander_base_hparam.update(
         'prefered_environment':  'LunarLanderContinuous-v2',
         'expected_reward_goal':  190,  # goal: 200
         'reward_scaling':        0.03,
+        'batch_size_in_ts':      100,  # SAC paper:256, SpinningUp:100 todo: asses batch_size_in_ts
         'theta_nn_h_layer_topo': (100, 100),  # SAC paper:(256, 256), SpinningUp:(400, 300)
         'phi_nn_h_layer_topo':   (100, 100),  # SAC paper:(256, 256), SpinningUp:(400, 300)
         'psi_nn_h_layer_topo':   (100, 100),  # SAC paper:(256, 256), SpinningUp:(400, 300)
@@ -489,16 +490,25 @@ SAC_LunarLander_base_hparam.update(
     )
 
 SAC_LunarLander_rewardScale_hparam = dict(SAC_LunarLander_base_hparam)
+lunar_nn = (256, 256)
 SAC_LunarLander_rewardScale_hparam.update(
     {
-        'rerun_tag':      'LunarLander',
-        'comment':        'rewardScale',
-        'reward_scaling': [0.02, 0.03, 0.04],
-        'note':           ''
+        'rerun_tag':                  'LunarLander',
+        'comment':                    'rewardScaleFastStart',
+        'max_epoch':                  15,
+        'max_gradient_step_expected': 75000,
+        'reward_scaling':             [2.5, 3.5, 2.0, 4.0],  # with rerun=3
+        'theta_nn_h_layer_topo':      lunar_nn,
+        'phi_nn_h_layer_topo':        lunar_nn,
+        'psi_nn_h_layer_topo':        lunar_nn,
+        'note':                       'Evaluate for promissing start (over 15 epoch)'
+                                      'Most promissing: ~3.0'
         }
     )
-# Experiment >>> (>>>IN PROGRESS) todo: LunarLander asses the proper reward_scaling, rerun 5
+# Experiment >>> (>>>IN PROGRESS) todo: LunarLander asses the proper reward_scaling,  done: [0.5, 1.5, 0.8, 0.25,
+#  3.0, 5.0,] with rerun=5
 experiment_buffer.append(SAC_LunarLander_rewardScale_hparam)
+
 
 SAC_LunarLander_nnArchitecture_hparam = dict(SAC_LunarLander_base_hparam)
 for nn in [(64,), (200,), (400,), (64, 64), (100, 100), (300, 300)]:
@@ -514,8 +524,9 @@ for nn in [(64,), (200,), (400,), (64, 64), (100, 100), (300, 300)]:
             'note':                  '',
             }
         )
-#     # Experiment >>> todo: LunarLander asses NN architecture, rerun 5
+#     # Experiment >>> todo: LunarLander asses Nn Architecture, "rerun 5"
 #     experiment_buffer.append(SAC_LunarLander_nnArchitecture_hparam)
+
 
 # ::: BipedalWalker experiment :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # 'BipedalWalker-v2'
@@ -529,28 +540,25 @@ for nn in [(64,), (200,), (400,), (64, 64), (100, 100), (300, 300)]:
 # - spec:
 #    - max_episode_steps: 1600
 #    - reward_threshold: 300       #  The reward threshold before the task is considered solved
-# - Avg reward assement: -98.28313092135646 & -98.84284579807118 (for Hardcore version)
+# - Avg reward assement: -0.05886533021377718 & -0.07178085108315299 (for Hardcore version)
 #
 # Note: inspected in interactive console via a playground<envName>.env  Gym instance property
 # Gym: https://gym.openai.com/envs/ ...
 SAC_BiWalker_base_hparam = dict(SAC_base_hparam)
 SAC_BiWalker_base_hparam.update(
     {
-        'rerun_tag':                    'BiWalker',
-        'comment':                      'base',
-        'prefered_environment':         'BipedalWalker-v2',
-        'expected_reward_goal':         290,  # goal: 300
-        'max_epoch':                    100,
-        'timestep_per_epoch':           10000,
-        'alpha':                        1.0,  # SAC paper=1.0 SpinningUp=0.2
-        'reward_scaling':               0.03,
-        'target_smoothing_coefficient': 1.0,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
-        'target_update_interval':       1000,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
-        'gradient_step_interval':       4,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
-        'theta_nn_h_layer_topo':        (256, 256),  # SAC paper:(256, 256), SpinningUp:(400, 300)
-        'phi_nn_h_layer_topo':          (256, 256),  # SAC paper:(256, 256), SpinningUp:(400, 300)
-        'psi_nn_h_layer_topo':          (256, 256),  # SAC paper:(256, 256), SpinningUp:(400, 300)
-        'note':                         '(!) Tentative reward_scaling coeficient & nn architecture',
+        'rerun_tag':             'BiWalker',
+        'comment':               'base',
+        'prefered_environment':  'BipedalWalker-v2',
+        'expected_reward_goal':  290,  # goal: 300
+        'max_epoch':             100,
+        'timestep_per_epoch':    10000,
+        'alpha':                 1.0,  # SAC paper=1.0 SpinningUp=0.2
+        'reward_scaling':        0.03,
+        'theta_nn_h_layer_topo': (256, 256),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+        'phi_nn_h_layer_topo':   (256, 256),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+        'psi_nn_h_layer_topo':   (256, 256),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+        'note':                  '(!) Tentative reward_scaling coeficient & nn architecture',
         }
     )
 
@@ -559,12 +567,12 @@ SAC_BiWalker_rewardScale_hparam.update(
     {
         'rerun_tag':      'BiWalker',
         'comment':        'rewardScale',
-        'reward_scaling': [0.02, 0.03, 0.04],
+        'reward_scaling': [0.1, 0.05, 0.25, 1.0, 0.5],
         'note':           '',
         }
     )
-# Experiment >>> (>>>IN PROGRESS) todo: BiWalker asses the proper reward_scaling, rerun 5
-experiment_buffer.append(SAC_BiWalker_rewardScale_hparam)
+# Experiment >>>  todo: BiWalker asses the proper reward_scaling, rerun 5
+# experiment_buffer.append(SAC_BiWalker_rewardScale_hparam)
 
 SAC_BiWalker_NN_architecture_hparam = dict(SAC_BiWalker_base_hparam)
 for nn in [(64,), (200,), (400,), (64, 64), (100, 100), (300, 300)]:
@@ -743,6 +751,9 @@ if args.playPendulum:
 
     run_dir = chekpoint_dir + "/checkpoint/" + "Soft_Actor_Critic_agent--100-49"
     play_agent(run_dir, SAC_Pendulum_freezed_hparam, args, record=args.record)
+
+elif args.playLunar:
+    raise NotImplementedError  # todo: implement --playLunar from command line
 
 else:
     hparam = None

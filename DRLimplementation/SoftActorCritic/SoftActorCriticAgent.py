@@ -366,8 +366,10 @@ class SoftActorCriticAgent(Agent):
                             #
                             # self.writer.add_summary(trj_summary, global_step=timecounter.global_count)
 
-                            consol_print_learning_stats.trajectory_training_stat(the_trajectory_return=trj_return,
-                                                                                 timestep=trj_lenght)
+                            # Muted for speed improvment
+                            # consol_print_learning_stats.trajectory_training_stat(the_trajectory_return=trj_return,
+                            #                                                      timestep=trj_lenght)
+
                             trj_idx += 1
                             break
 
@@ -478,7 +480,7 @@ class SoftActorCriticAgent(Agent):
         self.sess.run(self.actor_policy_optimizer_op, feed_dict=full_feed_dictionary)
 
         """ ---- 'Target update' (see SAC original paper, apendice E for result and D for hparam) ---- """
-        console_print_interval = 10  # speed improvement
+        console_print_interval = 20  # speed improvement
 
         if timecounter.global_count % self.exp_spec['target_update_interval'] == 0:
             self.experiment_counter.target_update_step()

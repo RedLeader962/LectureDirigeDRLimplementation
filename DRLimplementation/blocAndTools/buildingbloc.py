@@ -701,6 +701,18 @@ def gym_environment_reward_assesment(env: Union[TimeLimit, Any], sample_size: in
     :param sample_size: reward sample size
     :return: the average environment reward
     """
+    rewards = []
+    collected_step = 0
     env.reset()
-    rewards = [env.step(env.action_space.sample())[1] for step in range(sample_size)]
+
+    while collected_step < sample_size:
+        _, rew, done, _ = env.step(env.action_space.sample())
+        rewards.append(rew)
+        collected_step += 1
+        if collected_step % 10 == 0:
+            print("\rCollected step: {}".format(collected_step), sep='', end='', flush=True)
+        if done:
+            env.reset()
+
+    print("\rCollected step: {}".format(collected_step))
     return np.mean(rewards)
