@@ -473,30 +473,30 @@ def actor_train(policy_pi_log_likelihood: tf.Tensor, Q_pi_1: tf.Tensor, Q_pi_2: 
 
     :return: actor_kl_loss, actor_policy_optimizer_op
     """
-    
+
     alpha = exp_spec['alpha']
-    
+
     """ ---- Build the Kullback-Leibler divergence loss function ---- """
     # ... Investigate ..................................................................................................
     # (nice to have) todo:investigate?? --> check wether to use min_Q1_Q2 or Q_1.
     #                                       SAC paper talk about using min_Q1_Q2
     #                                       but no implementation use it (SpinningUp, SAC original impl, ... ):
-    
-    min_q_theta = tf_cv1.minimum(Q_pi_1, Q_pi_2)
-    actor_kl_loss = tf_cv1.reduce_mean(alpha * policy_pi_log_likelihood - min_q_theta,
-                                       name=vocab.actor_kl_loss)
-    
-    # actor_kl_loss = tf_cv1.reduce_mean(alpha * policy_pi_log_likelihood - Q_pi_1,
+
+    # min_q_theta = tf_cv1.minimum(Q_pi_1, Q_pi_2)
+    # actor_kl_loss = tf_cv1.reduce_mean(alpha * policy_pi_log_likelihood - min_q_theta,
     #                                    name=vocab.actor_kl_loss)
+
+    actor_kl_loss = tf_cv1.reduce_mean(alpha * policy_pi_log_likelihood - Q_pi_1,
+                                       name=vocab.actor_kl_loss)
     # .......................................................................................... Investigate ...(end)...
-    
+
     """ ---- Actor optimizer & learning rate scheduler ---- """
     actor_lr_schedule, actor_global_grad_step = learning_rate_scheduler(
         max_gradient_step_expected=exp_spec['max_gradient_step_expected'],
         learning_rate=exp_spec.learning_rate,
         lr_decay_rate=exp_spec['actor_lr_decay_rate'],
         name_sufix='actor')
-    
+
     var_list = get_explicitely_graph_key_from(vocab.actor_network)
     assert len(var_list) is not 0
     actor_policy_optimizer_op = tf_cv1.train.AdamOptimizer(learning_rate=actor_lr_schedule

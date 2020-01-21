@@ -13,35 +13,36 @@ deprecation._PRINT_DEPRECATION_WARNINGS = False
 vocab = rl_name()
 
 unit_test_hparam = {
-    'rerun_tag':                      'Unit-TEST',
-    'paramameter_set_name':           'SAC',
-    'comment':                        'UnitTestSpec',  # Comment added to training folder name (can be empty)
-    'algo_name':                      'Soft Actor Critic',
-    'AgentType':                      SoftActorCriticAgent,
-    'prefered_environment':           'MountainCarContinuous-v0',
+    'rerun_tag':                    'Unit-TEST',
+    'paramameter_set_name':         'SAC',
+    'comment':                      'UnitTestSpec',  # Comment added to training folder name (can be empty)
+    'algo_name':                    'Soft Actor Critic',
+    'AgentType':                    SoftActorCriticAgent,
+    'prefered_environment':         'MountainCarContinuous-v0',
     
-    'expected_reward_goal':           90,  # Note: trigger model save on reach
-    'max_epoch':                      10,
-    'timestep_per_epoch':             500,
+    'expected_reward_goal':         90,  # Note: trigger model save on reach
+    'max_epoch':                    10,
+    'timestep_per_epoch':           500,
+    'max_trj_steps':                1000,
     
-    'reward_scaling':                 5.0,
+    'reward_scaling':               5.0,
     
-    'discout_factor':                 0.99,  # SAC paper: 0.99
-    'learning_rate':                  0.003,  # SAC paper: 30e-4
-    'critic_learning_rate':           0.003,  # SAC paper: 30e-4
-    'max_gradient_step_expected':     500000,
-    'actor_lr_decay_rate':            0.01,  # Note: set to 1 to swith OFF scheduler
-    'critic_lr_decay_rate':           0.01,  # Note: set to 1 to swith OFF scheduler
+    'discout_factor':               0.99,  # SAC paper: 0.99
+    'learning_rate':                0.003,  # SAC paper: 30e-4
+    'critic_learning_rate':         0.003,  # SAC paper: 30e-4
+    'max_gradient_step_expected':   500000,
+    'actor_lr_decay_rate':          0.01,  # Note: set to 1 to swith OFF scheduler
+    'critic_lr_decay_rate':         0.01,  # Note: set to 1 to swith OFF scheduler
     
-    'target_smoothing_coefficient':   0.005,  # SAC paper: EXPONENTIAL MOVING AVERAGE ~ 0.005, 1 <==> HARD TARGET update
-    'target_update_interval':         1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
-    'gradient_step_interval':         1,
+    'target_smoothing_coefficient': 0.005,  # SAC paper: EXPONENTIAL MOVING AVERAGE ~ 0.005, 1 <==> HARD TARGET update
+    'target_update_interval':       1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
+    'gradient_step_interval':       1,
     
-    'alpha':                          1,  # HW5: we recover a standard max expected return objective as alpha --> 0
+    'alpha':                        1,  # HW5: we recover a standard max expected return objective as alpha --> 0
     
-    'max_eval_trj':                   10,  #SpiningUp: 10
+    'max_eval_trj':                 10,  #SpiningUp: 10
     
-    'pool_capacity':                  int(1e6),  # SAC paper: 1e6
+    'pool_capacity':                int(1e6),  # SAC paper: 1e6
     'min_pool_size':                  100,
     'batch_size_in_ts':               100,  # SAC paper:256, SpinningUp:100
     
@@ -153,7 +154,7 @@ def test_SoftActorCritic_brain_Critic_V_TRAIN_PASS(gym_and_tf_continuous_setup):
 
     with tf_cv1.variable_scope(vocab.critic_network):
         V_psi, V_psi_frozen = SoftActorCriticBrain.build_critic_graph_v_psi(obs_t_ph, obs_t_prime_ph, exp_spec)
-    
+
         Q_act_1, Q_pi_1 = SoftActorCriticBrain.build_critic_graph_q_theta(obs_t_ph, act_ph, pi, exp_spec,
                                                                           vocab.Q_theta_1)
         Q_act_2, Q_pi_2 = SoftActorCriticBrain.build_critic_graph_q_theta(obs_t_ph, act_ph, pi, exp_spec,

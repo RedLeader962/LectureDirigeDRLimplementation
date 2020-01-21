@@ -149,6 +149,7 @@ SAC_base_hparam = {
     'expected_reward_goal':           90,  # Note: trigger model save on reach
     'max_epoch':                      50,
     'timestep_per_epoch':             5000,
+    'max_trj_steps':                  None,
     
     # (!) Note: The only hparam requiring carefull tuning.
     #       |       - The 'reward_scaling' coefficient must be tune based on the avg reward magnitude
@@ -175,7 +176,8 @@ SAC_base_hparam = {
     'alpha':                          1.0,  # SAC paper=1.0, SpinningUp=0.2
     'max_eval_trj':                   10,  #SpiningUp: 10
     
-    'pool_capacity':                  int(1e6),  # SAC paper & SpinningUp: 1e6
+    'pool_capacity':                  int(1e6),
+    # SAC paper & SpinningUp: 1e6  # todo: pool_capacity test [1e4, 1e5, 1e6]
     'min_pool_size':                  10000,  # SpinningUp: 10000
     'batch_size_in_ts':               100,  # SAC paper:256, SpinningUp:100
     
@@ -195,7 +197,7 @@ SAC_base_hparam = {
     'log_metric_interval':            500,
     'note':                           '',
     
-    'SpinningUpSquashing':            False,  # (Ice boxed) todo:assessment --> compare with mine: remove when done
+    'SpinningUpSquashing':            False,  # (Priority) todo:assessment --> compare with mine: remove when done
     'SpinningUpGaussian':             False,  # (Priority) todo:assessment --> compare with mine: remove when done
     }
 
@@ -213,25 +215,41 @@ SAC_base_hparam = {
 #    - reward_threshold: 90.0       #  The reward threshold before the task is considered solved
 # - Avg reward assement:   -0.03120409531395761
 
-SAC_MountainCar_hparam = dict(SAC_base_hparam)
-SAC_MountainCar_hparam.update(
+SAC_MountainCar_base_hparam = dict(SAC_base_hparam)
+SAC_MountainCar_base_hparam.update(
     {
-        'rerun_tag':                     'MonCar',
-        'paramameter_set_name':          'SAC',
-        'comment':                       '',
-        'algo_name':                     'Soft Actor Critic',
-        'AgentType':                     SoftActorCriticAgent,
-        'prefered_environment':          'MountainCarContinuous-v0',
-        'expected_reward_goal':          90,
-        'reward_scaling':                [10.0, 20.0],
-        'render_env_every_What_epoch':   5,
-        'render_env_eval_interval':      5,
-        'print_metric_every_what_epoch': 5,
-        'log_metric_interval':           500,
-        'note':                          '',
+        'rerun_tag':                  'MonCarBase',
+        'paramameter_set_name':       'SAC-MonCar',
+        'comment':                    '',
+        'prefered_environment':       'MountainCarContinuous-v0',
+        'expected_reward_goal':       85,  # Goal: 90
+        'max_epoch':                  50,
+        'max_gradient_step_expected': 500000,
+        'max_trj_steps':              999,
+        'note':                       '',
         }
     )
-# Experiment >>> (Ice-Boxed) Todo: MountainCarContinuous RewardScaling experiment
+
+# ... RewardScaling experiment .........................................................................................
+
+SAC_MountainCar_rewardScaling_hparam = dict(SAC_base_hparam)
+SAC_MountainCar_rewardScaling_hparam.update(
+    {
+        'rerun_tag':                    'MonCarBase',
+        'comment':                      'rewardScaling',
+        'batch_size_in_ts':             100,  # SAC paper:256, SpinningUp:100
+        'reward_scaling':               0.5,  # SAC paper: [3, 10, 30]  SpinningUp: 1.0
+        'target_smoothing_coefficient': 0.01,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
+        'theta_nn_h_layer_topo':        (64, 64),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+        'phi_nn_h_layer_topo':          (64, 64),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+        'psi_nn_h_layer_topo':          (64, 64),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+        'note':                         '',
+        }
+    )
+# Experiment >>>  Todo: MountainCarContinuous RewardScaling experiment
+# experiment_buffer.append(SAC_MountainCar_rewardScaling_hparam)
+# ................................................................................. RewardScaling experiment ...(end)...
+
 
 # ::: Pendulum experiment ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # 'Pendulum-v0'
@@ -257,6 +275,7 @@ SAC_Pendulum_base_hparam.update(
         'expected_reward_goal':          (-561),
         'max_epoch':                     50,
         'timestep_per_epoch':            5000,
+        'max_trj_steps':                 200,
         'max_gradient_step_expected':    250000,
         'actor_lr_decay_rate':           1.0,  # Note: set to 1.0 to swith OFF scheduler
         'critic_lr_decay_rate':          1.0,  # Note: set to 1.0 to swith OFF scheduler
@@ -476,18 +495,103 @@ SAC_Pendulum_Alpha_hparam.update(
 SAC_LunarLander_base_hparam = dict(SAC_base_hparam)
 SAC_LunarLander_base_hparam.update(
     {
-        'rerun_tag':             'LunarLander',
-        'comment':               'base',
-        'prefered_environment':  'LunarLanderContinuous-v2',
-        'expected_reward_goal':  190,  # goal: 200
-        'reward_scaling':        0.03,
-        'batch_size_in_ts':      100,  # SAC paper:256, SpinningUp:100 todo: asses batch_size_in_ts
-        'theta_nn_h_layer_topo': (100, 100),  # SAC paper:(256, 256), SpinningUp:(400, 300)
-        'phi_nn_h_layer_topo':   (100, 100),  # SAC paper:(256, 256), SpinningUp:(400, 300)
-        'psi_nn_h_layer_topo':   (100, 100),  # SAC paper:(256, 256), SpinningUp:(400, 300)
-        'note':                  '(!) Tentative reward_scaling coeficient & nn architecture'
+        'rerun_tag':            'LunarLander-EMA',
+        'comment':              'base',
+        'prefered_environment': 'LunarLanderContinuous-v2',
+        'max_trj_steps':        1000,
+        'expected_reward_goal': 190,  # goal: 200
+        'batch_size_in_ts':     256,  # SAC paper:256, SpinningUp:100 todo: asses batch_size_in_ts
+        'note':                 '(!) Tentative reward_scaling coeficient & nn architecture'
         }
     )
+
+SAC_LunarLander_baseHardtarget_hparam = dict(SAC_LunarLander_base_hparam)
+SAC_LunarLander_baseHardtarget_hparam.update(
+    {
+        'rerun_tag':                    'LunarLander-HT',
+        'target_smoothing_coefficient': 1.0,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
+        'target_update_interval':       1000,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
+        'gradient_step_interval':       4,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
+        }
+    )
+
+# ... Lunar reward scale (second attempt) .................................................................
+SAC_LunarLander_rewScaleLarge_hparam = dict(SAC_LunarLander_baseHardtarget_hparam)
+for nn in [(64, 64), (82, 82), (100, 100)]:
+    nnstr = str(nn).strip('()')
+    nnstr = nnstr.replace(', ', 'X')
+    old_rerun_tag = SAC_LunarLander_rewScaleLarge_hparam['rerun_tag']
+    SAC_LunarLander_rewScaleLarge_hparam.update(
+        {
+            'rerun_tag':                    "{}-{}".format(old_rerun_tag, 'BRS'),
+            'comment':                      'rewScaleLarge nnArchitecture{}'.format(nnstr),
+            'max_epoch':                    50,
+            'max_gradient_step_expected':   250000,
+            'batch_size_in_ts':             100,
+            'reward_scaling':               [95.0, 110.0, 80.0, ],
+            'target_smoothing_coefficient': 0.01,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
+            'theta_nn_h_layer_topo':        nn,
+            'phi_nn_h_layer_topo':          nn,
+            'psi_nn_h_layer_topo':          nn,
+            'note':                         'New hypothesis: based on Mujoco/SAC paper experiment, '
+                                            '   the mean-heated-rew ~ [19 < x < 30]'
+                                            'Base on closer Box[3,] Hopper, our meanHeatedRewGoal ~ 19'
+                                            'So we seek: rew_thr / maxStep * rewS ~ 19 '
+                                            '1000*19/200/ = 95 = rewS_lunar'
+            }
+        )
+    # Experiment >>>   inProgress: LunarLander rewardScale ExpTwo rerun: 2  done: nn [(64,), ]
+    experiment_buffer.append(SAC_LunarLander_rewScaleLarge_hparam.copy())
+# ......................................................... Lunar reward scale (second attempt) ...(end)...
+
+SAC_LunarLander_AlphaTest_hparam = dict(SAC_LunarLander_base_hparam)
+lunar_nn = (100, 100)
+SAC_LunarLander_AlphaTest_hparam.update(
+    {
+        'rerun_tag':                  'LunarLander',
+        'comment':                    'alphaTest',
+        'max_epoch':                  50,
+        'max_gradient_step_expected': 250000,
+        'pool_capacity':              int(5e4),  # SAC paper & SpinningUp: 1e6
+        'batch_size_in_ts':           100,
+        'alpha':                      [1.0, 0.75, 0.5, 0.25],  # SAC paper=1.0, SpinningUp=0.2
+        'theta_nn_h_layer_topo':      lunar_nn,
+        'phi_nn_h_layer_topo':        lunar_nn,
+        'psi_nn_h_layer_topo':        lunar_nn,
+        'note':                       'Unconclusive'
+        }
+    )
+# Experiment >>>   done: LunarLander alphaTest
+# experiment_buffer.append(SAC_LunarLander_AlphaTest_hparam)
+
+SAC_LunarLander_AlphaTest_hparam.update(
+    {
+        'rerun_tag':      'LunarLander',
+        'comment':        'smallBuffer RS15e-1 noPiMinQ',
+        'pool_capacity':  int(1e5),  # SAC paper & SpinningUp: 1e6
+        'min_pool_size':  5000,  # SpinningUp: 10000
+        'reward_scaling': 1.5,
+        'note':           '',
+        }
+    )
+# Experiment >>>   done: LunarLander alphaTest
+# experiment_buffer.append(SAC_LunarLander_AlphaTest_hparam)
+
+SAC_LunarLander_AlphaTest_hparam.update(
+    {
+        'rerun_tag':             'LunarLanderLargeNN',
+        'comment':               'smallBuffer RS15e-1 ',
+        'pool_capacity':         int(1e5),  # SAC paper & SpinningUp: 1e6
+        'min_pool_size':         5000,  # SpinningUp: 10000
+        'reward_scaling':        1.5,
+        'theta_nn_h_layer_topo': (200, 200),
+        'phi_nn_h_layer_topo':   (200, 200),
+        'psi_nn_h_layer_topo':   (200, 200),
+        'note':                  '',
+        }
+    )
+# Experiment >>>   done: LunarLander alphaTest
+# experiment_buffer.append(SAC_LunarLander_AlphaTest_hparam)
 
 SAC_LunarLander_rewardScale_hparam = dict(SAC_LunarLander_base_hparam)
 lunar_nn = (256, 256)
@@ -497,7 +601,9 @@ SAC_LunarLander_rewardScale_hparam.update(
         'comment':                    'rewardScaleFastStart',
         'max_epoch':                  15,
         'max_gradient_step_expected': 75000,
-        'reward_scaling':             [2.5, 3.5, 2.0, 4.0],  # with rerun=3
+        'pool_capacity':              int(1e6),  # SAC paper & SpinningUp: 1e6
+        'reward_scaling':             [0.5, 0.25, 0.8, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0],  # with rerun=3
+        'batch_size_in_ts':           100,
         'theta_nn_h_layer_topo':      lunar_nn,
         'phi_nn_h_layer_topo':        lunar_nn,
         'psi_nn_h_layer_topo':        lunar_nn,
@@ -505,28 +611,79 @@ SAC_LunarLander_rewardScale_hparam.update(
                                       'Most promissing: ~3.0'
         }
     )
-# Experiment >>> (>>>IN PROGRESS) todo: LunarLander asses the proper reward_scaling,  done: [0.5, 1.5, 0.8, 0.25,
-#  3.0, 5.0,] with rerun=5
-experiment_buffer.append(SAC_LunarLander_rewardScale_hparam)
+# Experiment >>> done: LunarLander asses the proper reward_scaling,
+# with value [0.5, 0.25, 0.8, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0,] and rerun=5
+# experiment_buffer.append(SAC_LunarLander_rewardScale_hparam)
+
+
+SAC_LunarLander_BatchSize_hparam = dict(SAC_LunarLander_base_hparam)
+lunar_nn = (100, 100)
+SAC_LunarLander_BatchSize_hparam.update(
+    {
+        'rerun_tag':                  'LunarLander',
+        'comment':                    'batchSizeTest',
+        'max_epoch':                  75,
+        'max_gradient_step_expected': 375000,
+        'pool_capacity':              int(1e5),  # SAC paper & SpinningUp: 1e6
+        'min_pool_size':              40000,  # SpinningUp: 10000
+        'batch_size_in_ts':           [64, 100, 256],
+        'theta_nn_h_layer_topo':      lunar_nn,
+        'phi_nn_h_layer_topo':        lunar_nn,
+        'psi_nn_h_layer_topo':        lunar_nn,
+        'note':                       'Only good result batch_size_in_ts=100, '
+                                      'but it is unconclusive cause could not reproduce'
+        }
+    )
+# Experiment >>>  todo: LunarLander asses the proper batch_size_in_ts,
+# experiment_buffer.append(SAC_LunarLander_BatchSize_hparam)
 
 
 SAC_LunarLander_nnArchitecture_hparam = dict(SAC_LunarLander_base_hparam)
-for nn in [(64,), (200,), (400,), (64, 64), (100, 100), (300, 300)]:
+for nn in [(64,), (64, 64), (82, 82), ]:
     nnstr = str(nn).strip('()')
     nnstr = nnstr.replace(', ', 'X')
     SAC_LunarLander_nnArchitecture_hparam.update(
         {
-            'rerun_tag':             'LunarLander',
-            'comment':               'nnArchitecture{}'.format(nnstr),
-            'theta_nn_h_layer_topo': nn,  # SAC paper:(256, 256), SpinningUp:(400, 300)
-            'phi_nn_h_layer_topo':   nn,  # SAC paper:(256, 256), SpinningUp:(400, 300)
-            'psi_nn_h_layer_topo':   nn,  # SAC paper:(256, 256), SpinningUp:(400, 300)
-            'note':                  '',
+            # 'rerun_tag':                    'LunarLanderFastStart',
+            #  done: [(64,), (200,), (400,), (64, 64),(100, 100)]   with SmallPool
+            'rerun_tag':                    'LunarLanderBiggerPoolBigStep',
+            'comment':                      'nnArchitecture{}'.format(nnstr),
+            'max_epoch':                    75,
+            'max_gradient_step_expected':   375000,
+            'pool_capacity':                int(1e6),  # SAC paper & SpinningUp: 1e6
+            'min_pool_size':                40000,  # SpinningUp: 10000
+            'theta_nn_h_layer_topo':        nn,  # SAC paper:(256, 256), SpinningUp:(400, 300)
+            'phi_nn_h_layer_topo':          nn,  # SAC paper:(256, 256), SpinningUp:(400, 300)
+            'psi_nn_h_layer_topo':          nn,  # SAC paper:(256, 256), SpinningUp:(400, 300)
+            'target_smoothing_coefficient': 0.005,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
+            'target_update_interval':       1,  # SAC paper: 1 or 1000 SpinningUp: all T.U. performed at trj end
+            'gradient_step_interval':       1,  # SAC paper: 1 or 4 SpinningUp: all G. step performed at trj end
+            'note':                         'Evaluate for promissing start for nn archicture (over 15 epoch)'
+                                            'Most pormissing 100X100',
             }
         )
-#     # Experiment >>> todo: LunarLander asses Nn Architecture, "rerun 5"
-#     experiment_buffer.append(SAC_LunarLander_nnArchitecture_hparam)
+    # Experiment >>> done: LunarLander BiggerPool BigStep, rerun=1 todo:  "rerun 2"
+    # experiment_buffer.append(SAC_LunarLander_nnArchitecture_hparam.copy())
 
+SAC_LunarLander_nnAndPoolAndGradientStep_hparam = dict(SAC_LunarLander_base_hparam)
+for nn in [(64,), (200,), (400,), (64, 64)]:
+    nnstr = str(nn).strip('()')
+    nnstr = nnstr.replace(', ', 'X')
+    SAC_LunarLander_nnAndPoolAndGradientStep_hparam.update(
+        {
+            'rerun_tag':                  'LunarLanderSmallPoolFastRenewal',
+            'comment':                    'nnArchitecture{}'.format(nnstr),
+            'max_epoch':                  50,
+            'max_gradient_step_expected': 250000,
+            'pool_capacity':              int(1e5),  # SAC paper & SpinningUp: 1e6
+            'theta_nn_h_layer_topo':      nn,  # SAC paper:(256, 256), SpinningUp:(400, 300)
+            'phi_nn_h_layer_topo':        nn,  # SAC paper:(256, 256), SpinningUp:(400, 300)
+            'psi_nn_h_layer_topo':        nn,  # SAC paper:(256, 256), SpinningUp:(400, 300)
+            'note':                       '',
+            }
+        )
+    # Experiment >>> (STANDBY) todo: LunarLander asses Nn Architecture, "rerun 5" done: [ (300, 300),]
+    # experiment_buffer.append(SAC_LunarLander_nnAndPoolAndGradientStep_hparam.copy())
 
 # ::: BipedalWalker experiment :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # 'BipedalWalker-v2'
@@ -553,6 +710,7 @@ SAC_BiWalker_base_hparam.update(
         'expected_reward_goal':  290,  # goal: 300
         'max_epoch':             100,
         'timestep_per_epoch':    10000,
+        'max_trj_steps':         1600,
         'alpha':                 1.0,  # SAC paper=1.0 SpinningUp=0.2
         'reward_scaling':        0.03,
         'theta_nn_h_layer_topo': (256, 256),  # SAC paper:(256, 256), SpinningUp:(400, 300)
@@ -590,7 +748,7 @@ for nn in [(64,), (200,), (400,), (64, 64), (100, 100), (300, 300)]:
             }
         )
 #     # Experiment >>> todo: BiWalker asses the proper architecture, rerun 5
-#     experiment_buffer.append(SAC_BiWalker_NN_architecture_hparam)
+#     experiment_buffer.append(SAC_BiWalker_NN_architecture_hparam.copy())
 
 # ... Test hparam ......................................................................................................
 test_hparam = dict(SAC_base_hparam)
@@ -602,6 +760,7 @@ test_hparam.update(
         
         'max_epoch':             3,
         'timestep_per_epoch':    220,
+        'max_trj_steps':         100,
         
         'expected_reward_goal':  -130,  # goal: 200
         'reward_scaling':        3.0,
@@ -623,6 +782,7 @@ SAC_Pendulum_hparam_TEST_RERUN.update(
     {
         'max_epoch':          2,
         'timestep_per_epoch': 220,
+        'max_trj_steps':      50,
         'isTestRun':          False,
         }
     )

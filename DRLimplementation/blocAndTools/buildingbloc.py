@@ -59,6 +59,8 @@ class ExperimentSpec:
         self.log_metric_interval = log_metric_interval
         self.print_metric_every_what_epoch = print_metric_every_what_epoch
 
+        self.max_trj_steps = None
+
         self._assert_param()
     
     def _assert_param(self):

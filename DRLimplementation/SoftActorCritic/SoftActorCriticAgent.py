@@ -4,7 +4,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from typing import Any
-from warnings import warn, showwarning
 
 import numpy as np
 import tensorflow as tf
@@ -13,17 +12,16 @@ import tensorflow.python.util.deprecation as deprecation
 import blocAndTools.tensorflowbloc
 from SoftActorCritic.SoftActorCriticBrain import (
     actor_train, apply_action_bound, build_critic_graph_q_theta, build_critic_graph_v_psi, build_gaussian_policy_graph,
-    critic_q_theta_train, critic_v_psi_train, critic_learning_rate_scheduler, init_frozen_v_psi, update_frozen_v_psi_op,
-    apply_action_bound_SpinningUp, build_gaussian_policy_graph_SpinningUp,
+    critic_learning_rate_scheduler, critic_q_theta_train, critic_v_psi_train, init_frozen_v_psi, update_frozen_v_psi_op,
     )
 from blocAndTools import ConsolPrintLearningStats, buildingbloc as bloc
 from blocAndTools.agent import Agent
 from blocAndTools.buildingbloc import list_representation
-from blocAndTools.logger.basic_trajectory_logger import BasicTrajectoryLogger
+from blocAndTools.container.trajectories_pool import PoolManager
 from blocAndTools.discrete_time_counter import DiscreteTimestepCounter
 from blocAndTools.experiment_clicker import ExperimentClicker
+from blocAndTools.logger.basic_trajectory_logger import BasicTrajectoryLogger
 from blocAndTools.logger.epoch_metric_logger import EpochMetricLogger
-from blocAndTools.container.trajectories_pool import PoolManager
 from blocAndTools.rl_vocabulary import rl_name
 from blocAndTools.visualisationtools import CycleIndexer
 
@@ -322,20 +320,16 @@ class SoftActorCriticAgent(Agent):
                 self.epoch_metric_logger.new_epoch(epoch)
 
                 """ ---- Simulator: trajectories ---- """
-                trj_idx = 0
                 while timecounter.per_epoch_count < self.exp_spec['timestep_per_epoch']:
                     timecounter.reset_local_count()
                     consol_print_learning_stats.next_glorious_trajectory()
 
                     obs_t = self.playground.env.reset()
-
                     """ ---- Simulator: time-steps ---- """
                     while True:
                         timecounter.step_all()
 
                         if timecounter.global_count > self.exp_spec['min_pool_size']:
-                            # self._render_trajectory_on_condition(epoch, render_env, trj_idx)
-
                             """ ---- Agent: act in the environment using the stochastic policy---- """
                             act_t = self._select_action_given_policy(obs_t, deterministic=False)
                         else:
@@ -354,23 +348,22 @@ class SoftActorCriticAgent(Agent):
                             """ ---- 'Soft Policy Evaluation' & 'Policy Improvement' step ---- """
                             self._perform_gradient_step(consol_print_learning_stats, timecounter=timecounter)
 
-                        if trj_done:
+                        if trj_done or timecounter.local_count >= self.exp_spec.max_trj_steps:
                             """ ---- Simulator: trajectory as ended --> compute training stats ---- """
                             trj_return, trj_lenght = self.pool_manager.trajectory_ended()
                             self.epoch_metric_logger.append_trajectory_metric(trj_return, trj_lenght)
-
+    
                             # trj_summary = sess.run(self.summary_TRJ_op, {
                             #     self.summary_sto_pi_TRJ_return_ph: trj_return,
                             #     self.summary_sto_pi_TRJ_lenght_ph: trj_lenght
                             #     })
                             #
                             # self.writer.add_summary(trj_summary, global_step=timecounter.global_count)
-
+    
                             # Muted for speed improvment
                             # consol_print_learning_stats.trajectory_training_stat(the_trajectory_return=trj_return,
                             #                                                      timestep=trj_lenght)
-
-                            trj_idx += 1
+    
                             break
 
                 # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -537,20 +530,27 @@ class SoftActorCriticAgent(Agent):
                 act_t = self._select_action_given_policy(observation, deterministic=True)
                 observation, reward, done, _ = self.evaluation_playground.env.step(act_t)
     
-                eval_trajectory_logger.push(reward)
-    
-                if done:
-                    self.epoch_metric_logger.append_agent_eval_trj_metric(eval_trajectory_logger.the_return,
-                                                                          eval_trajectory_logger.lenght)
-                    eval_trj_returns.append(eval_trajectory_logger.the_return)
-                    eval_trj_lenghts.append(eval_trajectory_logger.lenght)
-
+                timestep = eval_trajectory_logger.lenght
+                if timestep % 200 == 0:
                     print("\r     ↳ {:^3} :: Evaluation run {:>4}  |".format(epoch, run + 1),
                           ">" * cycle_indexer.i, " " * cycle_indexer.j,
-                          "  got return {:>8.2f}   after  {:>4}  timesteps".format(eval_trajectory_logger.the_return,
-                                                                                   eval_trajectory_logger.lenght),
+                          " | reward:", reward, " | timestep:", timestep,
                           sep='', end='', flush=True)
-
+    
+                eval_trajectory_logger.push(reward)
+                if done or timestep >= self.exp_spec.max_trj_steps:
+                    da_return = eval_trajectory_logger.the_return
+                    self.epoch_metric_logger.append_agent_eval_trj_metric(da_return,
+                                                                          timestep)
+                    eval_trj_returns.append(da_return)
+                    eval_trj_lenghts.append(timestep)
+        
+                    print("\r     ↳ {:^3} :: Evaluation run {:>4}  |".format(epoch, run + 1),
+                          ">" * cycle_indexer.i, " " * cycle_indexer.j,
+                          "  got return {:>8.2f}   after  {:>4}  timesteps".format(da_return,
+                                                                                   timestep),
+                          sep='', end='', flush=True)
+        
                     eval_trajectory_logger.reset()
                     break
 

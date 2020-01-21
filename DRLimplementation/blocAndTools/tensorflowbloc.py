@@ -12,41 +12,45 @@ tf_cv1 = tf.compat.v1  # shortcut
 vocab = rl_name()
 
 
-def update_nn_weights(graph_key_from: List[str], graph_key_to: List[str],
+def update_nn_weights(graph_variables_from: List[tf_cv1.Variable], graph_variable_to: List[tf_cv1.Variable],
                       target_smoothing_coefficient: float) -> tf.Operation:
-    """ Fetch all tensor in list graph_key_from and update tensor weight of those in graph_key_to
-    Pre condition: Botch tensor graph key list must match
+    """
+    Fetch all tensor in list graph_key_from and update tensor weight of those in graph_key_to
+    Pre condition: Batch tensor graph key list must match
     """
     with tf_cv1.variable_scope('update_nn_weights_op', reuse=True):
         op = tf.group(
             [tf_cv1.assign(
                 updated_tensor,
                 target_smoothing_coefficient * source_tensor + (1 - target_smoothing_coefficient) * updated_tensor)
-                for source_tensor, updated_tensor in zip(graph_key_from, graph_key_to)]
+                for source_tensor, updated_tensor in zip(graph_variables_from, graph_variable_to)]
             )
     return op
 
 
-def get_current_scope_variables_graph_key(name: str) -> List[str]:
+def get_current_scope_variables_graph_key(name: str) -> List[tf_cv1.Variable]:
     """
     Fetch the list of all parameter graph key under a specific variable name
     Pass to argument 'name':
         - If called INSIDE a scope --> only the relevant key ex: 'V_psi'
         - If called OUTSIDE a scope --> the full key ex: 'Tatget_network/V_psi'
     
-        >>> with tf_cv1.variable_scope('Tatget_network'):
-        >>>     the_V = build_MLP_computation_graph(obs_t_ph, 1, (4, 4), name='V_psi')
-        >>>     the_frozen_V = build_MLP_computation_graph(obs_t_prime_ph, 1, (4, 4), name='frozen_V_psi')
-        >>> v_psy_key = get_current_scope_variables_graph_key('Tatget_network/V_psi')
-        >>> print(v_psy_key)
+        ''' with tf_cv1.variable_scope('Tatget_network'):
+                the_V = build_MLP_computation_graph(obs_t_ph, 1, (4, 4), name='V_psi')
+                the_frozen_V = build_MLP_computation_graph(obs_t_prime_ph, 1, (4, 4), name='frozen_V_psi')
+            v_psy_key = get_current_scope_variables_graph_key('Tatget_network/V_psi')
+            print(v_psy_key)
+         '''
+        
         [<tf.Variable 'V_psi/hidden_1/kernel:0' shape=(4, 4) dtype=float32_ref>,
          <tf.Variable 'V_psi/hidden_1/bias:0' shape=(4,) dtype=float32_ref>,
          <tf.Variable 'V_psi/hidden_2/kernel:0' shape=(4, 4) dtype=float32_ref>,
          <tf.Variable 'V_psi/hidden_2/bias:0' shape=(4,) dtype=float32_ref>,
          <tf.Variable 'V_psi/logits/kernel:0' shape=(4, 1) dtype=float32_ref>,
          <tf.Variable 'V_psi/logits/bias:0' shape=(1,) dtype=float32_ref>]
+         
     :param name: variable name
-    :return: a list of all variable parameter graph key
+    :return: a list of all variable under 'name' graph key
     """
     assert not name.endswith('/')
     
@@ -59,7 +63,7 @@ def get_current_scope_variables_graph_key(name: str) -> List[str]:
     return get_explicitely_graph_key_from(scope_name)
 
 
-def get_explicitely_graph_key_from(name: str) -> List[str]:
+def get_explicitely_graph_key_from(name: str) -> List[tf_cv1.Variable]:
     assert not name.endswith('/')
     param_key = tf_cv1.get_collection(
         tf_cv1.GraphKeys.TRAINABLE_VARIABLES, scope=name)

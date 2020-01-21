@@ -12,35 +12,36 @@ deprecation._PRINT_DEPRECATION_WARNINGS = False
 vocab = rl_name()
 
 unit_test_hparam = {
-    'rerun_tag':                      'Unit-TEST',
-    'paramameter_set_name':           'SAC',
-    'comment':                        'UnitTestSpec',  # Comment added to training folder name (can be empty)
-    'algo_name':                      'Soft Actor Critic',
-    'AgentType':                      SoftActorCriticAgent,
-    'prefered_environment':           'Pendulum-v0',
+    'rerun_tag':                    'Unit-TEST',
+    'paramameter_set_name':         'SAC',
+    'comment':                      'UnitTestSpec',  # Comment added to training folder name (can be empty)
+    'algo_name':                    'Soft Actor Critic',
+    'AgentType':                    SoftActorCriticAgent,
+    'prefered_environment':         'Pendulum-v0',
     
-    'expected_reward_goal':           90,  # Note: trigger model save on reach
-    'max_epoch':                      2,
-    'timestep_per_epoch':             1000,
+    'expected_reward_goal':         90,  # Note: trigger model save on reach
+    'max_epoch':                    2,
+    'timestep_per_epoch':           1000,
+    'max_trj_steps':                200,
     
-    'reward_scaling':                 5.0,
+    'reward_scaling':               5.0,
     
-    'discout_factor':                 0.99,  # SAC paper: 0.99
-    'learning_rate':                  0.003,  # SAC paper: 30e-4
-    'critic_learning_rate':           0.003,  # SAC paper: 30e-4
-    'max_gradient_step_expected':     600,
-    'actor_lr_decay_rate':            0.01,  # Note: set to 1 to swith OFF scheduler
-    'critic_lr_decay_rate':           0.01,  # Note: set to 1 to swith OFF scheduler
+    'discout_factor':               0.99,  # SAC paper: 0.99
+    'learning_rate':                0.003,  # SAC paper: 30e-4
+    'critic_learning_rate':         0.003,  # SAC paper: 30e-4
+    'max_gradient_step_expected':   600,
+    'actor_lr_decay_rate':          0.01,  # Note: set to 1 to swith OFF scheduler
+    'critic_lr_decay_rate':         0.01,  # Note: set to 1 to swith OFF scheduler
     
-    'target_smoothing_coefficient':   0.005,  # SAC paper: EXPONENTIAL MOVING AVERAGE ~ 0.005, 1 <==> HARD TARGET update
-    'target_update_interval':         1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
-    'gradient_step_interval':         1,
+    'target_smoothing_coefficient': 0.005,  # SAC paper: EXPONENTIAL MOVING AVERAGE ~ 0.005, 1 <==> HARD TARGET update
+    'target_update_interval':       1,  # SAC paper: 1 for EXPONENTIAL MOVING AVERAGE, 1000 for HARD TARGET update
+    'gradient_step_interval':       1,
     
-    'alpha':                          1,  # HW5: we recover a standard max expected return objective as alpha --> 0
+    'alpha':                        1,  # HW5: we recover a standard max expected return objective as alpha --> 0
     
-    'max_eval_trj':                   2,  #SpiningUp: 10
+    'max_eval_trj':                 2,  #SpiningUp: 10
     
-    'pool_capacity':                  100,  # SAC paper: 1e6
+    'pool_capacity':                100,  # SAC paper: 1e6
     'min_pool_size':                  80,
     'batch_size_in_ts':               20,  # SAC paper:256, SpinningUp:100
     
@@ -70,7 +71,10 @@ def gym_and_tf_continuous_montain_car_setup():
     """
     exp_spec = bloc.ExperimentSpec()
     unit_test_MontainCar_hparam = dict(unit_test_hparam)
-    unit_test_MontainCar_hparam.update({'prefered_environment': 'MountainCarContinuous-v0'})
+    unit_test_MontainCar_hparam.update({
+        'prefered_environment': 'MountainCarContinuous-v0',
+        'max_trj_steps':        999,
+        })
     exp_spec.set_experiment_spec(unit_test_MontainCar_hparam)
     
     yield exp_spec
@@ -98,7 +102,10 @@ def gym_and_tf_continuous_LunarLander_setup():
     """
     exp_spec = bloc.ExperimentSpec()
     unit_test_Lunar_hparam = dict(unit_test_hparam)
-    unit_test_Lunar_hparam.update({'prefered_environment': 'LunarLanderContinuous-v2'})
+    unit_test_Lunar_hparam.update({
+        'prefered_environment': 'LunarLanderContinuous-v2',
+        'max_trj_steps':        1000,
+        })
     exp_spec.set_experiment_spec(unit_test_Lunar_hparam)
     
     yield exp_spec
