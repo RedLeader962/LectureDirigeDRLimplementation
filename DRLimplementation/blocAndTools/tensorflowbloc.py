@@ -28,7 +28,7 @@ def update_nn_weights(graph_variables_from: List[tf_cv1.Variable], graph_variabl
     return op
 
 
-def get_current_scope_variables_graph_key(name: str) -> List[tf_cv1.Variable]:
+def get_current_scope_variables(name: str) -> List[tf_cv1.Variable]:
     """
     Fetch the list of all parameter graph key under a specific variable name
     Pass to argument 'name':
@@ -38,7 +38,7 @@ def get_current_scope_variables_graph_key(name: str) -> List[tf_cv1.Variable]:
         ''' with tf_cv1.variable_scope('Tatget_network'):
                 the_V = build_MLP_computation_graph(obs_t_ph, 1, (4, 4), name='V_psi')
                 the_frozen_V = build_MLP_computation_graph(obs_t_prime_ph, 1, (4, 4), name='frozen_V_psi')
-            v_psy_key = get_current_scope_variables_graph_key('Tatget_network/V_psi')
+            v_psy_key = get_current_scope_variables('Tatget_network/V_psi')
             print(v_psy_key)
          '''
         
@@ -60,10 +60,10 @@ def get_current_scope_variables_graph_key(name: str) -> List[tf_cv1.Variable]:
     else:
         scope_name = name + '/'
     
-    return get_explicitely_graph_key_from(scope_name)
+    return get_variable_explicitely_by_graph_key_from(scope_name)
 
 
-def get_explicitely_graph_key_from(name: str) -> List[tf_cv1.Variable]:
+def get_variable_explicitely_by_graph_key_from(name: str) -> List[tf_cv1.Variable]:
     assert not name.endswith('/')
     param_key = tf_cv1.get_collection(
         tf_cv1.GraphKeys.TRAINABLE_VARIABLES, scope=name)

@@ -15,8 +15,8 @@ from blocAndTools.buildingbloc import (
     )
 from blocAndTools.rl_vocabulary import rl_name
 from blocAndTools.tensorflowbloc import (
-    update_nn_weights, get_current_scope_variables_graph_key,
-    get_explicitely_graph_key_from,
+    update_nn_weights, get_current_scope_variables,
+    get_variable_explicitely_by_graph_key_from,
     )
 
 tf_cv1 = tf.compat.v1  # shortcut
@@ -428,7 +428,7 @@ def critic_v_psi_train(V_psi: tf.Tensor, Q_pi_1: tf.Tensor, Q_pi_2: tf.Tensor,
 
     """ ---- Fetch all tensor from V_psi and frozen_V_psi for update ---- """
     # (nice to have) todo:investigate?? --> find a other way to pass the network weight between the V and frozen_V:
-    var_list = get_explicitely_graph_key_from(vocab.critic_network + '/' + vocab.V_psi)
+    var_list = get_variable_explicitely_by_graph_key_from(vocab.critic_network + '/' + vocab.V_psi)
     assert len(var_list) is not 0
 
     """ ---- Critic optimizer ---- """
@@ -456,7 +456,7 @@ def critic_q_theta_train(frozen_v_psi: tf.Tensor, q_theta_1: tf.Tensor, q_theta_
     
     q_target = tf_cv1.stop_gradient(
         exp_spec['reward_scaling'] * rew_ph + exp_spec.discout_factor * (1 - trj_done_ph) * frozen_v_psi)
-    
+
     """ ---- Build the Mean Square Error loss function ---- """
     # with tf_cv1.variable_scope(vocab.critic_loss):
     with tf_cv1.variable_scope(vocab.Q_theta_1_loss):
@@ -464,14 +464,14 @@ def critic_q_theta_train(frozen_v_psi: tf.Tensor, q_theta_1: tf.Tensor, q_theta_
 
     with tf_cv1.variable_scope(vocab.Q_theta_2_loss):
         q_theta_2_loss = 0.5 * tf.reduce_mean((q_target - q_theta_2) ** 2)
-    
+
     """ ---- Critic optimizer & learning rate scheduler ---- """
-    var_list_1 = get_explicitely_graph_key_from(vocab.critic_network + '/' + vocab.Q_theta_1)
-    var_list_2 = get_explicitely_graph_key_from(vocab.critic_network + '/' + vocab.Q_theta_2)
-    
+    var_list_1 = get_variable_explicitely_by_graph_key_from(vocab.critic_network + '/' + vocab.Q_theta_1)
+    var_list_2 = get_variable_explicitely_by_graph_key_from(vocab.critic_network + '/' + vocab.Q_theta_2)
+
     assert len(var_list_1) is not 0
     assert len(var_list_2) is not 0
-    
+
     # note: global_step=critic_global_grad_step is already control by 'critic_v_psi_train' AdamOptimizer
     q_theta_1_optimizer = tf_cv1.train.AdamOptimizer(learning_rate=critic_lr_schedule
                                                      ).minimize(loss=q_theta_1_loss,
@@ -525,7 +525,7 @@ def actor_train(policy_pi_log_likelihood: tf.Tensor, Q_pi_1: tf.Tensor, Q_pi_2: 
         lr_decay_rate=exp_spec['actor_lr_decay_rate'],
         name_sufix='actor')
 
-    var_list = get_explicitely_graph_key_from(vocab.actor_network)
+    var_list = get_variable_explicitely_by_graph_key_from(vocab.actor_network)
     assert len(var_list) is not 0
     actor_policy_optimizer_op = tf_cv1.train.AdamOptimizer(learning_rate=actor_lr_schedule
                                                            ).minimize(loss=actor_kl_loss,
@@ -562,8 +562,8 @@ def _update_frozen_v_psi_op(tau):
     :param tau: target_smoothing_coefficient
     :return: the update op
     """
-    v_psi_graph_key = get_explicitely_graph_key_from(vocab.critic_network + '/' + vocab.V_psi)
-    frozen_v_psi_graph_key = get_explicitely_graph_key_from(vocab.critic_network + '/' + vocab.frozen_V_psi)
+    v_psi_graph_key = get_variable_explicitely_by_graph_key_from(vocab.critic_network + '/' + vocab.V_psi)
+    frozen_v_psi_graph_key = get_variable_explicitely_by_graph_key_from(vocab.critic_network + '/' + vocab.frozen_V_psi)
     assert len(v_psi_graph_key) is not 0
     assert len(frozen_v_psi_graph_key) is not 0
     frozen_v_psi_update_ops = update_nn_weights(v_psi_graph_key, frozen_v_psi_graph_key, tau)

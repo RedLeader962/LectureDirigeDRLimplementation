@@ -7,7 +7,7 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 import tensorflow.python.util.deprecation as deprecation
 from blocAndTools.buildingbloc import continuous_space_placeholder, build_MLP_computation_graph
-from blocAndTools.tensorflowbloc import get_current_scope_variables_graph_key
+from blocAndTools.tensorflowbloc import get_current_scope_variables
 from blocAndTools import rl_name
 
 tf_cv1 = tf.compat.v1  # shortcut

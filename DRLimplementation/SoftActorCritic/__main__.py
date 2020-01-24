@@ -587,6 +587,8 @@ for nn in [(160, 160)]:
 
 # ......................................................... Lunar reward scale (second attempt) ...(end)...
 
+
+# ... Proper minimum pool size ............................................................................
 SAC_LunarLander_MINpoolSize_hparam = dict(SAC_LunarLander_base_hparam)
 new_rerun_tag = SAC_LunarLander_MINpoolSize_hparam['rerun_tag'] + '-MinPool-ModBuffer'
 for nn in [(200, 200)]:
@@ -599,18 +601,44 @@ for nn in [(200, 200)]:
             'max_epoch':                    50,
             'max_gradient_step_expected':   250000,
             'batch_size_in_ts':             200,
-            'pool_capacity':                int(5e4),  # <--larger pool. Previously was set to 1e4
-            'min_pool_size':                [20000, 10000],  # SpinningUp: 10000
+            'pool_capacity':                int(5e4),  # <--(!)
+            'min_pool_size':                [300, 20000, 10000],  #<--(!) SpinningUp: 10000
             'target_smoothing_coefficient': 0.005,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
             'theta_nn_h_layer_topo':        nn,
             'phi_nn_h_layer_topo':          nn,
             'psi_nn_h_layer_topo':          nn,
             'reward_scaling':               40.0,
-            'note':                         ''
+            'note':                         'This is a extremetly important hparam'
+                                            'min_pool_size=20000 make SAC fly consistently'
             }
         )
-    # Experiment >>>   inProgress: [20000, 10000] rerun 3 done: min_pool_size=[300]
-    experiment_buffer.append(SAC_LunarLander_MINpoolSize_hparam.copy())
+    # Experiment >>>  (Priority)  todo: rerun 2 done: min_pool_size=[300, 20000, 10000] rerun 3
+    # experiment_buffer.append(SAC_LunarLander_MINpoolSize_hparam.copy())
+
+SAC_LunarLander_rewardScale_TWO_hparam = dict(SAC_LunarLander_base_hparam)
+new_rerun_tag = SAC_LunarLander_rewardScale_TWO_hparam['rerun_tag'] + '-MinPool-RewSthree'
+lunar_nn = (200, 200)  # <--(!)
+SAC_LunarLander_rewardScale_TWO_hparam.update(
+    {
+        'rerun_tag':                    new_rerun_tag,
+        'comment':                      'rewardScaleOnProperMinPool smallNet',
+        'max_epoch':                    50,
+        'max_gradient_step_expected':   250000,
+        'batch_size_in_ts':             200,  # <--(!)
+        'pool_capacity':                int(5e4),  # SAC paper & SpinningUp: 1e6
+        'min_pool_size':                20000,  # SpinningUp: 10000
+        'target_smoothing_coefficient': 0.005,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
+        'theta_nn_h_layer_topo':        lunar_nn,
+        'phi_nn_h_layer_topo':          lunar_nn,
+        'psi_nn_h_layer_topo':          lunar_nn,
+        'reward_scaling':               [1.0, 20.0, 40.0, 65.0, 100.0],  # with rerun=3
+        'note':                         ''
+        }
+    )
+# Experiment >>> inProgress: LunarLander asses rewardScaleOnProperMinPool smallNet rerun 1 todo: rerun 4
+#  done: LunarLander-reward_scaling=(1.0|20.0|40.0) with lunar_nn=100X100 and batch_size_in_ts=100,
+experiment_buffer.append(SAC_LunarLander_rewardScale_TWO_hparam)
+# .................................................................... Proper minimum pool size ...(end)...
 
 SAC_LunarLander_AlphaTest_hparam = dict(SAC_LunarLander_base_hparam)
 new_rerun_tag = SAC_LunarLander_AlphaTest_hparam['rerun_tag'] + '-Alpha'
