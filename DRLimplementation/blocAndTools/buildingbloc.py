@@ -154,6 +154,9 @@ def data_container_class_representation(class_instance, class_name: str, space_f
     Utility function for automatic representation of container type class
     Handle dynamically property added at run time
     
+    (!) Be advise, the use of '__slots__' remove the dict representation from the class object and prevent the use of
+    this function at the simultaniously
+    
     .. Example::
     
         def __repr__(self):
@@ -310,30 +313,38 @@ def build_MLP_computation_graph(input_placeholder: tf.Tensor, output_dim, hidden
     :return: a well construct computation graph
     :rtype: tf.Tensor
     """
+    # # (!) the 'kernel_initializer' random initializer choice make a big difference on the learning performance
+    kernel_init = tf_cv1.initializers.he_normal()  # (Priority) todo:investigate?? --> is it also true for RL?:
+
+    logits = buil_MLP_with_initilizer(input_placeholder, output_dim, hidden_layer_topology, hidden_layers_activation,
+                                      output_layers_activation, reuse, kernel_init=kernel_init, name=name)
+    return logits
+
+
+def buil_MLP_with_initilizer(input_placeholder: tf.Tensor, output_dim, hidden_layer_topology: tuple = (32, 32),
+                             hidden_layers_activation: tf.Tensor = tf.nn.tanh,
+                             output_layers_activation: tf.Tensor = None,
+                             reuse=None,
+                             kernel_init=None,
+                             name=vocab.Multi_Layer_Perceptron):
     assert isinstance(input_placeholder, tf.Tensor)
     assert isinstance(hidden_layer_topology, tuple)
-
     with tf_cv1.variable_scope(name_or_scope=name, reuse=reuse):
         h_layer = input_placeholder
-
-        # # (!) the kernel_initializer random initializer choice make a big difference on the learning performance
-        kernel_init = tf_cv1.initializers.he_normal
-        # kernel_init = None
-
+        
         # create & connect all hidden layer
         for l_id in range(len(hidden_layer_topology)):
             h_layer = tf_cv1.layers.dense(h_layer, hidden_layer_topology[l_id],
                                           activation=hidden_layers_activation,
                                           reuse=reuse,
-                                          kernel_initializer=kernel_init(),
+                                          kernel_initializer=kernel_init,
                                           name='{}{}'.format(vocab.hidden_, l_id + 1))
-
+        
         logits = tf_cv1.layers.dense(h_layer, output_dim,
                                      activation=output_layers_activation,
                                      reuse=reuse,
-                                     kernel_initializer=kernel_init(),
+                                     kernel_initializer=kernel_init,
                                      name=vocab.logits)
-
     return logits
 
 

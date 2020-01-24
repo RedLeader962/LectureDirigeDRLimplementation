@@ -13,6 +13,8 @@ import blocAndTools.tensorflowbloc
 from SoftActorCritic.SoftActorCriticBrain import (
     actor_train, apply_action_bound, build_critic_graph_q_theta, build_critic_graph_v_psi, build_gaussian_policy_graph,
     critic_learning_rate_scheduler, critic_q_theta_train, critic_v_psi_train, init_frozen_v_psi, update_frozen_v_psi_op,
+    build_gaussian_policy_graph_SpinningUp,
+    apply_action_bound_SpinningUp,
     )
 from blocAndTools import ConsolPrintLearningStats, buildingbloc as bloc
 from blocAndTools.agent import Agent
@@ -92,11 +94,10 @@ class SoftActorCriticAgent(Agent):
             except KeyError:
                 self.exp_spec.set_experiment_spec({'SpinningUpGaussian': False})
                 print("\n(!) ExperimentSpec Keyword 'SpinningUpGaussian' does not exist. Assume False")
-    
+
             if self.exp_spec['SpinningUpGaussian']:
-                # pi, pi_log_p, self.policy_mu = build_gaussian_policy_graph_SpinningUp(self.obs_t_ph, self.exp_spec,
-                #                                                                       self.playground)
-                raise NotImplementedError
+                pi, pi_log_p, self.policy_mu = build_gaussian_policy_graph_SpinningUp(self.obs_t_ph, self.exp_spec,
+                                                                                      self.playground)
             else:
                 print(":: Use my build_gaussian_policy_graph() implementation")
                 pi, pi_log_p, self.policy_mu = build_gaussian_policy_graph(self.obs_t_ph, self.exp_spec,
@@ -104,8 +105,7 @@ class SoftActorCriticAgent(Agent):
     
             # (Priority) todo:assessment --> SpinningUpSquashing:compare with mine & remove when done
             if self.exp_spec['SpinningUpSquashing']:
-                # self.policy_pi, self.pi_log_likelihood = apply_action_bound_SpinningUp(pi, pi_log_p)
-                raise NotImplementedError
+                self.policy_pi, self.pi_log_likelihood = apply_action_bound_SpinningUp(pi, pi_log_p)
             else:
                 print(":: Use my squashing function implementation")
                 self.policy_pi, self.pi_log_likelihood = apply_action_bound(pi, pi_log_p)

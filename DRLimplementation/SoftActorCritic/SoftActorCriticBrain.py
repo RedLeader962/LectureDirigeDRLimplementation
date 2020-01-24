@@ -11,6 +11,7 @@ from tensorflow.python import keras
 from blocAndTools.buildingbloc import (
     ExperimentSpec, GymPlayground, build_MLP_computation_graph, build_KERAS_MLP_computation_graph,
     learning_rate_scheduler,
+    buil_MLP_with_initilizer,
     )
 from blocAndTools.rl_vocabulary import rl_name
 from blocAndTools.tensorflowbloc import (
@@ -24,7 +25,11 @@ vocab = rl_name()
 POLICY_LOG_STD_CAP_MAX = 2
 POLICY_LOG_STD_CAP_MIN = -20
 NUM_STABILITY_CORRECTION = 1e-6
-USE_KERAS_LAYER = False
+USE_KERAS_LAYER = False  # expose controle fro unti-test purpose
+
+# (NICE TO HAVE) todo:investigate?? --> kernel initialization effect on agent performance:
+POLICY_NN_KERNEL_INIT = None
+# POLICY_NN_KERNEL_INIT = tf_cv1.initializers.he_normal()
 
 """
 
@@ -65,7 +70,7 @@ def apply_action_bound(policy_pi: tf.Tensor, policy_pi_log_likelihood: tf.Tensor
     with tf_cv1.variable_scope(vocab.squashing_fct):
         # (nice to have) todo:implement --> a numericaly stable version : see p8 HW5c Sergey Levine DRL course
         squashed_policy_pi = tf_cv1.tanh(policy_pi)
-    
+
         # \\\ My bloc \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
         num_corr = tf_cv1.reduce_sum(tf_cv1.log(1 - squashed_policy_pi ** 2 + NUM_STABILITY_CORRECTION),
                                      axis=1)
@@ -108,7 +113,7 @@ def apply_action_bound_SpinningUp(policy_pi: tf.Tensor, policy_pi_log_likelihood
         # To avoid evil machine precision error, strictly clip 1-pi**2 to [0,1] range.
         policy_pi_log_likelihood -= tf.reduce_sum(tf.log(clip_but_pass_gradient(
             1 - squashed_policy_pi ** 2, l=0, u=1) + 1e-6), axis=1)
-    
+
         return squashed_policy_pi, policy_pi_log_likelihood
         # //////////////////////////////////////////////////////////////////////////////////// Original bloc ///(end)///
 
@@ -166,32 +171,43 @@ def build_gaussian_policy_graph(obs_t_ph: tf.Tensor, exp_spec: ExperimentSpec,
 
         else:
             print(':: Use legacy tensorFlow Dense layer')
-            phi_mlp = build_MLP_computation_graph(obs_t_ph, playground.ACTION_CHOICES,
-                                                  exp_spec['phi_nn_h_layer_topo'],
-                                                  hidden_layers_activation=exp_spec[
-                                                      'phi_hidden_layers_activation'],
-                                                  output_layers_activation=exp_spec[
-                                                      'phi_hidden_layers_activation'],
-                                                  name=vocab.phi)
-
+            phi_mlp = buil_MLP_with_initilizer(obs_t_ph, playground.ACTION_CHOICES,
+                                               # phi_mlp = build_MLP_computation_graph(obs_t_ph,
+                                               # playground.ACTION_CHOICES,
+                                               exp_spec['phi_nn_h_layer_topo'],
+                                               hidden_layers_activation=exp_spec[
+                                                   'phi_hidden_layers_activation'],
+                                               output_layers_activation=exp_spec[
+                                                   'phi_hidden_layers_activation'],
+                                               kernel_init=POLICY_NN_KERNEL_INIT,
+                                               name=vocab.phi)
+    
             policy_mu = tf_cv1.layers.dense(phi_mlp,
                                             playground.ACTION_CHOICES,
                                             activation=exp_spec['phi_output_layers_activation'],  # tf_cv1.tanh,
+                                            # (NICE TO HAVE) todo:validate --> kernel_initializer specific to gaussian:
+                                            kernel_initializer=POLICY_NN_KERNEL_INIT,
                                             name=vocab.policy_mu)
-
+    
             policy_log_std = tf_cv1.layers.dense(phi_mlp,
                                                  playground.ACTION_CHOICES,
                                                  activation=tf_cv1.tanh,
+                                                 # (NICE TO HAVE) todo:validate --> kernel_initializer specific to
+                                                 #  gaussian:
+                                                 kernel_initializer=POLICY_NN_KERNEL_INIT,
                                                  name=vocab.policy_log_std)
 
         # /// My bloc //////////////////////////////////////////////////////////////////////////////////////////////////
         # # Note: clip log standard deviation as in the sac_original_paper/sac/distributions/normal.py
         policy_log_std = tf_cv1.clip_by_value(policy_log_std, POLICY_LOG_STD_CAP_MIN, POLICY_LOG_STD_CAP_MAX)
 
+        # ... pi distribution investigation ............................................................................
+        # (NICE TO HAVE) todo:assessment --> check if changes in implementation detail make a difference:
         """ ---- Build the policy for continuous space ---- """
         policy_distribution = tfp.distributions.MultivariateNormalDiag(loc=policy_mu,
                                                                        scale_diag=tf_cv1.exp(policy_log_std),
                                                                        allow_nan_stats=False)
+        # .................................................................... pi distribution investigation ...(end)...
         policy_pi = policy_distribution.sample(name=vocab.policy_pi)
         policy_pi_log_likelihood = policy_distribution.log_prob(policy_pi,
                                                                 name=vocab.policy_pi_log_likelihood)
@@ -260,22 +276,30 @@ def build_gaussian_policy_graph_SpinningUp(obs_t_ph: tf.Tensor, exp_spec: Experi
         
         else:
             print(':: Use legacy tensorFlow Dense layer')
-            phi_mlp = build_MLP_computation_graph(obs_t_ph, playground.ACTION_CHOICES,
-                                                  exp_spec['phi_nn_h_layer_topo'],
-                                                  hidden_layers_activation=exp_spec[
-                                                      'phi_hidden_layers_activation'],
-                                                  output_layers_activation=exp_spec[
-                                                      'phi_hidden_layers_activation'],
-                                                  name=vocab.phi)
-            
+            phi_mlp = buil_MLP_with_initilizer(obs_t_ph, playground.ACTION_CHOICES,
+                                               # phi_mlp = build_MLP_computation_graph(obs_t_ph,
+                                               # playground.ACTION_CHOICES,
+                                               exp_spec['phi_nn_h_layer_topo'],
+                                               hidden_layers_activation=exp_spec[
+                                                   'phi_hidden_layers_activation'],
+                                               output_layers_activation=exp_spec[
+                                                   'phi_hidden_layers_activation'],
+                                               kernel_init=POLICY_NN_KERNEL_INIT,
+                                               name=vocab.phi)
+    
             policy_mu = tf_cv1.layers.dense(phi_mlp,
                                             playground.ACTION_CHOICES,
                                             activation=exp_spec['phi_output_layers_activation'],  # tf_cv1.tanh,
+                                            # (NICE TO HAVE) todo:validate --> kernel_initializer specific to gaussian:
+                                            kernel_initializer=POLICY_NN_KERNEL_INIT,
                                             name=vocab.policy_mu)
-            
+    
             policy_log_std = tf_cv1.layers.dense(phi_mlp,
                                                  playground.ACTION_CHOICES,
                                                  activation=tf_cv1.tanh,
+                                                 # (NICE TO HAVE) todo:validate --> kernel_initializer specific to
+                                                 #  gaussian:
+                                                 kernel_initializer=POLICY_NN_KERNEL_INIT,
                                                  name=vocab.policy_log_std)
         
         # \\\ Original bloc \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -315,19 +339,21 @@ def build_critic_graph_v_psi(obs_t_ph: tf.Tensor, obs_t_prime_ph: tf.Tensor, exp
     if USE_KERAS_LAYER:
         mlp = build_KERAS_MLP_computation_graph
     else:
-        mlp = build_MLP_computation_graph
-
+        mlp = buil_MLP_with_initilizer
+    
         # with tf_cv1.variable_scope(vocab.critic_network):
         """ ---- Build parameter '_psi' as a multilayer perceptron ---- """
     v_psi = mlp(obs_t_ph, 1, exp_spec['psi_nn_h_layer_topo'],
                 hidden_layers_activation=exp_spec['psi_hidden_layers_activation'],
                 output_layers_activation=exp_spec['psi_output_layers_activation'],
+                kernel_init=POLICY_NN_KERNEL_INIT,
                 name=vocab.V_psi)
 
     """ ---- Build frozen parameter '_psi' as a multilayer perceptron ---- """
     frozen_v_psi = mlp(obs_t_prime_ph, 1, exp_spec['psi_nn_h_layer_topo'],
                        hidden_layers_activation=exp_spec['psi_hidden_layers_activation'],
                        output_layers_activation=exp_spec['psi_output_layers_activation'],
+                       kernel_init=POLICY_NN_KERNEL_INIT,
                        name=vocab.frozen_V_psi)
 
     v_psi = tf_cv1.squeeze(v_psi, axis=1)
@@ -348,13 +374,14 @@ def build_critic_graph_q_theta(obs_t_ph: tf.Tensor, act_t_ph: tf.Tensor, policy_
     if USE_KERAS_LAYER:
         mlp = build_KERAS_MLP_computation_graph
     else:
-        mlp = build_MLP_computation_graph
+        mlp = buil_MLP_with_initilizer
     
     with tf_cv1.variable_scope(name):
         inputs_obs_act = tf_cv1.concat([obs_t_ph, act_t_ph], axis=-1)
         Q_action = mlp(inputs_obs_act, 1, exp_spec.theta_nn_h_layer_topo,
                        hidden_layers_activation=exp_spec.theta_hidden_layers_activation,
                        output_layers_activation=exp_spec.theta_output_layers_activation,
+                       kernel_init=POLICY_NN_KERNEL_INIT,
                        name="mlp")
         
         Q_action = tf_cv1.squeeze(Q_action, axis=1)
@@ -364,6 +391,7 @@ def build_critic_graph_q_theta(obs_t_ph: tf.Tensor, act_t_ph: tf.Tensor, policy_
         Q_policy = mlp(inputs_obs_pi, 1, exp_spec.theta_nn_h_layer_topo,
                        hidden_layers_activation=exp_spec.theta_hidden_layers_activation,
                        output_layers_activation=exp_spec.theta_output_layers_activation,
+                       kernel_init=POLICY_NN_KERNEL_INIT,
                        name="mlp")
         
         Q_policy = tf_cv1.squeeze(Q_policy, axis=1)
@@ -393,9 +421,9 @@ def critic_v_psi_train(V_psi: tf.Tensor, Q_pi_1: tf.Tensor, Q_pi_2: tf.Tensor,
     """ ---- Build the Mean Square Error loss function ---- """
     with tf_cv1.variable_scope(vocab.V_psi_loss):
         min_q_theta = tf_cv1.minimum(Q_pi_1, Q_pi_2)
-    
+
         v_psi_target = tf_cv1.stop_gradient(min_q_theta - alpha * policy_pi_log_likelihood)
-    
+
         v_loss = 0.5 * tf.reduce_mean((v_psi_target - V_psi) ** 2)
 
     """ ---- Fetch all tensor from V_psi and frozen_V_psi for update ---- """

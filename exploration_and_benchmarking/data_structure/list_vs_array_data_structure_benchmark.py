@@ -6,7 +6,7 @@ import sys
 
 
 """
-LESSON LEARNED: numpy array indexing (write) is slower compare to (read + write) on same size list
+LESSON LEARNED: numpy array indexing (write) is slower compare to (read + write) list of same size
 
 Experiment result:
 

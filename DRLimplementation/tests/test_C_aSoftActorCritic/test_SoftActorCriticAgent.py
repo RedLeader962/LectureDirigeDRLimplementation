@@ -107,6 +107,23 @@ def gym_and_tf_continuous_LunarLander_setup():
         'max_trj_steps':        1000,
         })
     exp_spec.set_experiment_spec(unit_test_Lunar_hparam)
+
+    yield exp_spec
+    tf_cv1.reset_default_graph()
+
+
+@pytest.fixture
+def gym_and_tf_continuous_Bipedal_setup():
+    """
+    :return: obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground
+    """
+    exp_spec = bloc.ExperimentSpec()
+    unit_test_Bipedal_hparam = dict(unit_test_hparam)
+    unit_test_Bipedal_hparam.update({
+        'prefered_environment': 'BipedalWalker-v2',
+        'max_trj_steps':        1600,
+        })
+    exp_spec.set_experiment_spec(unit_test_Bipedal_hparam)
     
     yield exp_spec
     tf_cv1.reset_default_graph()
@@ -150,3 +167,10 @@ def test_SoftActorCritic_agent_TRAIN_AGENT_Lunar_PASS(gym_and_tf_continuous_Luna
     exp_spec = gym_and_tf_continuous_LunarLander_setup
     sac_agent_lunar = SoftActorCriticAgent(exp_spec)
     sac_agent_lunar.train()
+
+
+# @pytest.mark.skip(reason="Work fine. Mute for now")
+def test_SoftActorCritic_agent_TRAIN_AGENT_Bipedal_PASS(gym_and_tf_continuous_Bipedal_setup):
+    exp_spec = gym_and_tf_continuous_Bipedal_setup
+    sac_agent_bipedal = SoftActorCriticAgent(exp_spec)
+    sac_agent_bipedal.train()

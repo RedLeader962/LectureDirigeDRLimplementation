@@ -89,6 +89,8 @@ def gym_and_KERAS_DEV_continuous_setup():
     """
     :return: obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground
     """
+    previous_setting = SoftActorCriticBrain.USE_KERAS_LAYER
+    
     SoftActorCriticBrain.USE_KERAS_LAYER = False
     
     exp_spec = bloc.ExperimentSpec()
@@ -103,12 +105,13 @@ def gym_and_KERAS_DEV_continuous_setup():
     
     yield obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground
     tf_cv1.reset_default_graph()
-    SoftActorCriticBrain.USE_KERAS_LAYER = True
+    SoftActorCriticBrain.USE_KERAS_LAYER = previous_setting
 
 
 # --- ActorCritic_agent -------------------------------------------------------------------------------------------
 
-def test_SoftActorCritic_brain_tensor_entity_call_warning_investigation_PASS(gym_and_KERAS_DEV_continuous_setup):
+def test_SoftActorCritic_brain_tensor_entity_call_warning_investigationGYM_KERAS_PASS(
+        gym_and_KERAS_DEV_continuous_setup):
     obs_t_ph, _, _, _, _, exp_spec, playground = gym_and_KERAS_DEV_continuous_setup
     exp_spec.set_experiment_spec({'phi_nn_h_layer_topo': (2, 2)})
     

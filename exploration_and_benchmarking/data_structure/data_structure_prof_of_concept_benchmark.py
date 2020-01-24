@@ -9,7 +9,7 @@ import time
 #                                               refactored using __slot__ magic fct:
 """
 LESSON LEARNED: 
-    - numpy array indexing (READ) is 2X slower compare to (READ) on same size list
+    - numpy array indexing (READ) is 2X slower compare to (READ) on list of same size
     - overrided method are a little bit slower to execute than a original one
     - execution behave differently with respect to container size (size: 4000 vs 4000000)
     - result change drastically if TensorFlow is running in a other python process

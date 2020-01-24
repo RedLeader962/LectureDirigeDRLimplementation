@@ -5,9 +5,11 @@ from typing import List, Tuple
 import numpy as np
 import tensorflow as tf
 
+import copy
+
 tf_cv1 = tf.compat.v1  # shortcut
 
-from blocAndTools.buildingbloc import GymPlayground, ExperimentSpec, data_container_class_representation
+from blocAndTools.buildingbloc import GymPlayground, ExperimentSpec
 
 
 class TimestepSample:
@@ -23,20 +25,37 @@ class TimestepSample:
         self.done_t = 0.0
     
     def replace(self, obs_t: np.ndarray, act_t: np.ndarray, obs_t_prime: np.ndarray,
-                rew_t: float, done_t: int) -> None:
+                rew_t: float, done_t: float) -> None:
         self.obs_t = obs_t
         self.act_t = act_t
         self.obs_t_prime = obs_t_prime
         self.rew_t = rew_t
         self.done_t = done_t
-
+    
     def __repr__(self):
-        my_rep = data_container_class_representation(self, class_name='TimestepSample')
-        return my_rep
+        # Is required explicitely since the use of '__slots__' remove the dict representation from the class object
+        myRep = "\n::TimestepSample/\n"
+        myRep += "._container_id=\n\n".format(self._container_id)
+        myRep += ".obs_t=\n\n".format(self.obs_t)
+        myRep += ".act_t=\n\n".format(self.act_t)
+        myRep += ".obs_t_prime=\n\n".format(self.obs_t_prime)
+        myRep += ".rew_t=\n\n".format(self.rew_t)
+        myRep += ".done_t=\n\n".format(self.done_t)
+        return myRep
+    
+    def __eq__(self, other):
+        return self._contain_the_same(obs_t=other.obs_t, act_t=other.act_t, obs_t_prime=other.obs_t_prime,
+                                      rew_t=other.rew_t, done_t=other.done_t)
+    
+    def _contain_the_same(self, obs_t, act_t, obs_t_prime, rew_t, done_t):
+        check = [np.array_equal(self.obs_t, obs_t), np.array_equal(self.act_t, act_t),
+                 np.array_equal(self.obs_t_prime, obs_t_prime),
+                 self.rew_t == rew_t, self.done_t == done_t]
+        return all(check)
 
 
 class SampleBatch:
-    __slots__ = ['obs_t', 'act_t', 'obs_t_prime', 'rew_t', 'done_t', '_BATCH_SIZE']
+    __slots__ = ['obs_t', 'act_t', 'obs_t_prime', 'rew_t', 'done_t', '_BATCH_SIZE', '_timestepsample_testutility']
     
     def __init__(self, batch_size: int, playground: GymPlayground):
         self.obs_t = [np.zeros((batch_size, playground.OBSERVATION_DIM), dtype=np.float32) for _ in range(batch_size)]
@@ -46,7 +65,9 @@ class SampleBatch:
         self.rew_t = [0.0 for _ in range(batch_size)]
         self.done_t = [0.0 for _ in range(batch_size)]
         self._BATCH_SIZE = batch_size
-
+        
+        self._timestepsample_testutility = TimestepSample(container_id=-1, playground=playground)
+    
     def __setitem__(self, key, value: TimestepSample):
         assert isinstance(value, TimestepSample)
         self.obs_t[key] = value.obs_t
@@ -54,16 +75,41 @@ class SampleBatch:
         self.obs_t_prime[key] = value.obs_t_prime
         self.rew_t[key] = value.rew_t
         self.done_t[key] = value.done_t
-
+    
+    def __getitem__(self, key):
+        return self.obs_t[key], self.act_t[key], self.obs_t_prime[key], self.rew_t[key], self.done_t[key]
+    
+    def get_timestepsample(self, key):
+        self._timestepsample_testutility.replace(obs_t=self.obs_t[key], act_t=self.act_t[key],
+                                                 obs_t_prime=self.obs_t_prime[key], rew_t=self.rew_t[key],
+                                                 done_t=self.done_t[key])
+        return self._timestepsample_testutility
+    
+    def __contains__(self, timestepsample: TimestepSample):
+        is_in = [self.get_timestepsample(idx) == timestepsample for idx in range(self._BATCH_SIZE)]
+        return any(is_in)
+    
+    def __eq__(self, other):
+        check = [self.get_timestepsample(idx) in other for idx in range(self._BATCH_SIZE)]
+        return all(check)
+    
     def swap_with_selected_sample(self, samples: List[TimestepSample]):
         assert len(samples) == self._BATCH_SIZE
         for i, v in enumerate(samples):
             self.__setitem__(i, v)
-        return self
-
+        # return self # <-- (!) This was EVIL
+        return copy.deepcopy(self)
+    
     def __repr__(self):
-        my_rep = data_container_class_representation(self, class_name='SampleBatch')
-        return my_rep
+        # Is required explicitely since the use of '__slots__' remove the dict representation from the class object
+        myRep = "\n::SampleBatch/\n"
+        myRep += ".obs_t=\n{}\n\n".format(self.obs_t)
+        myRep += ".act_t=\n{}\n\n".format(self.act_t)
+        myRep += ".obs_t_prime=\n{}\n\n".format(self.obs_t_prime)
+        myRep += ".rew_t=\n{}\n\n".format(self.rew_t)
+        myRep += ".done_t=\n{}\n\n".format(self.done_t)
+        myRep += "._BATCH_SIZE=\n{}\n\n".format(self._BATCH_SIZE)
+        return myRep
 
 
 class TrajectoriesPool(object):
@@ -75,12 +121,13 @@ class TrajectoriesPool(object):
         :param batch_size:
         :param playground: the environment from which sampled step are collected
         """
-        self._pool = [TimestepSample(container_id=i, playground=playground) for i in range(capacity)]
+        self._pool = [TimestepSample(container_id=i + 1, playground=playground) for i in range(capacity)]
         self._idx = 0
         self.CAPACITY = capacity
         self._load = 0
         self._BATCH_SIZE = batch_size
         self._sample_batch = SampleBatch(batch_size, playground)
+        self._pool_full_message_delivered = False
     
     def collect_OAnORD(self, obs_t: np.ndarray, act_t: np.ndarray, obs_t_prime: np.ndarray,
                        rew_t: float, done_t: int) -> None:
@@ -102,16 +149,23 @@ class TrajectoriesPool(object):
         if self._load < self.CAPACITY:
             return False
         else:
+            if self._pool_full_message_delivered:
+                self._pool_full_message_delivered = True
+                print(":: Replay pool is full --> ", self._load)
             return True
-    
+
     @property
     def size(self) -> int:
         return self._load
-    
+
     def sample_from_pool(self) -> SampleBatch:
+        selected_sample = self.sample_from_pool_as_list()
+        return self._sample_batch.swap_with_selected_sample(selected_sample)
+
+    def sample_from_pool_as_list(self) -> List[TimestepSample]:
         pool_slice = self._pool[0:self._load]
         selected_sample = random.sample(pool_slice, self._BATCH_SIZE)
-        return self._sample_batch.swap_with_selected_sample(selected_sample)
+        return selected_sample
 
 
 class PoolManager(object):
