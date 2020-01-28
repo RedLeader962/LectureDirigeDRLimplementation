@@ -590,19 +590,21 @@ for nn in [(160, 160)]:
 
 # ... Proper minimum pool size ............................................................................
 SAC_LunarLander_MINpoolSize_hparam = dict(SAC_LunarLander_base_hparam)
-new_rerun_tag = SAC_LunarLander_MINpoolSize_hparam['rerun_tag'] + '-MinPool-ModBuffer'
+new_rerun_tag_minPool = SAC_LunarLander_MINpoolSize_hparam['rerun_tag'] + '-MinPool-ModBuffer'
+# new_rerun_tag_minPool = SAC_LunarLander_MINpoolSize_hparam['rerun_tag'] + '-MinPool-ModBuffer' + '-KernelInitHE'
 for nn in [(200, 200)]:
     nnstr = str(nn).strip('()')
     nnstr = nnstr.replace(', ', 'X')
     SAC_LunarLander_MINpoolSize_hparam.update(
         {
-            'rerun_tag':                    new_rerun_tag,
+            'rerun_tag':                    new_rerun_tag_minPool,
             'comment':                      'NN{}'.format(nnstr),
             'max_epoch':                    50,
             'max_gradient_step_expected':   250000,
             'batch_size_in_ts':             200,
             'pool_capacity':                int(5e4),  # <--(!)
-            'min_pool_size':                [300, 20000, 10000],  #<--(!) SpinningUp: 10000
+            'min_pool_size':                [20000, 300, 10000],  #<--(!) SpinningUp: 10000
+            # 'min_pool_size':                20000,   #<--(!) with kernel init HE normal
             'target_smoothing_coefficient': 0.005,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
             'theta_nn_h_layer_topo':        nn,
             'phi_nn_h_layer_topo':          nn,
@@ -610,18 +612,47 @@ for nn in [(200, 200)]:
             'reward_scaling':               40.0,
             'note':                         'This is a extremetly important hparam'
                                             'min_pool_size=20000 make SAC fly consistently'
+                                            '(!) cannot reproduce--> hyp: kernel init changed form HEnormal to None'
+                                            'Instruction: global param in SoftActorCriticBrain.py'
             }
         )
-    # Experiment >>>  (Priority)  todo: rerun 2 done: min_pool_size=[300, 20000, 10000] rerun 3
+    # Experiment >>>    done: min_pool_size=[300, 20000, 10000] rerun 5
+    # Rerun Tag: LunarLander-EMA-MinPool-ModBuffer-min_pool_size=(300|20000|10000)
+    # (NICE TO HAVE) todo:investigate?? --> min_pool_size=200000 with  batch_size < 200 < batch_size:
+    # (NICE TO HAVE) todo:investigate?? --> kernel initialization effect on agent performance:
     # experiment_buffer.append(SAC_LunarLander_MINpoolSize_hparam.copy())
 
-SAC_LunarLander_rewardScale_TWO_hparam = dict(SAC_LunarLander_base_hparam)
-new_rerun_tag = SAC_LunarLander_rewardScale_TWO_hparam['rerun_tag'] + '-MinPool-RewSthree'
+SAC_LunarLander_NNsize_minPoolOk_hparam = dict(SAC_LunarLander_base_hparam)
+for nn in [(16, 16), (64, 64), (100, 100)]:
+    nnstr = str(nn).strip('()')
+    nnstr = nnstr.replace(', ', 'X')
+    SAC_LunarLander_NNsize_minPoolOk_hparam.update(
+        {
+            'rerun_tag':                    SAC_LunarLander_base_hparam['rerun_tag'] + '-MinPool-NNsize',
+            'comment':                      'NN{}'.format(nnstr),
+            'max_epoch':                    50,
+            'max_gradient_step_expected':   250000,
+            'batch_size_in_ts':             200,
+            'pool_capacity':                int(5e4),  # <--(!)
+            'min_pool_size':                20000,  # SpinningUp: 10000
+            'target_smoothing_coefficient': 0.005,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
+            'theta_nn_h_layer_topo':        nn,
+            'phi_nn_h_layer_topo':          nn,
+            'psi_nn_h_layer_topo':          nn,
+            'reward_scaling':               40.0,
+            'note':                         ''
+            }
+        )
+    # Experiment >>> done: LunarLander asses  NNsize rerun 1 todo: rerun 4
+    # Rerun Tag: LunarLander-EMA-MinPool-NNsize-.*NN16X16|NN64X64|NN100X100
+    # experiment_buffer.append(SAC_LunarLander_NNsize_minPoolOk_hparam.copy())
+
+SAC_LunarLander_rewardScale_TWO_minPoolOk_hparam = dict(SAC_LunarLander_base_hparam)
 lunar_nn = (200, 200)  # <--(!)
-SAC_LunarLander_rewardScale_TWO_hparam.update(
+SAC_LunarLander_rewardScale_TWO_minPoolOk_hparam.update(
     {
-        'rerun_tag':                    new_rerun_tag,
-        'comment':                      'rewardScaleOnProperMinPool smallNet',
+        'rerun_tag':                    SAC_LunarLander_base_hparam['rerun_tag'] + '-MinPool-RewSFour',
+        'comment':                      'rewardScaleOnMinPoolOK ',
         'max_epoch':                    50,
         'max_gradient_step_expected':   250000,
         'batch_size_in_ts':             200,  # <--(!)
@@ -631,13 +662,14 @@ SAC_LunarLander_rewardScale_TWO_hparam.update(
         'theta_nn_h_layer_topo':        lunar_nn,
         'phi_nn_h_layer_topo':          lunar_nn,
         'psi_nn_h_layer_topo':          lunar_nn,
-        'reward_scaling':               [1.0, 20.0, 40.0, 65.0, 100.0],  # with rerun=3
+        'reward_scaling':               [1.0, 5.0, 20.0, 40.0, 65.0, 100.0],  # with rerun=3
         'note':                         ''
         }
     )
-# Experiment >>> inProgress: LunarLander asses rewardScaleOnProperMinPool smallNet rerun 1 todo: rerun 4
-#  done: LunarLander-reward_scaling=(1.0|20.0|40.0) with lunar_nn=100X100 and batch_size_in_ts=100,
-experiment_buffer.append(SAC_LunarLander_rewardScale_TWO_hparam)
+# Experiment >>> todo: LunarLander asses rewardScaleOnProperMinPool rerun 2 todo: rerun 4
+# Rerun Tag: LunarLander-EMA-MinPool-RewS-reward_scaling=(1.0|20.0|40.0|65.0|100.0)
+#  done: MinPool with lunar_nn=100X100 and batch_size_in_ts=100, Rerun Tag: LunarLander-reward_scaling=(1.0|20.0|40.0)
+# experiment_buffer.append(SAC_LunarLander_rewardScale_TWO_minPoolOk_hparam)
 # .................................................................... Proper minimum pool size ...(end)...
 
 SAC_LunarLander_AlphaTest_hparam = dict(SAC_LunarLander_base_hparam)
@@ -812,7 +844,6 @@ SAC_BiWalker_base_hparam.update(
         'prefered_environment': 'BipedalWalker-v2',
         'expected_reward_goal': 290,  # goal: 300
         'max_trj_steps':        1600,
-        'max_epoch':            50,
         'note':                 '',
         }
     )
@@ -820,18 +851,23 @@ SAC_BiWalker_base_hparam.update(
 SAC_BiWalker_rewardScale_hparam = dict(SAC_BiWalker_base_hparam)
 SAC_BiWalker_rewardScale_hparam.update(
     {
-        'rerun_tag':             'BiWalker',
-        'comment':               'rewardScale',
-        'reward_scaling':        [0.1, 0.05, 0.25, 1.0, 0.5],
-        'pool_capacity':         int(1e6),
-        'theta_nn_h_layer_topo': (256, 256),  # SAC paper:(256, 256), SpinningUp:(400, 300)
-        'phi_nn_h_layer_topo':   (256, 256),  # SAC paper:(256, 256), SpinningUp:(400, 300)
-        'psi_nn_h_layer_topo':   (256, 256),  # SAC paper:(256, 256), SpinningUp:(400, 300)
-        'note':                  '',
+        'rerun_tag':                  SAC_BiWalker_base_hparam['rerun_tag'] + 'RewS-Pool2e5',
+        'comment':                    'rewardScale',
+        'max_epoch':                  100,
+        'timestep_per_epoch':         5000,
+        'max_gradient_step_expected': 500000,
+        'reward_scaling':             [25.0, 1.0],
+        'pool_capacity':              int(2e5),
+        'min_pool_size':              35000,  # SpinningUp: 10000
+        'batch_size_in_ts':           200,  # SAC paper:256, SpinningUp:100
+        'theta_nn_h_layer_topo':      (256, 256),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+        'phi_nn_h_layer_topo':        (256, 256),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+        'psi_nn_h_layer_topo':        (256, 256),  # SAC paper:(256, 256), SpinningUp:(400, 300)
+        'note':                       '',
         }
     )
-# Experiment >>>  todo: BiWalker asses the proper reward_scaling, rerun 5
-# experiment_buffer.append(SAC_BiWalker_rewardScale_hparam)
+# Experiment >>>  inProgress: BiWalker asses the proper reward_scaling, rerun 1 done: [100.0, 75.0, 40.0,] rerun 1
+experiment_buffer.append(SAC_BiWalker_rewardScale_hparam)
 
 SAC_BiWalker_NN_architecture_hparam = dict(SAC_BiWalker_base_hparam)
 for nn in [(64,), (200,), (400,), (64, 64), (100, 100), (300, 300)]:
@@ -1016,12 +1052,43 @@ if args.playPendulum:
 elif args.playLunar:
     # (Priority) todo: --> freeze hparam: for --playLunar from command line
     # (Priority) todo: --> move Exp-LunarLander run to 'saved_training' dir:
+    #
+    # chekpoint_dir = "Run-LunarLander-EMA-MedRewS-MedRewS-reward_scaling=40.0-1-SAC(" \
+    #                 "rewScaleMedium_smallPool_nnArchitecture160X160)-d22h4m11s7"
+    #
+    # run_dir = chekpoint_dir + "/goal_reached/" + "Soft_Actor_Critic-goal-243-14"
+    # play_agent(run_dir, SAC_LunarLander_rewScaleLarge_hparam, args, record=args.record)
     
-    chekpoint_dir = "Run-LunarLander-EMA-MedRewS-MedRewS-reward_scaling=40.0-1-SAC(" \
-                    "rewScaleMedium_smallPool_nnArchitecture160X160)-d22h4m11s7"
+    SAC_LunarLander_MINpoolSize_hparam = dict(SAC_LunarLander_base_hparam)
+    new_rerun_tag_minPool = SAC_LunarLander_MINpoolSize_hparam['rerun_tag'] + '-MinPool-ModBuffer'
+    nn = (200, 200)
+    nnstr = str(nn).strip('()')
+    nnstr = nnstr.replace(', ', 'X')
+    SAC_LunarLander_MINpoolSize_hparam.update(
+        {
+            'rerun_tag':                    new_rerun_tag_minPool,
+            'comment':                      'NN{}'.format(nnstr),
+            'max_epoch':                    50,
+            'max_gradient_step_expected':   250000,
+            'batch_size_in_ts':             200,
+            'pool_capacity':                int(5e4),  # <--(!)
+            'min_pool_size':                20000,  #<--(!) with kernel init HE normal
+            'target_smoothing_coefficient': 0.005,  # SAC paper: 0.005 or 1.0  SpiningUp: 0.995,
+            'theta_nn_h_layer_topo':        nn,
+            'phi_nn_h_layer_topo':          nn,
+            'psi_nn_h_layer_topo':          nn,
+            'reward_scaling':               40.0,
+            'note':                         'This is a extremetly important hparam'
+                                            'min_pool_size=20000 make SAC fly consistently'
+                                            '(!) cannot reproduce--> hyp: kernel init changed form HEnormal to None'
+                                            'Instruction: global param in SoftActorCriticBrain.py'
+            }
+        )
     
-    run_dir = chekpoint_dir + "/goal_reached/" + "Soft_Actor_Critic-goal-243-14"
-    play_agent(run_dir, SAC_LunarLander_rewScaleLarge_hparam, args, record=args.record)
+    chekpoint_dir = "Run-LunarLander-EMA-MinPool-ModBuffer-min_pool_size=20000-2-SAC(NN200X200)-d23h15m40s48"
+    
+    run_dir = chekpoint_dir + "/goal_reached/" + "Soft_Actor_Critic-goal-285-43"
+    play_agent(run_dir, SAC_LunarLander_MINpoolSize_hparam, args, record=args.record)
 
 else:
     hparam = None

@@ -85,7 +85,7 @@ def run_experiment(hparam: dict, args_: Namespace, test_hparam, rerun_nb=1) -> T
         for run_idx in range(rerun_nb):
             print(":: Starting rerun experiment no {}".format(run_idx))
             exp_spec = _prep_exp_spec_for_run(hparam, run_idx, args_=args_, exp_spec=exp_spec)
-            _warmup_agent_for_training(exp_spec, args_)
+            _warmup_agent_for_training(exp_spec, args_, exp_rerun_tag)
 
     return init_hparam, key, values_search_set
 
@@ -161,10 +161,11 @@ def test_hparam_search_set(hparam: dict) -> Tuple[str, list] or Tuple[None, None
     return None, None
 
 
-def _warmup_agent_for_training(spec: ExperimentSpec, args_: Namespace) -> None:
+def _warmup_agent_for_training(spec: ExperimentSpec, args_: Namespace, exp_rerun_tag) -> None:
     agent_class = spec['AgentType']
     print('[Experiment runner message] :: fetched agent_class --> ', agent_class)  # todo --> remove if resolve:
     ac_agent: Agent = agent_class(spec)
+    print(":: TensorBoard rerun tag: {}\n".format(exp_rerun_tag), )
     ac_agent.train(render_env=args_.renderTraining)
     # ac_agent.__del__()
 

@@ -27,7 +27,7 @@ POLICY_LOG_STD_CAP_MIN = -20
 NUM_STABILITY_CORRECTION = 1e-6
 USE_KERAS_LAYER = False  # expose controle fro unti-test purpose
 
-# (NICE TO HAVE) todo:investigate?? --> kernel initialization effect on agent performance:
+# (CRITICAL) inProgress:investigate?? --> kernel initialization effect on agent performance:
 POLICY_NN_KERNEL_INIT = None
 # POLICY_NN_KERNEL_INIT = tf_cv1.initializers.he_normal()
 
