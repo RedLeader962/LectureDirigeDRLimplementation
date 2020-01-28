@@ -30,7 +30,6 @@ class ExperimentSpec:
           |         size=batch_size_in_ts is equal to one EPOCH
 
         """
-        # todo: add a param for the neural net configuration via a dict fed as a argument
         # (nice to have) todo:implement --> set_experiment_spec_JSON (taking json as argument):
 
         self.algo_name = algo_name
@@ -511,10 +510,6 @@ def policy_theta_discrete_space(logits_layer: tf.Tensor, playground: GymPlaygrou
         sampled_action = tf.squeeze(oversize_policy_theta, axis=1, )
         
         # (Ice-Boxed) todo:implement --> sampled_action_log_probability unit test:
-        # # Compute the log probabilitie from sampled action
-        # sampled_action_mask = tf.one_hot(sampled_action, depth=playground.ACTION_CHOICES)
-        # log_probabilities_matrix = tf.multiply(sampled_action_mask, log_p_all)
-        # sampled_action_log_probability = tf.reduce_sum(log_probabilities_matrix, axis=1)
         
         return sampled_action, log_p_all
 
@@ -533,12 +528,7 @@ def policy_theta_continuous_space(logits_layer: tf.Tensor, playground: GymPlaygr
         # convert the logits layer (aka: raw output) to probabilities
         logits_layer = tf.identity(logits_layer, name='mu')
 
-        raise NotImplementedError  # todo: implement
-        # log_standard_deviation = NotImplemented  # (!) todo
-        # standard_deviation = NotImplemented  # (!) todo --> compute standard_deviation
-        # logit_layer_shape = tf.shape(logits_layer)
-        # sampled_action = logits_layer + tf.random_normal(logit_layer_shape) * standard_deviation
-        # return sampled_action, log_standard_deviation
+        raise NotImplementedError
 
 
 def discrete_pseudo_loss(log_p_all, action_placeholder: tf.Tensor, Q_values_placeholder: tf.Tensor,

@@ -3,9 +3,7 @@ from typing import List
 
 import numpy as np
 import tensorflow as tf
-import tensorflow_probability as tfp
 
-from blocAndTools.buildingbloc import build_MLP_computation_graph
 from blocAndTools.rl_vocabulary import rl_name
 
 tf_cv1 = tf.compat.v1  # shortcut
