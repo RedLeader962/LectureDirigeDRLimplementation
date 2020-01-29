@@ -1,6 +1,6 @@
 [**Deep Reinforcement Learning**](https://github.com/RedLeader962/LectureDirigeDRLimplementation/tree/master)
 
-![TaxonomyActorCritic](./visual/TaxonomyActorCritic.png) 
+![TaxonomyActorCritic](./visual/TaxonomyActorCriticGithub.png) 
 
 # :: Advantage Actor-Critic
 

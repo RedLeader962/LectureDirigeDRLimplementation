@@ -127,6 +127,20 @@ def test_Playground_continuous():
     assert play.OBSERVATION_SPACE.shape == (8,)
     assert play.OBSERVATION_DIM == 8
 
+
+def test_Playground_continuous_Hard_Lunar():
+    play = bloc.GymPlayground('LunarLanderContinuous-v2', harderEnvCoeficient=1.5)
+    assert play.ACTION_SPACE.shape == (2,)
+    assert play.ACTION_CHOICES == 2
+    assert play.OBSERVATION_SPACE.shape == (8,)
+    assert play.OBSERVATION_DIM == 8
+
+
+def test_Playground_continuous_Hard_no_env_FAIL():
+    with pytest.raises(Exception):
+        play = bloc.GymPlayground('Pendulum-v0', harderEnvCoeficient=1.5)
+
+
 def test_Playground_discreet():
     play = bloc.GymPlayground('LunarLander-v2')
     assert play.ACTION_CHOICES == 4

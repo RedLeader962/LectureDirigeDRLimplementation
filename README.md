@@ -1,4 +1,6 @@
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=RedLeader962_LectureDirigeDRLimplementation&metric=alert_status)](https://sonarcloud.io/dashboard?id=RedLeader962_LectureDirigeDRLimplementation)
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=RedLeader962_LectureDirigeDRLimplementation&metric=ncloc)](https://sonarcloud.io/dashboard?id=RedLeader962_LectureDirigeDRLimplementation)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=RedLeader962_LectureDirigeDRLimplementation&metric=coverage)](https://sonarcloud.io/dashboard?id=RedLeader962_LectureDirigeDRLimplementation)
 
 Repository for the course IFT-7014: Directed reading on
 # Deep Reinforcement Learning 
@@ -16,14 +18,14 @@ Québec, QC, Canada,
 [Brahim.Chaib-draa@ift.ulaval.ca](Brahim.Chaib-draa@ift.ulaval.ca)
 
 ---
-![TaxonomyActorCritic](./visual/TaxonomyDRL.png) 
+![TaxonomyActorCritic](./visual/TaxonomyDRLgithub.png) 
 
 
 ### Essay on:
-- **[Basic policy gradient](DRLimplementation/BasicPolicyGradient)**
+- **[Soft Actor-Critic](DRLimplementation/SoftActorCritic)**
 - **[Actor-Critic](DRLimplementation/ActorCritic)**
 - **[A reflexion on design, architecture and implementation details](https://github.com/RedLeader962/LectureDirigeDRLimplementation/raw/master/Reflexion_on_design_and_architecture_LucCoupal_v1-1.pdf)**
-- Maximum Entropy DRL
+- **[Basic policy gradient](DRLimplementation/BasicPolicyGradient)**
 - Meta-DRL
 
 ---
@@ -51,7 +53,7 @@ Québec, QC, Canada,
     
 3) **Enjoy** DRL script
 
-![Trained agent in action](video/Batch_ActorCriticBatch-AAC-Split-nn_1.gif)
+![Trained agent in action](video/SAC_postTraining_testOnHardLunar540p24fps.gif)
 
 ---
-
+Post training - Test run on 2X harder LunarLanderContinuous-v2 environment

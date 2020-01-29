@@ -1,6 +1,6 @@
 [**Deep Reinforcement Learning**](https://github.com/RedLeader962/LectureDirigeDRLimplementation/tree/master)
 
-![TaxonomyPolicyGradient](./visual/TaxonomyPolicyGradient.png) 
+![TaxonomyPolicyGradient](./visual/TaxonomyPGgithub.png) 
 
 # :: Basic policy gradient
 Policy gradient is a on-policy method which seek to directly optimize the policy  by using sampled trajectories as weight. Those weights will then be used to indicate how good the policy performed. Based on that knowledge, the algorithm updates the parameters of his policy to make action leading to similar good trajectories more likely and similar bad trajectories less likely. In the case of Deep Reinforcement Learning, the policy parameter is a neural net. For this essay, I've studied and implemented the basic version of policy gradient also known as REINFORCE. I've also complemented my reading with the following ressources:

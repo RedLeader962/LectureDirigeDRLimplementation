@@ -65,6 +65,15 @@ def test_SoftActorCritic_agent_PLAY_LUNAR_command_line_invocation(set_up_PWD_to_
     assert 0 == out, "Agent invocated from command line exited with error {}".format(out)
 
 
+def test_SoftActorCritic_agent_PLAY_HARD_LUNAR_command_line_invocation(set_up_PWD_to_project_root):
+    from os import system
+    
+    out = system("python -m SoftActorCritic --playHardLunar --play_for=6 --testRun")
+    
+    # Note: exit(0) <==> clean exit without any errors/problems
+    assert 0 == out, "Agent invocated from command line exited with error {}".format(out)
+
+
 # @pytest.mark.skip(reason="Mute for now")
 def test_SoftActorCritic_agent_train_BipedalWalker_command_line_invocation(set_up_PWD_to_project_root):
     from os import system

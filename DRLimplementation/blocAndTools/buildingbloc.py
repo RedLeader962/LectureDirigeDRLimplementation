@@ -187,7 +187,8 @@ def list_representation(list_instance: list, list_name: str):
 
 class GymPlayground(object):
     
-    def __init__(self, environment_name='LunarLanderContinuous-v2', print_env_info=False):
+    def __init__(self, environment_name='LunarLanderContinuous-v2', print_env_info=False,
+                 harderEnvCoeficient: float = None):
         """
         Setup the learning playground for the agent (the environment in witch he will play) and gather relevant spec
 
@@ -235,11 +236,12 @@ class GymPlayground(object):
         :param environment_name: a gym environment
         :type environment_name: str
         """
-
+        
         self.ENVIRONMENT_NAME = environment_name
-
+        self.harderEnvCoeficient = harderEnvCoeficient
+        
         self._env = self._make_gym_env()
-
+        
         info_str = ""
         if isinstance(self._env.action_space, gym.spaces.Box):
             info_str += "\n\n:: Action space is Contiuous\n"
@@ -250,14 +252,14 @@ class GymPlayground(object):
             info_str += "\n\n:: Action space is Discrete\n"
             self.ACTION_SPACE = self._env.action_space
             self.ACTION_CHOICES = self.ACTION_SPACE.n
-
+        
         if isinstance(self._env.observation_space, gym.spaces.Box):
             self.OBSERVATION_SPACE = self._env.observation_space
             obs_dimension = self.OBSERVATION_SPACE.shape
             self.OBSERVATION_DIM = [*obs_dimension][-1]
         else:
             raise NotImplementedError("GymPlayground does not support non continuous observation space yet!")
-
+        
         # (nice to have) todo:fixme!! --> update folder path:
         # if print_env_info:
         #     if self.ENVIRONMENT_NAME == 'LunarLanderContinuous-v2':
@@ -270,10 +272,21 @@ class GymPlayground(object):
         #         action_space_doc=action_space_doc)
         #     else:
         #         info_str += env_spec_pretty_printing.environnement_doc_str(self._env)
-
+        
         print(info_str)
     
     def _make_gym_env(self):
+        if self.harderEnvCoeficient is not None:
+            assert self.harderEnvCoeficient > 1.0, "The harderEnvCoeficient must be greater than 1.0"
+            if self.ENVIRONMENT_NAME == 'LunarLanderContinuous-v2':
+                from gym.envs.box2d import lunar_lander
+                lunar_lander.INITIAL_RANDOM *= self.harderEnvCoeficient
+                print(":: Setup HARD version of", self.ENVIRONMENT_NAME)
+            else:
+                raise gym.error.Error("This Gym environment has no INITIAL_RANDOM global variable to make harder")
+        else:
+            pass
+        
         try:
             return gym.make(self.ENVIRONMENT_NAME)
         except gym.error.Error as e:

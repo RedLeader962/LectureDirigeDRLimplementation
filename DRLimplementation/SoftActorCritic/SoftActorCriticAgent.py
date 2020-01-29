@@ -13,8 +13,6 @@ import blocAndTools.tensorflowbloc
 from SoftActorCritic.SoftActorCriticBrain import (
     actor_train, apply_action_bound, build_critic_graph_q_theta, build_critic_graph_v_psi, build_gaussian_policy_graph,
     critic_learning_rate_scheduler, critic_q_theta_train, critic_v_psi_train, init_frozen_v_psi, update_frozen_v_psi_op,
-    build_gaussian_policy_graph_SpinningUp,
-    apply_action_bound_SpinningUp,
     )
 from blocAndTools import ConsolPrintLearningStats, buildingbloc as bloc
 from blocAndTools.agent import Agent
@@ -81,36 +79,11 @@ class SoftActorCriticAgent(Agent):
         # /// Actor computation graph //////////////////////////////////////////////////////////////////////////////////
         with tf_cv1.variable_scope(vocab.actor_network):
     
-            # ... Implementation detail assesment ......................................................................
-            # (Priority) todo:assessment --> SpinningUpGaussian:compare with mine & remove when done
-            try:
-                self.exp_spec['SpinningUpSquashing']
-            except KeyError:
-                self.exp_spec.set_experiment_spec({'SpinningUpSquashing': False})
-                print("\n(!) ExperimentSpec Keyword 'SpinningUpSquashing' does not exist. Assume False")
+            pi, pi_log_p, self.policy_mu = build_gaussian_policy_graph(self.obs_t_ph, self.exp_spec,
+                                                                       self.playground)
     
-            try:
-                self.exp_spec['SpinningUpGaussian']
-            except KeyError:
-                self.exp_spec.set_experiment_spec({'SpinningUpGaussian': False})
-                print("\n(!) ExperimentSpec Keyword 'SpinningUpGaussian' does not exist. Assume False")
-
-            if self.exp_spec['SpinningUpGaussian']:
-                pi, pi_log_p, self.policy_mu = build_gaussian_policy_graph_SpinningUp(self.obs_t_ph, self.exp_spec,
-                                                                                      self.playground)
-            else:
-                print(":: Use my build_gaussian_policy_graph() implementation")
-                pi, pi_log_p, self.policy_mu = build_gaussian_policy_graph(self.obs_t_ph, self.exp_spec,
-                                                                           self.playground)
+            self.policy_pi, self.pi_log_likelihood = apply_action_bound(pi, pi_log_p)
     
-            # (Priority) todo:assessment --> SpinningUpSquashing:compare with mine & remove when done
-            if self.exp_spec['SpinningUpSquashing']:
-                self.policy_pi, self.pi_log_likelihood = apply_action_bound_SpinningUp(pi, pi_log_p)
-            else:
-                print(":: Use my squashing function implementation")
-                self.policy_pi, self.pi_log_likelihood = apply_action_bound(pi, pi_log_p)
-    
-            # .............................................................. Implementation detail assesment ...(end)...
             """ ---- Adjust policy distribution result to action range  ---- """
             if self.playground.ACTION_SPACE.bounded_above.all():
                 self.policy_pi *= self.playground.ACTION_SPACE.high[0]
@@ -369,8 +342,6 @@ class SoftActorCriticAgent(Agent):
                 # \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
                 # /// Epoch end ////////////////////////////////////////////////////////////////////////////////////////
 
-                # sanity check
-                # assert timecounter.global_count == self.epoch_metric_logger.total_training_timestep_collected
 
                 """ ---- Evaluate trainning of the agent policy ---- """
                 if self.experiment_counter.gradient_step_count > 0:
