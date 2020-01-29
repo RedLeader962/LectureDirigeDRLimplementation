@@ -14,7 +14,7 @@ Policy gradient is a on-policy method which seek to directly optimize the policy
 
 
 
-Watch [recorded agent](../../video) 
+Watch [recorded agent](../../video/REINFORCE_video) 
 
 ---
 
@@ -40,7 +40,7 @@ python -m BasicPolicyGradient --train
 tensorboard --logdir=DRLimplementation/BasicPolicyGradient/graph/runs
 ```
 
-![Trained agent in action](../../video/REINFORCE_agent_cartpole_2.gif)
+![Trained agent in action](../../video/REINFORCE_video/REINFORCE_agent_cartpole_2.gif)
 
 
 ---

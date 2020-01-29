@@ -39,7 +39,7 @@ Download the essay pdf:
 
 
 
-Watch [recorded agent](../../video) 
+Watch [recorded agent](../../video/ActorCritic_video) 
 
 ---
 
@@ -78,7 +78,7 @@ cd DRLimplementation
 tensorboard --logdir=ActorCritic/graph
 ```
 
-![Trained agent in action](../../video/Batch_ActorCriticBatch-AAC-Split-nn_1.gif)
+![Trained agent in action](../../video/ActorCritic_video/Batch_ActorCriticBatch-AAC-Split-nn_1.gif)
 
 
 ---

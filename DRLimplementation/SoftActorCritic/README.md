@@ -41,8 +41,7 @@ Download the essay pdf:
 
 
 
-Watch [recorded agent](../../video) 
-
+[Watch mp4 video - Soft Actor-Critic Post training - Test run on 2X harder LunarLanderContinuous-v2 environment](video/SAC_video/SAC_postTraining_testOnHardLunar540p.mp4) 
 ---
 
 ### The Soft Actor-Critic implementation:
@@ -78,7 +77,7 @@ cd DRLimplementation
 tensorboard --logdir=SoftActorCritic/graph
 ```
 
-![Trained agent in action](../../video/SAC_postTraining_testOnHardLunar540p24fps.gif)
+![Trained agent in action](../../video/SAC_video/SAC_gif/SAC_postTraining_testOnHardLunar540p24fps.gif)
 
 
 ---
