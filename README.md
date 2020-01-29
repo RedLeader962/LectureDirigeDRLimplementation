@@ -23,7 +23,7 @@ Québec, QC, Canada,
 ### Essay on:
 - Maximum Entropy RL:
   - **[Soft Actor-Critic](DRLimplementation/SoftActorCritic)**
-- Classical DRL:
+- Classical RL:
   - **[Actor-Critic](DRLimplementation/ActorCritic)**
   - **[Basic policy gradient](DRLimplementation/BasicPolicyGradient)**
 - Meta-DRL

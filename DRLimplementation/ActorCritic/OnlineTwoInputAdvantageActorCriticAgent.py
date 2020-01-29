@@ -80,13 +80,13 @@ class OnlineTwoInputAdvantageActorCriticAgent(Agent):
             # *                                   Shared Actor-Critic computation graph                               *
             # *                                                                                                       *
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-
-            raise NotImplementedError   # todo: implement
-
-            self.policy_pi, log_pi, _, self.V_phi_estimator = build_actor_critic_shared_graph(
-                self.obs_t_ph, self.exp_spec, self.playground)
-
-            print(":: SHARED network constructed")
+    
+            raise NotImplementedError  # todo: implement
+    
+            # self.policy_pi, log_pi, _, self.V_phi_estimator = build_actor_critic_shared_graph(
+            #     self.obs_t_ph, self.exp_spec, self.playground)
+            #
+            # print(":: SHARED network constructed")
 
         # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
         # *                                                                                                           *
