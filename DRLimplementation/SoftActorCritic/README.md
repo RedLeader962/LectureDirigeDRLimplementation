@@ -36,12 +36,10 @@ I've also complemented my reading with the following resources:
 
 
 ---
-Download the essay pdf:
-- [Deep Reinforcement Learning – Soft Actor-Critic](https://github.com/RedLeader962/LectureDirigeDRLimplementation/raw/master/TP_SoftActorCritic_LucCoupal_v1-0.pdf) 
-
-
+Download the essay pdf: [Deep Reinforcement Learning – Soft Actor-Critic](https://github.com/RedLeader962/LectureDirigeDRLimplementation/raw/master/TP_SoftActorCritic_LucCoupal_v1-0.pdf) 
 
 [Watch mp4 video - Soft Actor-Critic Post training - Test run on 2X harder LunarLanderContinuous-v2 environment](video/SAC_video/SAC_postTraining_testOnHardLunar540p.mp4) 
+
 ---
 
 ### The Soft Actor-Critic implementation:
@@ -78,6 +76,7 @@ tensorboard --logdir=SoftActorCritic/graph
 ```
 
 ![Trained agent in action](../../video/SAC_video/SAC_gif/SAC_postTraining_testOnHardLunar540p24fps.gif)
+
 
 
 ---
