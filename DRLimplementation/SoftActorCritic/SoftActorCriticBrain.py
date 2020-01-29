@@ -193,9 +193,8 @@ def build_critic_graph_v_psi(obs_t_ph: tf.Tensor, obs_t_prime_ph: tf.Tensor, exp
         mlp = build_KERAS_MLP_computation_graph
     else:
         mlp = buil_MLP_with_initilizer
-    
-        # with tf_cv1.variable_scope(vocab.critic_network):
-        """ ---- Build parameter '_psi' as a multilayer perceptron ---- """
+
+    """ ---- Build parameter '_psi' as a multilayer perceptron ---- """
     v_psi = mlp(obs_t_ph, 1, exp_spec['psi_nn_h_layer_topo'],
                 hidden_layers_activation=exp_spec['psi_hidden_layers_activation'],
                 output_layers_activation=exp_spec['psi_output_layers_activation'],

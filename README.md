@@ -30,6 +30,12 @@ Québec, QC, Canada,
 - **[A reflexion on design, architecture and implementation details](https://github.com/RedLeader962/LectureDirigeDRLimplementation/raw/master/Reflexion_on_design_and_architecture_LucCoupal_v1-1.pdf)**
 
 ---
+
+![Trained agent in action](video/SAC_video/SAC_gif/SAC_postTraining_testOnHardLunar540p24fps.gif)
+
+[Watch mp4 video - Soft Actor-Critic Post training - Test run on 2X harder LunarLanderContinuous-v2 environment](video/SAC_video/SAC_postTraining_testOnHardLunar540p.mp4) 
+
+---
     
 ### Install instruction:
 1) **Create & activate a new virtual environment** (I recommand using [conda](https://www.anaconda.com/distribution/), ... it's a walk in the park)
@@ -53,10 +59,6 @@ Québec, QC, Canada,
         'pytest',
     
 3) **Enjoy** DRL script
-
-![Trained agent in action](video/SAC_video/SAC_gif/SAC_postTraining_testOnHardLunar540p24fps.gif)
-
-[Watch mp4 video - Soft Actor-Critic Post training - Test run on 2X harder LunarLanderContinuous-v2 environment](video/SAC_video/SAC_postTraining_testOnHardLunar540p.mp4) 
 
 ---
 
