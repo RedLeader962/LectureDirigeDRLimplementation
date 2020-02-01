@@ -35,9 +35,6 @@
       </profile-state>
     </entry>
   </component>
-  <component name="ProjectResources">
-    <xml-schema-version>XMLSchema_1_1</xml-schema-version>
-  </component>
   <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.7 (TF114_Gym_Ray_Python37)" project-jdk-type="Python SDK" />
   <component name="PythonCompatibilityInspectionAdvertiser">
     <option name="version" value="3" />
