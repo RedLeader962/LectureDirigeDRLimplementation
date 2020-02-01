@@ -46,7 +46,7 @@ ignore_errors = True
 
 [xml]
 # (string, default “coverage.xml”): where to write the XML report.
-output = ../coverage-reports/coverage-.xml
+output = ../coverage-reports/coverage-python.xml
 
 [html]
 directory = ../coverage_html_report
