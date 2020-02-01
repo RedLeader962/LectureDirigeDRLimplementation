@@ -8,8 +8,10 @@ from DRLimplementation.BasicPolicyGradient.REINFORCEagent import REINFORCEagent
 from blocAndTools.buildingbloc import ExperimentSpec, setup_commented_run_dir_str
 from blocAndTools.visualisationtools import ConsolPrintLearningStats
 
-tf_cv1 = tf.compat.v1   # shortcut
+tf_cv1 = tf.compat.v1  # shortcut
 deprecation._PRINT_DEPRECATION_WARNINGS = False
+
+# pytestmark = pytest.mark.skip("all tests still WIP")  # (Priority) todo:implement --> coverage: then remove line
 
 """
 Start TensorBoard in terminal:

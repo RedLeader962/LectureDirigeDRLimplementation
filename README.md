@@ -1,6 +1,7 @@
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=RedLeader962_LectureDirigeDRLimplementation&metric=alert_status)](https://sonarcloud.io/dashboard?id=RedLeader962_LectureDirigeDRLimplementation)
 [![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=RedLeader962_LectureDirigeDRLimplementation&metric=ncloc)](https://sonarcloud.io/dashboard?id=RedLeader962_LectureDirigeDRLimplementation)
-
+[![codecov](https://codecov.io/gh/RedLeader962/LectureDirigeDRLimplementation/branch/master/graph/badge.svg)](https://codecov.io/gh/RedLeader962/LectureDirigeDRLimplementation)
+![Codecov](https://img.shields.io/codecov/c/github/RedLeader962/LectureDirigeDRLimplementation)
 
 Repository for the course IFT-7014: Directed reading on
 # Deep Reinforcement Learning 

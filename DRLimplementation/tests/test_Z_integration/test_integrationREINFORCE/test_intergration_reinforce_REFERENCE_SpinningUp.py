@@ -12,6 +12,7 @@ In browser, go to:
     http://0.0.0.0:6006/ 
 """
 
+# pytestmark = pytest.mark.skip("all tests still WIP")  # (Priority) todo:implement --> coverage: then remove line
 
 @pytest.fixture
 def setup_train_algo_generator_with_PASSING_spec():

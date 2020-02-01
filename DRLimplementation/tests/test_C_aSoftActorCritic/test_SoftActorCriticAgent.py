@@ -11,6 +11,8 @@ tf_cv1 = tf.compat.v1  # shortcut
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 vocab = rl_name()
 
+# pytestmark = pytest.mark.skip("all tests still WIP")  # (Priority) todo:implement --> coverage: then remove line
+
 unit_test_hparam = {
     'rerun_tag':                    'Unit-TEST',
     'paramameter_set_name':         'SAC',

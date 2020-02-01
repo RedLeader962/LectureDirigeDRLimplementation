@@ -22,21 +22,28 @@ import blocAndTools.tensorflowbloc
 from blocAndTools.agent import Agent
 from blocAndTools.rl_vocabulary import rl_name, TargetType, NetworkType
 from blocAndTools import buildingbloc as bloc, ConsolPrintLearningStats, ExperimentSpec
-from blocAndTools.container.samplecontainer_batch_OARV import (TrajectoryContainerBatchOARV,
-                                                               TrajectoryCollectorBatchOARV,
-                                                               UniformeBatchContainerBatchOARV,
-                                                               UniformBatchCollectorBatchOARV, )
+from blocAndTools.container.samplecontainer_batch_OARV import (
+    TrajectoryContainerBatchOARV,
+    TrajectoryCollectorBatchOARV,
+    UniformeBatchContainerBatchOARV,
+    UniformBatchCollectorBatchOARV,
+    )
 
 tf_cv1 = tf.compat.v1  # shortcut
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 vocab = rl_name()
+
+
 # endregion
 
+# pytestmark = pytest.mark.skip("all tests still WIP")  # (Priority) todo:implement --> coverage: then remove line
+
 class ReferenceActorCriticAgent(Agent):
+    
     def _use_hardcoded_agent_root_directory(self):
         self.agent_root_dir = 'ActorCritic'
         return None
-
+    
     def _build_computation_graph(self):
         """
         Build the Policy_theta & V_phi computation graph with theta and phi as multi-layer perceptron

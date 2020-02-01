@@ -140,59 +140,60 @@ class SoftActorCriticAgent(Agent):
         # region :: Summary placholders & ops ...
         """ ---- By Epoch summary: RETURNS & LENGHT ---- """
         self.summary_avg_trjs_return_ph = tf_cv1.placeholder(
-            tf.float32, name='summary_ph/' + 'stoPi_stage_avg_trjs_return_ph')
+            tf.float32, name=vocab.summary_ph + 'stoPi_stage_avg_trjs_return_ph')
         tf_cv1.summary.scalar('Epoch_average_trj_return_stochastic_pi)', self.summary_avg_trjs_return_ph,
                               family=vocab.G)
 
         self.summary_avg_trjs_len_ph = tf_cv1.placeholder(
-            tf.float32, name='summary_ph/' + 'stoPi_stage_avg_trjs_len_ph')
+            tf.float32, name=vocab.summary_ph + 'stoPi_stage_avg_trjs_len_ph')
         tf_cv1.summary.scalar('Epoch_average_trj_lenght_stochastic_pi)', self.summary_avg_trjs_len_ph,
                               family=vocab.Trajectory_lenght)
 
         self.summary_eval_avg_trjs_return_ph = tf_cv1.placeholder(
-            tf.float32, name='summary_ph/' + 'detPi_stage_avg_trjs_return_ph')
+            tf.float32, name=vocab.summary_ph + 'detPi_stage_avg_trjs_return_ph')
         tf_cv1.summary.scalar('Epoch_average_trj_return_deterministic_pi)', self.summary_eval_avg_trjs_return_ph,
                               family=vocab.G)
 
         self.summary_eval_avg_trjs_len_ph = tf_cv1.placeholder(
-            tf.float32, name='summary_ph/' + 'detPi_stage_avg_trjs_len_ph')
+            tf.float32, name=vocab.summary_ph + 'detPi_stage_avg_trjs_len_ph')
         tf_cv1.summary.scalar('Epoch_average_trj_lenght_deterministic_pi)', self.summary_eval_avg_trjs_len_ph,
                               family=vocab.Trajectory_lenght)
 
         """ ---- By Epoch summary: LOSS ---- """
-        self.summary_avg_trjs_Vloss_ph = tf_cv1.placeholder(tf.float32, name='summary_ph/' + 'Critic_V_loss_ph')
+        self.summary_avg_trjs_Vloss_ph = tf_cv1.placeholder(tf.float32, name=vocab.summary_ph + 'Critic_V_loss_ph')
         tf_cv1.summary.scalar('critic_v_loss', self.summary_avg_trjs_Vloss_ph, family=vocab.loss)
 
-        self.summary_avg_trjs_Q1loss_ph = tf_cv1.placeholder(tf.float32, name='summary_ph/' + 'Critic_Q1_loss_ph')
+        self.summary_avg_trjs_Q1loss_ph = tf_cv1.placeholder(tf.float32, name=vocab.summary_ph + 'Critic_Q1_loss_ph')
         tf_cv1.summary.scalar('critic_q_1_loss', self.summary_avg_trjs_Q1loss_ph, family=vocab.loss)
 
-        self.summary_avg_trjs_Q2loss_ph = tf_cv1.placeholder(tf.float32, name='summary_ph/' + 'Critic_Q2_loss_ph')
+        self.summary_avg_trjs_Q2loss_ph = tf_cv1.placeholder(tf.float32, name=vocab.summary_ph + 'Critic_Q2_loss_ph')
         tf_cv1.summary.scalar('critic_q_2_loss', self.summary_avg_trjs_Q2loss_ph, family=vocab.loss)
 
-        self.summary_avg_trjs_pi_loss_ph = tf_cv1.placeholder(tf.float32, name='summary_ph/' + 'policy_loss_ph')
+        self.summary_avg_trjs_pi_loss_ph = tf_cv1.placeholder(tf.float32, name=vocab.summary_ph + 'policy_loss_ph')
         tf_cv1.summary.scalar('policy_loss', self.summary_avg_trjs_pi_loss_ph, family=vocab.loss)
 
         """ ---- By Epoch summary: POLICY & VALUE fct ---- """
 
-        self.summary_avg_pi_log_likelihood_ph = tf_cv1.placeholder(tf.float32, name='summary_ph/' + 'pi_log_p_ph')
+        self.summary_avg_pi_log_likelihood_ph = tf_cv1.placeholder(tf.float32, name=vocab.summary_ph + 'pi_log_p_ph')
         tf_cv1.summary.scalar('policy_log_likelihood', self.summary_avg_pi_log_likelihood_ph, family=vocab.policy)
 
-        # self.summary_avg_policy_pi_ph = tf_cv1.placeholder(tf.float32, name='summary_ph/' + 'policy_pi_ph')
+        # self.summary_avg_policy_pi_ph = tf_cv1.placeholder(tf.float32, name=vocab.summary_ph + 'policy_pi_ph')
         # tf_cv1.summary.scalar('policy_py', self.summary_avg_policy_pi_ph, family=vocab.policy)
         #
-        # self.summary_avg_policy_mu_ph = tf_cv1.placeholder(tf.float32, name='summary_ph/' + 'policy_mu_ph')
+        # self.summary_avg_policy_mu_ph = tf_cv1.placeholder(tf.float32, name=vocab.summary_ph + 'policy_mu_ph')
         # tf_cv1.summary.scalar('policy_mu', self.summary_avg_policy_mu_ph, family=vocab.policy)
 
-        self.summary_avg_V_value_ph = tf_cv1.placeholder(tf.float32, name='summary_ph/' + 'V_values_ph')
+        self.summary_avg_V_value_ph = tf_cv1.placeholder(tf.float32, name=vocab.summary_ph + 'V_values_ph')
         tf_cv1.summary.scalar('V_values', self.summary_avg_V_value_ph, family=vocab.values)
 
-        self.summary_avg_frozen_V_value_ph = tf_cv1.placeholder(tf.float32, name='summary_ph/' + 'frozen_V_values_ph')
+        self.summary_avg_frozen_V_value_ph = tf_cv1.placeholder(tf.float32,
+                                                                name=vocab.summary_ph + 'frozen_V_values_ph')
         tf_cv1.summary.scalar('frozen_V_values', self.summary_avg_frozen_V_value_ph, family=vocab.values)
 
-        self.summary_avg_Q1_value_ph = tf_cv1.placeholder(tf.float32, name='summary_ph/' + 'Q1_values_ph')
+        self.summary_avg_Q1_value_ph = tf_cv1.placeholder(tf.float32, name=vocab.summary_ph + 'Q1_values_ph')
         tf_cv1.summary.scalar('Q1_values', self.summary_avg_Q1_value_ph, family=vocab.values)
 
-        self.summary_avg_Q2_value_ph = tf_cv1.placeholder(tf.float32, name='summary_ph/' + 'Q2_values_ph')
+        self.summary_avg_Q2_value_ph = tf_cv1.placeholder(tf.float32, name=vocab.summary_ph + 'Q2_values_ph')
         tf_cv1.summary.scalar('Q2_values', self.summary_avg_Q2_value_ph, family=vocab.values)
 
         self.summary_epoch_op = tf_cv1.summary.merge_all()
@@ -202,12 +203,12 @@ class SoftActorCriticAgent(Agent):
 
         """ ---- By Trajectory summary ---- """
         # self.summary_sto_pi_TRJ_return_ph = tf_cv1.placeholder(tf.float32,
-        #                                                        name='summary_ph/' + 'summary_stoPi_trj_return_ph')
+        #                                                        name=vocab.summary_ph + 'summary_stoPi_trj_return_ph')
         # self.summary_sto_pi_TRJ_return_op = tf_cv1.summary.scalar('Trajectory_return_stochastic_pi',
         #                                                           self.summary_sto_pi_TRJ_return_ph, family=vocab.G)
         #
         # self.summary_sto_pi_TRJ_lenght_ph = tf_cv1.placeholder(tf.float32,
-        #                                                        name='summary_ph/' + 'summary_stoPi_trj_lenght_ph')
+        #                                                        name=vocab.summary_ph + 'summary_stoPi_trj_lenght_ph')
         # self.summary_sto_pi_TRJ_lenght_op = tf_cv1.summary.scalar('Trajectory_lenght_stochastic_pi',
         #                                                           self.summary_sto_pi_TRJ_lenght_ph,
         #                                                           family=vocab.Trajectory_lenght)
