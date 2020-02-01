@@ -1,0 +1,52 @@
+# .coveragerc to control coverage.py
+[run]
+# (multi-string): a list of packages or directories, the source to measure during execution.
+source =
+    ActorCritic/
+    BasicPolicyGradient/
+    blocAndTools/
+    SoftActorCritic/
+
+# (multi-string): a list of file name patterns, the files to leave out of measurement or reporting.
+omit =
+;    */tests/*
+    */setup.py
+    */general_utilities/*
+    */exploration_and_benchmarking/*
+
+
+# whether to measure branch coverage in addition to statement coverage.  default False
+;branch = True
+
+#(string, default “.coverage”): the name of the data file to use for storing or reporting coverage. This value can include a path to another directory.
+#data_file = coverage-reports/.coverage
+
+[report]
+# Regexes for lines to exclude from consideration
+exclude_lines =
+# Have to re-enable the standard pragma
+    pragma: no cover
+
+# Don't complain about missing debug-only code:
+    def __repr__
+    if self\.debug
+
+# Don't complain if tests don't hit defensive assertion code:
+    raise AssertionError
+    raise NotImplementedError
+
+# Don't complain if non-runnable code isn't run:
+    if 0:
+    if __name__ == .__main__.:
+
+ignore_errors = True
+
+# version > 5.0b1
+;skip_empty = True
+
+[xml]
+# (string, default “coverage.xml”): where to write the XML report.
+output = ../coverage-reports/coverage-.xml
+
+[html]
+directory = ../coverage_html_report
