@@ -1,15 +1,15 @@
 # .coveragerc to control coverage.py
 [run]
 # (multi-string): a list of packages or directories, the source to measure during execution.
-source =
-    ActorCritic/
-    BasicPolicyGradient/
-    blocAndTools/
-    SoftActorCritic/
+;source =
+;    ActorCritic/
+;    BasicPolicyGradient/
+;    blocAndTools/
+;    SoftActorCritic/
 
 # (multi-string): a list of file name patterns, the files to leave out of measurement or reporting.
 omit =
-    tests/*
+;    tests/*
     */setup.py
     */general_utilities/*
     */exploration_and_benchmarking/*
