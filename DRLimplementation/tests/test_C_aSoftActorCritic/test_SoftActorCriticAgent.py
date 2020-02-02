@@ -131,7 +131,7 @@ def gym_and_tf_continuous_Bipedal_setup():
     tf_cv1.reset_default_graph()
 
 
-# --- ActorCritic_agent -------------------------------------------------------------------------------------------
+# --- Soft Actor-Critic agent ------------------------------------------------------------------------------------------
 # @pytest.mark.skip(reason="Work fine. Mute for now")
 def test_SoftActorCritic_agent_INSTANTIATE_AGENT_MontainCar_PASS(gym_and_tf_continuous_montain_car_setup):
     exp_spec = gym_and_tf_continuous_montain_car_setup

@@ -1,18 +1,19 @@
 # .coveragerc to control coverage.py
 [run]
 # (multi-string): a list of packages or directories, the source to measure during execution.
-;source =
-;    ActorCritic/
-;    BasicPolicyGradient/
-;    blocAndTools/
-;    SoftActorCritic/
+source =
+    ActorCritic/
+    BasicPolicyGradient/
+    blocAndTools/
+    SoftActorCritic/
 
 # (multi-string): a list of file name patterns, the files to leave out of measurement or reporting.
 omit =
-;    tests/*
-    */setup.py
-    */general_utilities/*
-    */exploration_and_benchmarking/*
+    tests/*
+    */__init__.py
+    ../setup.py
+    ../general_utilities/*
+    ../exploration_and_benchmarking/*
 
 
 # whether to measure branch coverage in addition to statement coverage.  default False
@@ -41,8 +42,8 @@ exclude_lines =
 
 ignore_errors = True
 
-# version > 5.0b1
-;skip_empty = True
+# require coverage package version > 5.0b1
+skip_empty = True
 
 [xml]
 # (string, default “coverage.xml”): where to write the XML report.

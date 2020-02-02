@@ -147,22 +147,22 @@ class Agent(object, metaclass=ABCMeta):
     
     def _render_trajectory_on_condition(self, epoch, render_env, trj_collected_in_that_epoch):
         if (render_env and (epoch % self.exp_spec.render_env_every_What_epoch == 0)
-                and trj_collected_in_that_epoch == 0):
+                and trj_collected_in_that_epoch == 0):  # pragma: no cover
             self.playground.env.env.render()  # keep environment rendering turned OFF during unit test
     
     def _save_learned_model(self, batch_average_trjs_return: float, epoch, sess: tf_cv1.Session) -> None:
-        if batch_average_trjs_return >= float(self.exp_spec.expected_reward_goal):
+        if batch_average_trjs_return >= float(self.exp_spec.expected_reward_goal):  # pragma: no cover
             print("\n\n    ::  {} batch avg return reached".format(batch_average_trjs_return))
             self._save_checkpoint(epoch, sess, self.exp_spec.algo_name, batch_average_trjs_return)
-    
+
     def _save_checkpoint(self, epoch: int, sess: tf_cv1.Session, algo_name: str, batch_avrj_trjs_return, silent=False,
-                         goal_reached=False) -> None:
+                         goal_reached=False) -> None:  # pragma: no cover
         cleaned_name = algo_name.replace(" ", "_")
         if goal_reached:
             # (Priority) todo:implement --> a way to keep the best goal checkpoint:
             self.saver.save(sess, '{}/goal_reached/{}-goal-{}'.format(self.this_run_dir, cleaned_name,
                                                                       int(batch_avrj_trjs_return)), global_step=epoch)
-
+    
         else:
             self.saver.save(sess, '{}/checkpoint/{}-{}'.format(self.this_run_dir, cleaned_name,
                                                                int(batch_avrj_trjs_return)), global_step=epoch)
