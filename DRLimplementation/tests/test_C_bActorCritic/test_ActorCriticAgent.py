@@ -22,6 +22,7 @@ test_AC_discrete_hparam = {
     'Network':                        NetworkType.Split,
     # 'prefered_environment':           'CartPole-v0',
     # 'batch_size_in_ts':               300,
+    # 'prefered_environment':           'LunarLanderContinuous-v2',
     'prefered_environment':           'LunarLander-v2',
     # 'batch_size_in_ts':               1000,
     'batch_size_in_ts':               300,
@@ -125,37 +126,7 @@ def onlineTwoInputAdvantageAC_discrete_LunarLander_setup(request):
     tf_cv1.reset_default_graph()
 
 
-# @pytest.fixture
-# def gym_and_tf_discrete_setup():
-#     """
-#     :return: (obs_p, act_p, exp_spec, playground)
-#     :rtype: (tf.Tensor, tf.Tensor, ExperimentSpec, GymPlayground)
-#     """
-#     exp_spec = bloc.ExperimentSpec(batch_size_in_ts=1000, max_epoch=2, theta_nn_hidden_layer_topology=(2, 2))
-#     exp_spec.set_experiment_spec({'critic_learning_rate': 1e-3})
-#     playground = bloc.GymPlayground('LunarLander-v2')
-#     obs_p, act_p, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground,
-#                                                                                 action_shape_constraint=(1,))
-#     yield obs_p, act_p, Q_values_ph, exp_spec, playground
-#     tf_cv1.reset_default_graph()
-#
-# @pytest.fixture
-# def gym_and_tf_continuous_setup():
-#     """
-#     :return: (obs_p, act_p, exp_spec, playground)
-#     :rtype: (tf.Tensor, tf.Tensor, ExperimentSpec, GymPlayground)
-#     """
-#     exp_spec = bloc.ExperimentSpec(batch_size_in_ts=1000, max_epoch=2, theta_nn_hidden_layer_topology=(2, 2))
-#     exp_spec.set_experiment_spec({'critic_learning_rate': 1e-3})
-#
-#     playground = bloc.GymPlayground('LunarLanderContinuous-v2')
-#     obs_p, act_p, Q_values_ph = bloc.gym_playground_to_tensorflow_graph_adapter(playground,
-#                                                                                 action_shape_constraint=(1,))
-#     yield obs_p, act_p, exp_spec, playground
-#     tf_cv1.reset_default_graph()
-
-
-# --- ActorCritic_agent -------------------------------------------------------------------------------------------
+# --- ActorCritic agent ------------------------------------------------------------------------------------------------
 
 # ... intantiate brain .................................................................................................
 # @pytest.mark.skip(reason="Work fine. Mute for now")

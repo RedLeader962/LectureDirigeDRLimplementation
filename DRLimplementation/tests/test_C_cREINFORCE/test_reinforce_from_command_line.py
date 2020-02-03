@@ -1,10 +1,10 @@
 # coding=utf-8
+import argparse
 import os
 import pytest
 
 ROOT_DIRECTORY = "DRLimplementation"
 TARGET_WORKING_DIRECTORY = ROOT_DIRECTORY
-
 
 # TARGET_WORKING_DIRECTORY = "BasicPolicyGradient"
 
@@ -60,8 +60,30 @@ def test_REINFORCE_agent_discrete_PLAY_command_line_invocation(set_up_PWD_to_pro
 
 def test_REINFORCE_agent_discrete_TRAIN_command_line_invocation(set_up_PWD_to_project_root):
     from os import system
-
+    
     out = system("python -m BasicPolicyGradient --train --test_run")
-
+    
     # Note: exit(0) <==> clean exit without any errors/problems
     assert 0 == out, "Agent invocated from command line exited with error {}".format(out)
+
+# todo:implement --> testing command line alternative:
+# def test_REINFORCE_agent_discrete_PLAY_argparser(set_up_PWD_to_project_root):
+#     from os import system
+#     import sys
+#     from DRLimplementation import BasicPolicyGradient
+#
+#     #
+#     # def parse_args(args):
+#     #     parser = argparse.ArgumentParser()
+#     #     parser.add_argument('-d', '--destructive', action='store_true')
+#     #     return parser.parse_args()
+#
+#     if __name__ == '__main__':
+#         sys.argv.append('--train')
+#         out = BasicPolicyGradient.__main__
+#
+#         # with pytest.raises(SystemExit):
+#         # out = BasicPolicyGradient("--play_for=6 --test_run")
+#
+#         # Note: exit(0) <==> clean exit without any errors/problems
+#         assert 0 == out, "Agent invocated from command line exited with error {}".format(out)

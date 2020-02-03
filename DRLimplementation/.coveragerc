@@ -11,6 +11,7 @@ source =
 omit =
     tests/*
     */__init__.py
+    */__main__.py
     ../setup.py
     ../general_utilities/*
     ../exploration_and_benchmarking/*

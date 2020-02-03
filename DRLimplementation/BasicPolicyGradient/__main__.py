@@ -61,7 +61,7 @@ test_hparam = {
     'discounted_reward_to_go':        True,
     'discout_factor':                 0.999,
     'learning_rate':                  1e-2,
-    'theta_nn_h_layer_topo':          (8, 8),
+    'theta_nn_h_layer_topo':          (2,),
     'random_seed':                    82,
     'theta_hidden_layers_activation': tf.nn.tanh,
     'theta_output_layers_activation': None,
