@@ -451,19 +451,20 @@ test_hparam = {
     # 'prefered_environment':           'CartPole-v0',
     # 'batch_size_in_ts':               300,
     'prefered_environment':           'LunarLander-v2',
-    'batch_size_in_ts':               1000,
+    # 'batch_size_in_ts':               1000,
+    'batch_size_in_ts':               300,
     'expected_reward_goal':           200,
-    'max_epoch':                      10,
+    'max_epoch':                      3,
     'discounted_reward_to_go':        True,
     'discout_factor':                 0.999,
     # 'discout_factor':                 [0.999, 0.91],
     'learning_rate':                  3e-4,
     # 'learning_rate':                  [3e-4, 1e-3],
     'critic_learning_rate':           1e-3,
-    'actor_lr_decay_rate':            1,                                              # set to 1 to swith OFF scheduler
-    'critic_lr_decay_rate':           1,                                              # set to 1 to swith OFF scheduler
-    'critique_loop_len':              80,
-    'theta_nn_h_layer_topo':          (4, 4),
+    'actor_lr_decay_rate':            1,  # set to 1 to swith OFF scheduler
+    'critic_lr_decay_rate':           1,  # set to 1 to swith OFF scheduler
+    'critique_loop_len':              5,
+    'theta_nn_h_layer_topo':          (2,),
     # 'theta_nn_h_layer_topo':          [(4, 4), (6, 6)],
     'random_seed':                    0,
     'theta_hidden_layers_activation': tf.nn.tanh,

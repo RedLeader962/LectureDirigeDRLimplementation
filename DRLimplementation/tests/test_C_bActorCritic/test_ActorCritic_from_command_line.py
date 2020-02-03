@@ -52,7 +52,7 @@ def set_up_PWD_to_project_root():
 def test_ActorCritic_agent_discrete_PLAY_CARTPOLE_command_line_invocation(set_up_PWD_to_project_root):
     from os import system
 
-    out = system("python -m ActorCritic --playCartpole --play_for=6 --testRun")
+    out = system("python -m ActorCritic --playCartpole --play_for=2 --testRun")
 
     # Note: exit(0) <==> clean exit without any errors/problems
     assert 0 == out, "Agent invocated from command line exited with error {}".format(out)
@@ -60,7 +60,7 @@ def test_ActorCritic_agent_discrete_PLAY_CARTPOLE_command_line_invocation(set_up
 def test_ActorCritic_agent_discrete_PLAY_LUNAR_command_line_invocation(set_up_PWD_to_project_root):
     from os import system
 
-    out = system("python -m ActorCritic --playLunar --play_for=6 --testRun")
+    out = system("python -m ActorCritic --playLunar --play_for=2 --testRun")
 
     # Note: exit(0) <==> clean exit without any errors/problems
     assert 0 == out, "Agent invocated from command line exited with error {}".format(out)

@@ -23,9 +23,10 @@ test_AC_discrete_hparam = {
     # 'prefered_environment':           'CartPole-v0',
     # 'batch_size_in_ts':               300,
     'prefered_environment':           'LunarLander-v2',
-    'batch_size_in_ts':               1000,
-    'expected_reward_goal':           200,
-    'max_epoch':                      10,
+    # 'batch_size_in_ts':               1000,
+    'batch_size_in_ts':               300,
+    'expected_reward_goal':           200,  # for LunarLander-v2
+    'max_epoch':                      4,
     'discounted_reward_to_go':        True,
     'discout_factor':                 0.999,
     # 'discout_factor':                 [0.999, 0.91],
@@ -34,8 +35,8 @@ test_AC_discrete_hparam = {
     'critic_learning_rate':           1e-3,
     'actor_lr_decay_rate':            1,  # set to 1 to swith OFF scheduler
     'critic_lr_decay_rate':           1,  # set to 1 to swith OFF scheduler
-    'critique_loop_len':              80,
-    'theta_nn_h_layer_topo':          (4, 4),
+    'critique_loop_len':              5,
+    'theta_nn_h_layer_topo':          (2,),
     # 'theta_nn_h_layer_topo':          [(4, 4), (6, 6)],
     'random_seed':                    0,
     'theta_hidden_layers_activation': tf.nn.tanh,
@@ -47,8 +48,8 @@ test_AC_discrete_hparam = {
     }
 
 
-@pytest.fixture
-def batchAC_split_MonteCarlo_discrete_LunarLander_setup():
+@pytest.fixture(params=[NetworkType.Shared, NetworkType.Split])
+def batchAC_MonteCarlo_discrete_LunarLander_setup(request):
     """
     :return: obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground
     """
@@ -58,7 +59,7 @@ def batchAC_split_MonteCarlo_discrete_LunarLander_setup():
         'prefered_environment': 'LunarLander-v2',
         'AgentType':            BatchActorCriticAgent,
         'Target':               TargetType.MonteCarlo,
-        'Network':              NetworkType.Split,
+        'Network':              request.param,
         })
     exp_spec.set_experiment_spec(unit_test_Discrete_Lunar_hparam)
     
@@ -66,27 +67,8 @@ def batchAC_split_MonteCarlo_discrete_LunarLander_setup():
     tf_cv1.reset_default_graph()
 
 
-@pytest.fixture
-def batchAC_shared_MonteCarlo_discrete_LunarLander_setup():
-    """
-    :return: obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground
-    """
-    exp_spec = bloc.ExperimentSpec()
-    unit_test_Discrete_Lunar_hparam = dict(test_AC_discrete_hparam)
-    unit_test_Discrete_Lunar_hparam.update({
-        'prefered_environment': 'LunarLander-v2',
-        'AgentType':            BatchActorCriticAgent,
-        'Target':               TargetType.MonteCarlo,
-        'Network':              NetworkType.Shared,
-        })
-    exp_spec.set_experiment_spec(unit_test_Discrete_Lunar_hparam)
-    
-    yield exp_spec
-    tf_cv1.reset_default_graph()
-
-
-@pytest.fixture
-def batchAC_split_Bootstrap_discrete_LunarLander_setup():
+@pytest.fixture(params=[NetworkType.Shared, NetworkType.Split])
+def batchAC_Bootstrap_discrete_LunarLander_setup(request):
     """
     :return: obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground
     """
@@ -96,7 +78,7 @@ def batchAC_split_Bootstrap_discrete_LunarLander_setup():
         'prefered_environment': 'LunarLander-v2',
         'AgentType':            BatchActorCriticAgent,
         'Target':               TargetType.Bootstrap,
-        'Network':              NetworkType.Split,
+        'Network':              request.param,
         })
     exp_spec.set_experiment_spec(unit_test_Discrete_Lunar_hparam)
     
@@ -104,27 +86,8 @@ def batchAC_split_Bootstrap_discrete_LunarLander_setup():
     tf_cv1.reset_default_graph()
 
 
-@pytest.fixture
-def batchAC_shared_Bootstrap_discrete_LunarLander_setup():
-    """
-    :return: obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground
-    """
-    exp_spec = bloc.ExperimentSpec()
-    unit_test_Discrete_Lunar_hparam = dict(test_AC_discrete_hparam)
-    unit_test_Discrete_Lunar_hparam.update({
-        'prefered_environment': 'LunarLander-v2',
-        'AgentType':            BatchActorCriticAgent,
-        'Target':               TargetType.Bootstrap,
-        'Network':              NetworkType.Shared,
-        })
-    exp_spec.set_experiment_spec(unit_test_Discrete_Lunar_hparam)
-    
-    yield exp_spec
-    tf_cv1.reset_default_graph() \
- \
- \
-@pytest.fixture
-def onlineAC_split_discrete_LunarLander_setup():
+@pytest.fixture(params=[NetworkType.Shared, NetworkType.Split])
+def onlineAC_discrete_LunarLander_setup(request):
     """
     :return: obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground
     """
@@ -133,8 +96,8 @@ def onlineAC_split_discrete_LunarLander_setup():
     unit_test_Discrete_Lunar_hparam.update({
         'prefered_environment': 'LunarLander-v2',
         'AgentType':            OnlineActorCriticAgent,
-        # 'Target':    TargetType.Bootstrap,
-        'Network':              NetworkType.Split,
+        'Network':              request.param,
+        'stage_size_in_trj':    2,
         })
     exp_spec.set_experiment_spec(unit_test_Discrete_Lunar_hparam)
     
@@ -142,8 +105,9 @@ def onlineAC_split_discrete_LunarLander_setup():
     tf_cv1.reset_default_graph()
 
 
-@pytest.fixture
-def onlineAC_shared_discrete_LunarLander_setup():
+@pytest.fixture(params=[pytest.param(NetworkType.Shared, marks=pytest.mark.skip(reason="Not implemented")),
+                        NetworkType.Split])
+def onlineTwoInputAdvantageAC_discrete_LunarLander_setup(request):
     """
     :return: obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground
     """
@@ -151,9 +115,9 @@ def onlineAC_shared_discrete_LunarLander_setup():
     unit_test_Discrete_Lunar_hparam = dict(test_AC_discrete_hparam)
     unit_test_Discrete_Lunar_hparam.update({
         'prefered_environment': 'LunarLander-v2',
-        'AgentType':            OnlineActorCriticAgent,
-        # 'Target':    TargetType.Bootstrap,
-        'Network':              NetworkType.Shared,
+        'AgentType':            OnlineTwoInputAdvantageActorCriticAgent,
+        'Network':              request.param,
+        'stage_size_in_trj':    2,
         })
     exp_spec.set_experiment_spec(unit_test_Discrete_Lunar_hparam)
     
@@ -190,53 +154,61 @@ def onlineAC_shared_discrete_LunarLander_setup():
 #     yield obs_p, act_p, exp_spec, playground
 #     tf_cv1.reset_default_graph()
 
+
 # --- ActorCritic_agent -------------------------------------------------------------------------------------------
-# def test_ActorCritic_agent_ACTOR_DISCRETE_PASS(gym_and_tf_discrete_setup):
-#
-#     obs_p, act_p, _, exp_spec, playground = gym_and_tf_discrete_setup
-#     A_ph = tf_cv1.placeholder(tf.float32, shape=(None,), name='advantage_placeholder')
-#
-#     ActorCriticBrainSplitNetwork.build_actor_policy_graph(obs_p, exp_spec, playground)
-#
-#
-# def test_ActorCritic_agent_CRITIC_DISCRETE_PASS(gym_and_tf_discrete_setup):
-#
-#     obs_p, _, Q_values_ph, exp_spec, playground = gym_and_tf_discrete_setup
-#     target_ph = tf_cv1.placeholder(tf.float32, shape=(None,), name='target_placeholder')
-#
-#     ActorCriticBrainSplitNetwork.build_critic_graph(obs_p, exp_spec)
 
+# ... intantiate brain .................................................................................................
 # @pytest.mark.skip(reason="Work fine. Mute for now")
-def test_ActorCritic_INSTANTIATE_Batch_SplitMC_AGENT_Lunar_PASS(batchAC_split_MonteCarlo_discrete_LunarLander_setup):
-    exp_spec = batchAC_split_MonteCarlo_discrete_LunarLander_setup
-    BatchAC_SP_MT_agent_lunar = BatchActorCriticAgent(exp_spec)
+def test_ActorCritic_INSTANTIATE_Batch_MONTECARLO_AGENT_Lunar_PASS(batchAC_MonteCarlo_discrete_LunarLander_setup):
+    exp_spec = batchAC_MonteCarlo_discrete_LunarLander_setup
+    BatchActorCriticAgent(exp_spec)
 
 
 # @pytest.mark.skip(reason="Work fine. Mute for now")
-def test_ActorCritic_INSTANTIATE_Batch_ShardeMC_AGENT_Lunar_PASS(batchAC_shared_MonteCarlo_discrete_LunarLander_setup):
-    exp_spec = batchAC_shared_MonteCarlo_discrete_LunarLander_setup
-    BatchAC_SH_MT_agent_lunar = BatchActorCriticAgent(exp_spec)
+def test_ActorCritic_INSTANTIATE_Batch_BOOTSTRAP_AGENT_Lunar_PASS(batchAC_Bootstrap_discrete_LunarLander_setup):
+    exp_spec = batchAC_Bootstrap_discrete_LunarLander_setup
+    BatchActorCriticAgent(exp_spec)
 
 
 # @pytest.mark.skip(reason="Work fine. Mute for now")
-def test_ActorCritic_INSTANTIATE_Batch_SplitBO_AGENT_Lunar_PASS(batchAC_split_Bootstrap_discrete_LunarLander_setup):
-    exp_spec = batchAC_split_Bootstrap_discrete_LunarLander_setup
-    BatchAC_SP_BO_agent_lunar = BatchActorCriticAgent(exp_spec)
+def test_ActorCritic_INSTANTIATE_Online_AGENT_Lunar_PASS(onlineAC_discrete_LunarLander_setup):
+    exp_spec = onlineAC_discrete_LunarLander_setup
+    OnlineActorCriticAgent(exp_spec)
 
 
 # @pytest.mark.skip(reason="Work fine. Mute for now")
-def test_ActorCritic_INSTANTIATE_Batch_ShardeBO_AGENT_Lunar_PASS(batchAC_shared_Bootstrap_discrete_LunarLander_setup):
-    exp_spec = batchAC_shared_Bootstrap_discrete_LunarLander_setup
-    BatchAC_SH_BO_agent_lunar = BatchActorCriticAgent(exp_spec)
+def test_ActorCritic_INSTANTIATE_OnlineTwoInputA_AGENT_Lunar_PASS(onlineTwoInputAdvantageAC_discrete_LunarLander_setup):
+    exp_spec = onlineTwoInputAdvantageAC_discrete_LunarLander_setup
+    OnlineTwoInputAdvantageActorCriticAgent(exp_spec)
+
+
+# ......................................................................................... intantiate brain ...(end)...
+
+# ... train brain ......................................................................................................
+# @pytest.mark.skip(reason="Work fine. Mute for now")
+def test_ActorCritic_TRAIN_Batch_MONTECARLO_AGENT_Lunar_PASS(batchAC_MonteCarlo_discrete_LunarLander_setup):
+    exp_spec = batchAC_MonteCarlo_discrete_LunarLander_setup
+    agent = BatchActorCriticAgent(exp_spec)
+    agent.train()
 
 
 # @pytest.mark.skip(reason="Work fine. Mute for now")
-def test_ActorCritic_INSTANTIATE_Online_SplitBO_AGENT_Lunar_PASS(onlineAC_split_discrete_LunarLander_setup):
-    exp_spec = onlineAC_split_discrete_LunarLander_setup
-    BatchAC_SP_BO_agent_lunar = OnlineActorCriticAgent(exp_spec)
+def test_ActorCritic_TRAIN_Batch_BOOTSTRAP_AGENT_Lunar_PASS(batchAC_Bootstrap_discrete_LunarLander_setup):
+    exp_spec = batchAC_Bootstrap_discrete_LunarLander_setup
+    agent = BatchActorCriticAgent(exp_spec)
+    agent.train()
 
 
 # @pytest.mark.skip(reason="Work fine. Mute for now")
-def test_ActorCritic_INSTANTIATE_Online_ShardeBO_AGENT_Lunar_PASS(onlineAC_shared_discrete_LunarLander_setup):
-    exp_spec = onlineAC_shared_discrete_LunarLander_setup
-    BatchAC_SH_BO_agent_lunar = OnlineActorCriticAgent(exp_spec)
+def test_ActorCritic_TRAIN_Online_AGENT_Lunar_PASS(onlineAC_discrete_LunarLander_setup):
+    exp_spec = onlineAC_discrete_LunarLander_setup
+    agent = OnlineActorCriticAgent(exp_spec)
+    agent.train()
+
+
+# @pytest.mark.skip(reason="Work fine. Mute for now")
+def test_ActorCritic_TRAIN_OnlineTwoInputA_AGENT_Lunar_PASS(onlineTwoInputAdvantageAC_discrete_LunarLander_setup):
+    exp_spec = onlineTwoInputAdvantageAC_discrete_LunarLander_setup
+    agent = OnlineTwoInputAdvantageActorCriticAgent(exp_spec)
+    agent.train()
+# .............................................................................................. train brain ...(end)...
