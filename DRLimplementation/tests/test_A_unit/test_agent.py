@@ -31,9 +31,6 @@ cartpole_REINFORCE_hparam = {
 
 @pytest.fixture
 def reinforce_PLAY_setup():
-    """
-    :return: obs_t_ph, act_ph, obs_t_prime_ph, reward_t_ph, trj_done_t_ph, exp_spec, playground
-    """
     exp_spec = bloc.ExperimentSpec()
     exp_spec.set_experiment_spec(cartpole_REINFORCE_hparam)
     yield exp_spec

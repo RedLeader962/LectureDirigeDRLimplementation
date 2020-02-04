@@ -167,7 +167,7 @@ def _warmup_agent_for_training(spec: ExperimentSpec, args_: Namespace, exp_rerun
     ac_agent: Agent = agent_class(spec)
     print(":: TensorBoard rerun tag: {}\n".format(exp_rerun_tag), )
     ac_agent.train(render_env=args_.renderTraining)
-    # ac_agent.__del__()
+    ac_agent.__del__()
 
 
 def _warmup_agent_for_playing(run_name, spec: ExperimentSpec, args_: Namespace, record):
