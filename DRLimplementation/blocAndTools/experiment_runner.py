@@ -79,7 +79,7 @@ def run_experiment(hparam: dict, args_: Namespace, test_hparam, rerun_nb=1) -> T
     exp_hparam_search_str = values_search_list_to_regex_compatible_str(key, values_search_set)
     exp_rerun_tag = init_hparam['rerun_tag']
     exp_rerun_tag = exp_rerun_tag + '-' + exp_hparam_search_str
-    print(":: TensorBoard rerun tag: {}\n".format(exp_rerun_tag),)
+    print(":: TensorBoard rerun tag: {}\n".format(exp_rerun_tag), )
 
     for hparam in hparam_search_list:
         for run_idx in range(rerun_nb):
@@ -88,6 +88,7 @@ def run_experiment(hparam: dict, args_: Namespace, test_hparam, rerun_nb=1) -> T
             _warmup_agent_for_training(exp_spec, args_, exp_rerun_tag)
 
     return init_hparam, key, values_search_set
+
 
 def _configure_experiment_hparam_search(hparam: dict) -> Tuple[List[dict], Any, Any]:
     """

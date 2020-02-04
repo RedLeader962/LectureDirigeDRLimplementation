@@ -3,6 +3,10 @@
 import pytest
 
 from blocAndTools.container.samplecontainer import TrajectoryCollector, UniformBatchCollector
+from blocAndTools.container.samplecontainer_batch_advantage import (
+    TrajectoryCollectorBatchAdvantage,
+    UniformBatchCollectorBatchAdvantage,
+    )
 from blocAndTools.container.trajectories_pool import PoolManager, TimestepSample, SampleBatch, TrajectoriesPool
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 
@@ -21,6 +25,19 @@ def gym_discrete_setup():
     env = playground.env
     initial_observation = env.reset()
     yield exp_spec, playground, trajectory_collector, uni_batch_collector, env, initial_observation
+
+
+@pytest.fixture(scope="function")
+def gym_discrete_batch_advantage_setup():
+    exp_spec = ExperimentSpec(batch_size_in_ts=1000, max_epoch=2, theta_nn_hidden_layer_topology=(2, 2))
+    playground = GymPlayground('LunarLander-v2')
+    
+    trajectory_batch_adv_collector = TrajectoryCollectorBatchAdvantage(exp_spec, playground)
+    uni_batch_batch_adv_collector = UniformBatchCollectorBatchAdvantage(capacity=exp_spec.batch_size_in_ts)
+    
+    env = playground.env
+    initial_observation = env.reset()
+    yield exp_spec, playground, trajectory_batch_adv_collector, uni_batch_batch_adv_collector, env, initial_observation
 
 
 def take_one_random_step(env):

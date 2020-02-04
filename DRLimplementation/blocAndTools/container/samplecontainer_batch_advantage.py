@@ -142,7 +142,7 @@ class TrajectoryCollectorBatchAdvantage(TrajectoryCollector):
         trajectory_containerBatchAC = TrajectoryContainerBatchAdvantage(obs_t=self.observations.copy(),
                                                                         actions=self.actions.copy(),
                                                                         rewards=self.rewards.copy(),
-                                                                        Q_values=self._q_values.copy(),
+                                                                        Q_values=self.q_values.copy(),
                                                                         trajectory_return=self.theReturn,
                                                                         trajectory_id=self._trj_collected,
                                                                         obs_tPrime=self.obs_tPrime.copy(),
@@ -162,7 +162,9 @@ class TrajectoryCollectorBatchAdvantage(TrajectoryCollector):
 
 
 class UniformeBatchContainerBatchAdvantage(UniformeBatchContainer):
-    def __init__(self, trj_container_batch: List[TrajectoryContainerBatchAdvantage], batch_constraint: int, id):
+    
+    def __init__(self, trj_container_batch: List[TrajectoryContainerBatchAdvantage], batch_constraint: int,
+                 batch_id: int):
         """
         Container for storage & retrieval of sampled trajectories for Batch Actor-Critic algorihm
         Is a component of the UniformBatchCollectorBatchOARV
@@ -179,8 +181,8 @@ class UniformeBatchContainerBatchAdvantage(UniformeBatchContainer):
         self.batch_obs_tPrime = []
         self.batch_Values_estimate = []
         self.batch_Advantages = []
-
-        super().__init__(trj_container_batch, batch_constraint, self.batch_idx)
+        
+        super().__init__(trj_container_batch, batch_constraint, batch_id)
 
         # (CRITICAL) todo:validate --> mute temporarely for reference implementation:
         # # normalize advantage
