@@ -115,15 +115,16 @@ def test_full_run(command_line_argument):
     experiment_closing_message(hparam, args.rerun, key, values_search_set, consol_width=90)
 
 
-def test_full_with_searchSet_run(command_line_argument):
-    arg_parser = command_line_argument
-    parser = argparse.ArgumentParser()
-    args: Namespace = arg_parser(['--testRun'])
-    
-    experiment_start_message(consol_width=90, rerun_nb=args.rerun)
-    hparam, key, values_search_set = run_experiment(test_AC_searchSet_hparam, args,
-                                                    test_AC_searchSet_hparam, rerun_nb=1)
-    experiment_closing_message(hparam, args.rerun, key, values_search_set, consol_width=90)
+#
+# def test_full_with_searchSet_run(command_line_argument):
+#     arg_parser = command_line_argument
+#     parser = argparse.ArgumentParser()
+#     args: Namespace = arg_parser(['--testRun'])
+#
+#     experiment_start_message(consol_width=90, rerun_nb=args.rerun)
+#     hparam, key, values_search_set = run_experiment(test_AC_searchSet_hparam, args,
+#                                                     test_AC_searchSet_hparam, rerun_nb=1)
+#     experiment_closing_message(hparam, args.rerun, key, values_search_set, consol_width=90)
 
 
 def test_start_message(command_line_argument):
