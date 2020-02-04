@@ -4,7 +4,6 @@ from typing import Union, Any
 import pytest
 from gym.wrappers import TimeLimit
 
-from blocAndTools.container.samplecontainer import TrajectoryCollector, UniformBatchCollector
 from blocAndTools.container.samplecontainer_batch_advantage import (
     TrajectoryCollectorBatchAdvantage,
     UniformBatchCollectorBatchAdvantage,
