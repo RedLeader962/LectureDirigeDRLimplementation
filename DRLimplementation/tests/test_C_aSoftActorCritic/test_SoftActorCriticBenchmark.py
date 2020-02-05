@@ -74,6 +74,7 @@ def train_SAC_on_Lunar():
 
 
 # --- Soft Actor-Critic agent ------------------------------------------------------------------------------------------
+
 # pytestmark = pytest.mark.skip("Skip SAC benchmark")
 
 def test_benchmark_SAC(benchmark):

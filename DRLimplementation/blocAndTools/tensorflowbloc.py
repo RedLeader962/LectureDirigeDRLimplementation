@@ -88,13 +88,16 @@ def build_feed_dictionary(placeholders: list, arrays_of_values: list) -> dict:
     :return: a feed dictionary
     :rtype: dict
     """
+
+    # (Priority) todo:refactor --> mute assertion when not in DEV mode: speed optimization
+
     assert isinstance(placeholders, list), "Wrong input type, placeholders must be a list of tensorflow placeholder"
     assert isinstance(arrays_of_values, list), "Wrong input type, arrays_of_values must be a list of array"
     assert len(placeholders) == len(arrays_of_values), "placeholders and arrays_of_values must be of the same lenght"
     for placeholder in placeholders:
         assert isinstance(placeholder, tf.Tensor), ("Wrong input type, placeholders must "
                                                     "be a list of tensorflow placeholder")
-    
+
     feed_dict = dict()
     for placeholder, array in zip(placeholders, arrays_of_values):
         feed_dict[placeholder] = array
