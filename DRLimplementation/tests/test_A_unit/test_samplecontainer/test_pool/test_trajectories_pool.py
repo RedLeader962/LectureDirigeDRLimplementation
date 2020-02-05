@@ -9,40 +9,15 @@ from gym.wrappers import TimeLimit
 from blocAndTools.container.trajectories_pool import PoolManager, TimestepSample, SampleBatch, TrajectoriesPool
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 
+from .pool_testingUtility import step_foward_and_collect
+
 import numpy as np
 
 
 # note: exp_spec key specific to SAC
 #   |   'pool_capacity'
 
-def step_foward_and_collect(env, obs_t, trajectoriespool: Union[TrajectoriesPool, PoolManager],
-                            dummy_rew: float = None):
-    act_t = env.action_space.sample()
-    obs_t_prime, rew_t, done_t, _ = env.step(act_t)
-    
-    if dummy_rew is not None:
-        rew_t = dummy_rew
-    
-    trajectoriespool.collect_OAnORD(obs_t,
-                                    act_t,
-                                    obs_t_prime,
-                                    rew_t,
-                                    done_t)
-    return act_t, obs_t_prime, rew_t, done_t
-
-
 def test_Trajectories_pool_init(gym_continuous_pool_setup):
-    # region ::Type hint bloc ...
-    exp_spec: ExperimentSpec
-    playground: GymPlayground
-    poolmanager = PoolManager
-    timestepsampleOne = TimestepSample
-    timestepsampleTwo = TimestepSample
-    samplebatch = SampleBatch
-    trajectoriespool = TrajectoriesPool
-    env: Union[TimeLimit, Any]
-    # endregion
-    
     (exp_spec, playground, poolmanager,
      timestepsampleOne,
      timestepsampleTwo,
@@ -58,17 +33,6 @@ def test_Trajectories_pool_init(gym_continuous_pool_setup):
 
 
 def test_TrajectoriesPool_COLLECT_20(gym_continuous_pool_setup):
-    # region ::Type hint bloc ...
-    exp_spec: ExperimentSpec
-    playground: GymPlayground
-    poolmanager = PoolManager
-    timestepsampleOne = TimestepSample
-    timestepsampleTwo = TimestepSample
-    samplebatch = SampleBatch
-    trajectoriespool = TrajectoriesPool
-    env: Union[TimeLimit, Any]
-    # endregion
-    
     (exp_spec, playground, poolmanager,
      timestepsampleOne,
      timestepsampleTwo,
@@ -102,17 +66,6 @@ def test_TrajectoriesPool_COLLECT_20(gym_continuous_pool_setup):
 
 
 def test_TrajectoriesPool_COLLECT_TO_CAPACITY(gym_continuous_pool_setup):
-    # region ::Type hint bloc ...
-    exp_spec: ExperimentSpec
-    playground: GymPlayground
-    poolmanager = PoolManager
-    timestepsampleOne = TimestepSample
-    timestepsampleTwo = TimestepSample
-    samplebatch = SampleBatch
-    trajectoriespool = TrajectoriesPool
-    env: Union[TimeLimit, Any]
-    # endregion
-    
     (exp_spec, playground, poolmanager,
      timestepsampleOne,
      timestepsampleTwo,
@@ -148,17 +101,6 @@ def test_TrajectoriesPool_COLLECT_TO_CAPACITY(gym_continuous_pool_setup):
 
 
 def test_TrajectoriesPool_RENEW_SAMPLE(gym_continuous_pool_setup):
-    # region ::Type hint bloc ...
-    exp_spec: ExperimentSpec
-    playground: GymPlayground
-    poolmanager = PoolManager
-    timestepsampleOne = TimestepSample
-    timestepsampleTwo = TimestepSample
-    samplebatch = SampleBatch
-    trajectoriespool = TrajectoriesPool
-    env: Union[TimeLimit, Any]
-    # endregion
-    
     (exp_spec, playground, poolmanager,
      timestepsampleOne,
      timestepsampleTwo,
@@ -199,17 +141,6 @@ def test_TrajectoriesPool_RENEW_SAMPLE(gym_continuous_pool_setup):
 
 
 def test_PoolManager_COLLECT_20(gym_continuous_pool_setup):
-    # region ::Type hint bloc ...
-    exp_spec: ExperimentSpec
-    playground: GymPlayground
-    poolmanager = PoolManager
-    timestepsampleOne = TimestepSample
-    timestepsampleTwo = TimestepSample
-    samplebatch = SampleBatch
-    trajectoriespool = TrajectoriesPool
-    env: Union[TimeLimit, Any]
-    # endregion
-    
     (exp_spec, playground, poolmanager,
      timestepsampleOne,
      timestepsampleTwo,
@@ -242,17 +173,6 @@ def test_PoolManager_COLLECT_20(gym_continuous_pool_setup):
 
 
 def test_PoolManager_COLLECT_TO_CAPACITY(gym_continuous_pool_setup):
-    # region ::Type hint bloc ...
-    exp_spec: ExperimentSpec
-    playground: GymPlayground
-    poolmanager = PoolManager
-    timestepsampleOne = TimestepSample
-    timestepsampleTwo = TimestepSample
-    samplebatch = SampleBatch
-    trajectoriespool = TrajectoriesPool
-    env: Union[TimeLimit, Any]
-    # endregion
-    
     (exp_spec, playground, poolmanager,
      timestepsampleOne,
      timestepsampleTwo,
@@ -287,17 +207,6 @@ def test_PoolManager_COLLECT_TO_CAPACITY(gym_continuous_pool_setup):
 
 
 def test_PoolManager_RENEW_SAMPLE(gym_continuous_pool_setup):
-    # region ::Type hint bloc ...
-    exp_spec: ExperimentSpec
-    playground: GymPlayground
-    poolmanager = PoolManager
-    timestepsampleOne = TimestepSample
-    timestepsampleTwo = TimestepSample
-    samplebatch = SampleBatch
-    trajectoriespool = TrajectoriesPool
-    env: Union[TimeLimit, Any]
-    # endregion
-    
     (exp_spec, playground, poolmanager,
      timestepsampleOne,
      timestepsampleTwo,
@@ -346,17 +255,6 @@ def test_PoolManager_RENEW_SAMPLE(gym_continuous_pool_setup):
 
 
 def test_PoolManager_TRAJECTORY_ENDED(gym_continuous_pool_setup):
-    # region ::Type hint bloc ...
-    exp_spec: ExperimentSpec
-    playground: GymPlayground
-    poolmanager = PoolManager
-    timestepsampleOne = TimestepSample
-    timestepsampleTwo = TimestepSample
-    samplebatch = SampleBatch
-    trajectoriespool = TrajectoriesPool
-    env: Union[TimeLimit, Any]
-    # endregion
-    
     (exp_spec, playground, poolmanager,
      timestepsampleOne,
      timestepsampleTwo,
@@ -398,17 +296,6 @@ def test_PoolManager_TRAJECTORY_ENDED(gym_continuous_pool_setup):
 
 @pytest.mark.skip(reason="Assess later")  # (Priority) todo:fixme!! --> intanciate more timestepsample* sample:
 def test_PoolManager_PRODUCE_MINIBATCH(gym_continuous_pool_setup):
-    # region ::Type hint bloc ...
-    exp_spec: ExperimentSpec
-    playground: GymPlayground
-    poolmanager = PoolManager
-    timestepsampleOne = TimestepSample
-    timestepsampleTwo = TimestepSample
-    samplebatch = SampleBatch
-    trajectoriespool = TrajectoriesPool
-    env: Union[TimeLimit, Any]
-    # endregion
-    
     (_, _, _, _, _, _, _, env, initial_observation) = gym_continuous_pool_setup
     
     POOL_CAPACITY_4 = 4

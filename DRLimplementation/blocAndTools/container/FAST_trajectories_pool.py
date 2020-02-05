@@ -7,12 +7,12 @@ import tensorflow as tf
 
 import copy
 
+tf_cv1 = tf.compat.v1  # shortcut
 
 from blocAndTools.buildingbloc import GymPlayground, ExperimentSpec
 
-tf_cv1 = tf.compat.v1  # shortcut
 
-class TimestepSample:
+class Fast_TimestepSample:
     __slots__ = ['_container_id', 'obs_t', 'act_t', 'obs_t_prime', 'rew_t', 'done_t']
     
     def __init__(self, container_id: int, playground: GymPlayground):
@@ -34,7 +34,7 @@ class TimestepSample:
     
     def __repr__(self):
         # Is required explicitely since the use of '__slots__' remove the dict representation from the class object
-        myRep = "\n::TimestepSample/\n"
+        myRep = "\n::Fast_TimestepSample/\n"
         myRep += "._container_id=\n\n".format(self._container_id)
         myRep += ".obs_t=\n\n".format(self.obs_t)
         myRep += ".act_t=\n\n".format(self.act_t)
@@ -54,7 +54,7 @@ class TimestepSample:
         return all(check)
 
 
-class SampleBatch:
+class Fast_SampleBatch:
     __slots__ = ['obs_t', 'act_t', 'obs_t_prime', 'rew_t', 'done_t', '_BATCH_SIZE', '_timestepsample_testutility']
     
     def __init__(self, batch_size: int, playground: GymPlayground):
@@ -66,10 +66,10 @@ class SampleBatch:
         self.done_t = [0.0 for _ in range(batch_size)]
         self._BATCH_SIZE = batch_size
         
-        self._timestepsample_testutility = TimestepSample(container_id=-1, playground=playground)
+        self._timestepsample_testutility = Fast_TimestepSample(container_id=-1, playground=playground)
     
-    def __setitem__(self, key, value: TimestepSample):
-        assert isinstance(value, TimestepSample)
+    def __setitem__(self, key, value: Fast_TimestepSample):
+        assert isinstance(value, Fast_TimestepSample)
         self.obs_t[key] = value.obs_t
         self.act_t[key] = value.act_t
         self.obs_t_prime[key] = value.obs_t_prime
@@ -85,7 +85,7 @@ class SampleBatch:
                                                  done_t=self.done_t[key])
         return self._timestepsample_testutility
     
-    def __contains__(self, timestepsample: TimestepSample):
+    def __contains__(self, timestepsample: Fast_TimestepSample):
         is_in = [self.get_timestepsample(idx) == timestepsample for idx in range(self._BATCH_SIZE)]
         return any(is_in)
     
@@ -93,7 +93,7 @@ class SampleBatch:
         check = [self.get_timestepsample(idx) in other for idx in range(self._BATCH_SIZE)]
         return all(check)
     
-    def swap_with_selected_sample(self, samples: List[TimestepSample]):
+    def swap_with_selected_sample(self, samples: List[Fast_TimestepSample]):
         assert len(samples) == self._BATCH_SIZE
         for i, v in enumerate(samples):
             self.__setitem__(i, v)
@@ -102,7 +102,7 @@ class SampleBatch:
     
     def __repr__(self):
         # Is required explicitely since the use of '__slots__' remove the dict representation from the class object
-        myRep = "\n::SampleBatch/\n"
+        myRep = "\n::Fast_SampleBatch/\n"
         myRep += ".obs_t=\n{}\n\n".format(self.obs_t)
         myRep += ".act_t=\n{}\n\n".format(self.act_t)
         myRep += ".obs_t_prime=\n{}\n\n".format(self.obs_t_prime)
@@ -112,7 +112,7 @@ class SampleBatch:
         return myRep
 
 
-class TrajectoriesPool(object):
+class Fast_TrajectoriesPool(object):
     
     def __init__(self, capacity: int, batch_size: int, playground: GymPlayground):
         """
@@ -121,12 +121,12 @@ class TrajectoriesPool(object):
         :param batch_size:
         :param playground: the environment from which sampled step are collected
         """
-        self._pool = [TimestepSample(container_id=i + 1, playground=playground) for i in range(capacity)]
+        self._pool = [Fast_TimestepSample(container_id=i + 1, playground=playground) for i in range(capacity)]
         self._idx = 0
         self.CAPACITY = capacity
         self._load = 0
         self._BATCH_SIZE = batch_size
-        self._sample_batch = SampleBatch(batch_size, playground)
+        self._sample_batch = Fast_SampleBatch(batch_size, playground)
         self._pool_full_message_delivered = False
     
     def collect_OAnORD(self, obs_t: np.ndarray, act_t: np.ndarray, obs_t_prime: np.ndarray,
@@ -153,25 +153,26 @@ class TrajectoriesPool(object):
                 self._pool_full_message_delivered = True
                 print(":: Replay pool is full --> ", self._load)
             return True
-
+    
     @property
     def size(self) -> int:
         return self._load
-
-    def sample_from_pool(self) -> SampleBatch:
+    
+    def sample_from_pool(self) -> Fast_SampleBatch:
         selected_sample = self.sample_from_pool_as_list()
         return self._sample_batch.swap_with_selected_sample(selected_sample)
-
-    def sample_from_pool_as_list(self) -> List[TimestepSample]:
+    
+    def sample_from_pool_as_list(self) -> List[Fast_TimestepSample]:
         pool_slice = self._pool[0:self._load]
         selected_sample = random.sample(pool_slice, self._BATCH_SIZE)
         return selected_sample
 
 
-class PoolManager(object):
+class Fast_PoolManager(object):
     
     def __init__(self, exp_spec: ExperimentSpec, playground: GymPlayground):
-        self._trajectories_pool = TrajectoriesPool(exp_spec['pool_capacity'], exp_spec.batch_size_in_ts, playground)
+        self._trajectories_pool = Fast_TrajectoriesPool(exp_spec['pool_capacity'], exp_spec.batch_size_in_ts,
+                                                        playground)
         self._rewards = []
         self._curent_trj_lenght = 0
         self._step_count_since_begining_of_training = 0
@@ -203,10 +204,10 @@ class PoolManager(object):
         self._curent_trj_lenght += 1
         self._step_count_since_begining_of_training += 1
         return None
-
-    def sample_from_pool(self) -> SampleBatch:
+    
+    def sample_from_pool(self) -> Fast_SampleBatch:
         return self._trajectories_pool.sample_from_pool()
-
+    
     def trajectory_ended(self) -> Tuple[float, int]:
         """ Must be called at each trajectory end
 

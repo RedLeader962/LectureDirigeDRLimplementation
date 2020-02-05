@@ -6,6 +6,7 @@ from blocAndTools.agent import Agent
 from blocAndTools.buildingbloc import ExperimentSpec
 from blocAndTools.visualisationtools import ConsolPrintLearningStats
 from blocAndTools.container.trajectories_pool import PoolManager
+from blocAndTools.container.FAST_trajectories_pool import Fast_PoolManager
 from blocAndTools.container.samplecontainer import (
     TrajectoryContainer, TrajectoryCollector, UniformBatchCollector,
     UniformeBatchContainer,

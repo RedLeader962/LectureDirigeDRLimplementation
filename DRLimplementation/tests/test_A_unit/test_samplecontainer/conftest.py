@@ -1,6 +1,9 @@
 # coding=utf-8
-
+from typing import Union, Any, Tuple
 import pytest
+
+import numpy as np
+from gym.wrappers import TimeLimit
 
 from blocAndTools.container.samplecontainer import TrajectoryCollector, UniformBatchCollector
 from blocAndTools.container.samplecontainer_batch_advantage import (
@@ -8,6 +11,10 @@ from blocAndTools.container.samplecontainer_batch_advantage import (
     UniformBatchCollectorBatchAdvantage,
     )
 from blocAndTools.container.trajectories_pool import PoolManager, TimestepSample, SampleBatch, TrajectoriesPool
+from blocAndTools.container.FAST_trajectories_pool import (
+    Fast_PoolManager, Fast_SampleBatch, Fast_TimestepSample,
+    Fast_TrajectoriesPool,
+    )
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 
 
@@ -48,10 +55,17 @@ def take_one_random_step(env):
 
 
 @pytest.fixture(scope="function")
-def gym_continuous_pool_setup():
+def gym_continuous_pool_setup() -> (ExperimentSpec, GymPlayground, Union[PoolManager, Fast_PoolManager],
+                                    Union[TimestepSample, Fast_TimestepSample],
+                                    Union[TimestepSample, Fast_TimestepSample],
+                                    Union[SampleBatch, Fast_SampleBatch],
+                                    Union[TrajectoriesPool, Fast_TrajectoriesPool],
+                                    Union[TimeLimit, Any], np.ndarray):
     """
-    :return: (exp_spec, playground)
-    :rtype: (ExperimentSpec, GymPlayground)
+    :return: (exp_spec, playground, poolmanager,
+                timestepsampleOne, timestepsampleTwo,
+                samplebatch, trajectoriespool,
+                env, initial_observation)
     """
     exp_spec = ExperimentSpec(batch_size_in_ts=20, max_epoch=2, theta_nn_hidden_layer_topology=(2, 2),
                               environment_name='LunarLanderContinuous-v2')
