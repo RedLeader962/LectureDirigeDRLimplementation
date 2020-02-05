@@ -8,15 +8,15 @@ from matplotlib import gridspec as gs
 def plot_learning_curve(show_plot, nb_of_neuron_by_hidden_layer, layers_activation, initial_learning_rate, momentum,
                         lr_decay_rate, max_epoch, batch_size, early_stopping, gradient_clipping_threshold, l1_scale,
                         l2_scale, description, _early_stop_flag, _last_epoch, _accuracy_train_log,
-                        _accuracy_validation_log, test_accuracy_score, exp_log_dir, dnn_object_id):
-
+                        _accuracy_validation_log, test_accuracy_score, exp_log_dir, dnn_object_id):  # pragma: no cover
+    
     # plt.style.use('dark_background')
     # plt.style.use('seaborn-darkgrid')
     # plt.style.use('seaborn')
     # plt.style.use('ggplot')
     plt.style.use('bmh')  # <-- very clean
     # plt.style.use('classic')
-
+    
     fig = plt.figure(figsize=(9, 6))
     plot_gs = gs.GridSpec(5, 1)
     fig.text(x=0.59, y=0.35, fontsize='large',

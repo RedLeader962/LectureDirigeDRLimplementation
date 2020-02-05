@@ -1,15 +1,15 @@
 # !/usr/bin/env python
 
 def environnement_doc_str(environment, action_space_name=None, action_space_doc=None,
-                          observation_space_name=None, observation_space_doc=None):
+                          observation_space_name=None, observation_space_doc=None):  # pragma: no cover
     myStr = "\n\n--- Environment doc/info ----------------------------------------------\n\n" \
-          "\tenv: {}\n\tMetadata: \n\t\t{}\n".format(environment, environment.metadata)
+            "\tenv: {}\n\tMetadata: \n\t\t{}\n".format(environment, environment.metadata)
     if observation_space_name is None:
         myStr += "\n\tOBSERVATION SPACE:\n\t\tType: {}\n".format(environment.observation_space)
     else:
         myStr += "\n\n{} (as observation space)\n\t\tType: {}\n".format(observation_space_name,
-                                                                      environment.observation_space)
-
+                                                                        environment.observation_space)
+    
     try:
         myStr += "\t\t\tHigher bound: {}\n".format(environment.observation_space.high)
         myStr += "\t\t\tLower bound: {}\n".format(environment.observation_space.low)

@@ -27,13 +27,14 @@ THEME_BLUE = 'dodgerblue'
 X_LIM_MIN = 320
 
 
-class TrainingHistoryDataclass(object):
+class TrainingHistoryDataclass(object):  # pragma: no cover
+    
     def __init__(self, experiment_id):
         self.experiment_id = experiment_id
         self.num_episodes_ = int()
         self.total_t_ = int()
         self.observation_space_shape = int()
-
+        
         # Per episode data
         self._step_per_episodes = int()
         self.episodes_reward_history = [0.0, 0.0]
@@ -54,7 +55,7 @@ class TrainingHistoryDataclass(object):
         # self.previous_episode_3_start = int()
 
 
-class ActorTrainingPlotter(object):
+class ActorTrainingPlotter(object):  # pragma: no cover
     """
     Training curve plotter for reinforcement learning actor
 
@@ -62,7 +63,7 @@ class ActorTrainingPlotter(object):
         - Inspired by OpenAi Lab class Grapher by kengz and lgraesser
         - source: https://github.com/kengz/openai_lab/blob/master/rl/analytics.py
     """
-
+    
     def __init__(self, dataObject, config, run_directory=None, VCS_tag=None):
         assert isinstance(dataObject, TrainingHistoryDataclass)
 
