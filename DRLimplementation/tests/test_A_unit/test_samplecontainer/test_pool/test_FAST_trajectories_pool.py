@@ -14,7 +14,7 @@ from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 
 import numpy as np
 
-from .pool_testingUtility import step_foward_and_collect
+from .pool_testingUtility_REAL_experience import real_step_foward_and_collect
 
 
 # note: exp_spec key specific to SAC
@@ -46,7 +46,7 @@ def test_TrajectoriesPool_COLLECT_20(gym_continuous_pool_setup):
     
     obs_t = initial_observation
     for idx in range(20):
-        act_t, obs_t_prime, rew_t, done_t = step_foward_and_collect(env, obs_t, trajectoriespool)
+        act_t, obs_t_prime, rew_t, done_t = real_step_foward_and_collect(env, obs_t, trajectoriespool)
         if idx < 19:
             obs_t = obs_t_prime
         else:
@@ -80,7 +80,7 @@ def test_TrajectoriesPool_COLLECT_TO_CAPACITY(gym_continuous_pool_setup):
     obs_t = initial_observation
     capacity = exp_spec['pool_capacity']
     for idx in range(capacity):
-        act_t, obs_t_prime, rew_t, done_t = step_foward_and_collect(env, obs_t, trajectoriespool)
+        act_t, obs_t_prime, rew_t, done_t = real_step_foward_and_collect(env, obs_t, trajectoriespool)
         last_item_idx = capacity - 1
         if idx < last_item_idx:
             obs_t = obs_t_prime
@@ -114,7 +114,7 @@ def test_TrajectoriesPool_RENEW_SAMPLE(gym_continuous_pool_setup):
     
     obs_t = initial_observation
     for idx in range(exp_spec['pool_capacity']):
-        act_t, obs_t_prime, rew_t, done_t = step_foward_and_collect(env, obs_t, trajectoriespool)
+        act_t, obs_t_prime, rew_t, done_t = real_step_foward_and_collect(env, obs_t, trajectoriespool)
         if idx != 19:
             obs_t = obs_t_prime
         elif idx == 19:
@@ -132,7 +132,7 @@ def test_TrajectoriesPool_RENEW_SAMPLE(gym_continuous_pool_setup):
     assert trajectoriespool.size == exp_spec['pool_capacity']
     
     # Do --> overfill capacity
-    act_t, obs_t_prime, rew_t, done_t = step_foward_and_collect(env, obs_t, trajectoriespool)
+    act_t, obs_t_prime, rew_t, done_t = real_step_foward_and_collect(env, obs_t, trajectoriespool)
     
     assert trajectoriespool._idx == 1
     assert trajectoriespool.size == exp_spec['pool_capacity']
@@ -154,7 +154,7 @@ def test_PoolManager_COLLECT_20(gym_continuous_pool_setup):
     
     obs_t = initial_observation
     for idx in range(20):
-        act_t, obs_t_prime, rew_t, done_t = step_foward_and_collect(env, obs_t, poolmanager)
+        act_t, obs_t_prime, rew_t, done_t = real_step_foward_and_collect(env, obs_t, poolmanager)
         if idx < 19:
             obs_t = obs_t_prime
         else:
@@ -187,7 +187,7 @@ def test_PoolManager_COLLECT_TO_CAPACITY(gym_continuous_pool_setup):
     obs_t = initial_observation
     capacity = exp_spec['pool_capacity']
     for idx in range(capacity):
-        act_t, obs_t_prime, rew_t, done_t = step_foward_and_collect(env, obs_t, poolmanager)
+        act_t, obs_t_prime, rew_t, done_t = real_step_foward_and_collect(env, obs_t, poolmanager)
         last_item_idx = capacity - 1
         if idx < last_item_idx:
             obs_t = obs_t_prime
@@ -217,21 +217,21 @@ def test_PoolManager_RENEW_SAMPLE(gym_continuous_pool_setup):
      samplebatch,
      trajectoriespool,
      env, initial_observation) = gym_continuous_pool_setup
-    
+
     obs_1 = initial_observation
-    act_1, obs_t_prim1, rew_1, done_1 = step_foward_and_collect(env, obs_1, poolmanager)
+    act_1, obs_t_prim1, rew_1, done_1 = real_step_foward_and_collect(env, obs_1, poolmanager)
     
     obs_t = obs_1
     capacity = exp_spec['pool_capacity']
     for idx in range(1, capacity):
-        act_t, obs_t_prime, rew_t, done_t = step_foward_and_collect(env, obs_t, poolmanager)
+        act_t, obs_t_prime, rew_t, done_t = real_step_foward_and_collect(env, obs_t, poolmanager)
         obs_t = obs_t_prime
     
     obs_101 = obs_t
     assert poolmanager.current_pool_size == capacity
     
     # Do --> overfill capacity
-    act_101, obs_t_prim101, rew_101, done_101 = step_foward_and_collect(env, obs_101, poolmanager)
+    act_101, obs_t_prim101, rew_101, done_101 = real_step_foward_and_collect(env, obs_101, poolmanager)
     
     assert poolmanager.current_pool_size == capacity
     assert poolmanager.timestep_collected_so_far() == capacity + 1
@@ -269,7 +269,7 @@ def test_PoolManager_TRAJECTORY_ENDED(gym_continuous_pool_setup):
     trj1 = 100
     obs_t = initial_observation
     for _ in range(trj1):
-        act_t, obs_t_prime, rew_t, done_t = step_foward_and_collect(env, obs_t, poolmanager, dummy_rew=1.0)
+        act_t, obs_t_prime, rew_t, done_t = real_step_foward_and_collect(env, obs_t, poolmanager, dummy_rew=1.0)
         obs_t = obs_t_prime
     
     assert poolmanager.timestep_collected_so_far() == trj1
@@ -284,7 +284,7 @@ def test_PoolManager_TRAJECTORY_ENDED(gym_continuous_pool_setup):
     trj2 = 20
     obs_t = env.reset()
     for _ in range(trj2):
-        act_t, obs_t_prime, rew_t, done_t = step_foward_and_collect(env, obs_t, poolmanager, dummy_rew=1.0)
+        act_t, obs_t_prime, rew_t, done_t = real_step_foward_and_collect(env, obs_t, poolmanager, dummy_rew=1.0)
         obs_t = obs_t_prime
     
     assert poolmanager.timestep_collected_so_far() == trj1 + trj2
@@ -318,7 +318,7 @@ def test_PoolManager_PRODUCE_MINIBATCH(gym_continuous_pool_setup):
     obs_t = initial_observation
     tss: Fast_TimestepSample
     for tss in tss_collection:
-        act_t, obs_t_prime, rew_t, done_t = step_foward_and_collect(env, obs_t, poolmanager)
+        act_t, obs_t_prime, rew_t, done_t = real_step_foward_and_collect(env, obs_t, poolmanager)
         tss.replace(obs_t=obs_t, act_t=act_t, obs_t_prime=obs_t_prime, rew_t=rew_t, done_t=done_t)
         obs_t = obs_t_prime
     

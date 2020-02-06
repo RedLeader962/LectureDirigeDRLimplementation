@@ -9,7 +9,7 @@ import copy
 
 tf_cv1 = tf.compat.v1  # shortcut
 
-from blocAndTools.buildingbloc import GymPlayground, ExperimentSpec
+from blocAndTools.buildingbloc import GymPlayground, ExperimentSpec, data_container_class_representation
 
 
 class Fast_TimestepSample:
@@ -34,13 +34,13 @@ class Fast_TimestepSample:
     
     def __repr__(self):
         # Is required explicitely since the use of '__slots__' remove the dict representation from the class object
-        myRep = "\n::Fast_TimestepSample/\n"
-        myRep += "._container_id=\n\n".format(self._container_id)
-        myRep += ".obs_t=\n\n".format(self.obs_t)
-        myRep += ".act_t=\n\n".format(self.act_t)
-        myRep += ".obs_t_prime=\n\n".format(self.obs_t_prime)
-        myRep += ".rew_t=\n\n".format(self.rew_t)
-        myRep += ".done_t=\n\n".format(self.done_t)
+        myRep = "\n> Fast_TimestepSample\n"
+        myRep += "._container_id={}\n".format(self._container_id)
+        myRep += ".obs_t={}\n".format(self.obs_t)
+        myRep += ".act_t={}\n".format(self.act_t)
+        myRep += ".obs_t_prime={}\n".format(self.obs_t_prime)
+        myRep += ".rew_t={}\n".format(self.rew_t)
+        myRep += ".done_t={}\n".format(self.done_t)
         return myRep
     
     def __eq__(self, other):
@@ -102,13 +102,13 @@ class Fast_SampleBatch:
     
     def __repr__(self):
         # Is required explicitely since the use of '__slots__' remove the dict representation from the class object
-        myRep = "\n::Fast_SampleBatch/\n"
-        myRep += ".obs_t=\n{}\n\n".format(self.obs_t)
-        myRep += ".act_t=\n{}\n\n".format(self.act_t)
-        myRep += ".obs_t_prime=\n{}\n\n".format(self.obs_t_prime)
-        myRep += ".rew_t=\n{}\n\n".format(self.rew_t)
-        myRep += ".done_t=\n{}\n\n".format(self.done_t)
-        myRep += "._BATCH_SIZE=\n{}\n\n".format(self._BATCH_SIZE)
+        myRep = "\n> Fast_SampleBatch\n"
+        myRep += ".obs_t=\n{}\n".format(self.obs_t)
+        myRep += ".act_t=\n{}\n".format(self.act_t)
+        myRep += ".obs_t_prime=\n{}\n".format(self.obs_t_prime)
+        myRep += ".rew_t=\n{}\n".format(self.rew_t)
+        myRep += ".done_t=\n{}\n".format(self.done_t)
+        myRep += "._BATCH_SIZE={}\n".format(self._BATCH_SIZE)
         return myRep
 
 
@@ -157,24 +157,48 @@ class Fast_TrajectoriesPool(object):
     @property
     def size(self) -> int:
         return self._load
-    
+
     def sample_from_pool(self) -> Fast_SampleBatch:
         selected_sample = self.sample_from_pool_as_list()
         return self._sample_batch.swap_with_selected_sample(selected_sample)
-    
+
     def sample_from_pool_as_list(self) -> List[Fast_TimestepSample]:
         pool_slice = self._pool[0:self._load]
         selected_sample = random.sample(pool_slice, self._BATCH_SIZE)
         return selected_sample
 
+    def __repr__(self):
+        # Is required explicitely since the use of '__slots__' remove the dict representation from the class object
+        SPACE_FROM_MARGIN = 6
+        m_sp = " " * SPACE_FROM_MARGIN
+        item_space = " " * 3
+        myRep = '\n' + m_sp + "> Fast_TrajectoriesPool{\n"
+        myRep += m_sp + item_space + ".CAPACITY={}\n".format(self.CAPACITY)
+        myRep += m_sp + item_space + ".size={}\n".format(self.size)
+        myRep += m_sp + item_space + "._idx={} (current index position)\n".format(self._idx)
+        myRep += m_sp + "}\n"
+        return myRep
+
 
 class Fast_PoolManager(object):
+    """
+    Required ExperimentSpec specification:
+        - pool_capacity
+        - max_trj_steps
+        - batch_size_in_ts
+    
+    (!) Be advised, the user is responsible to call 'trajectory_ended()' before 'max_trj_steps'
+    """
     
     def __init__(self, exp_spec: ExperimentSpec, playground: GymPlayground):
+        self.MAX_TRJ_STEPS_ = exp_spec['max_trj_steps']
+        assert exp_spec['pool_capacity'] is not None
+        assert self.MAX_TRJ_STEPS_ is not None
+        
         self._trajectories_pool = Fast_TrajectoriesPool(exp_spec['pool_capacity'], exp_spec.batch_size_in_ts,
                                                         playground)
-        self._rewards = []
-        self._curent_trj_lenght = 0
+        self._rewards = np.zeros(self.MAX_TRJ_STEPS_, dtype=np.float)
+        self._current_trj_step = 0
         self._step_count_since_begining_of_training = 0
         self._trajectories_collected = 0
     
@@ -200,8 +224,8 @@ class Fast_PoolManager(object):
         """
         self._trajectories_pool.collect_OAnORD(obs_t=obs_t, act_t=act_t, obs_t_prime=obs_t_prime,
                                                rew_t=rew_t, done_t=done_t)
-        self._rewards.append(rew_t)
-        self._curent_trj_lenght += 1
+        self._rewards[self._current_trj_step] = rew_t
+        self._current_trj_step += 1
         self._step_count_since_begining_of_training += 1
         return None
     
@@ -218,16 +242,20 @@ class Fast_PoolManager(object):
         :return: the trajectory return
         """
         trajectory_return = self._compute_trajectory_return()
-        trajectory_lenght = self._curent_trj_lenght
+        trajectory_lenght = self._current_trj_step
         self._reset()
         self._trajectories_collected += 1
         return trajectory_return, trajectory_lenght
     
     def _compute_trajectory_return(self) -> float:
-        trj_return = float(np.sum(self._rewards, axis=None))
+        trj_return = self._rewards.sum(dtype=np.float)
         return trj_return
     
     def _reset(self):
-        self._rewards = []
-        self._curent_trj_lenght = 0
+        self._rewards[0:self.MAX_TRJ_STEPS_] = 0.0
+        self._current_trj_step = 0
         return None
+    
+    def __repr__(self):
+        repr = data_container_class_representation(self, 'Fast_PoolManager')
+        return repr

@@ -7,10 +7,10 @@ import tensorflow as tf
 
 import copy
 
-
-from blocAndTools.buildingbloc import GymPlayground, ExperimentSpec
+from blocAndTools.buildingbloc import GymPlayground, ExperimentSpec, data_container_class_representation
 
 tf_cv1 = tf.compat.v1  # shortcut
+
 
 class TimestepSample:
     __slots__ = ['_container_id', 'obs_t', 'act_t', 'obs_t_prime', 'rew_t', 'done_t']
@@ -34,13 +34,13 @@ class TimestepSample:
     
     def __repr__(self):
         # Is required explicitely since the use of '__slots__' remove the dict representation from the class object
-        myRep = "\n::TimestepSample/\n"
-        myRep += "._container_id=\n\n".format(self._container_id)
-        myRep += ".obs_t=\n\n".format(self.obs_t)
-        myRep += ".act_t=\n\n".format(self.act_t)
-        myRep += ".obs_t_prime=\n\n".format(self.obs_t_prime)
-        myRep += ".rew_t=\n\n".format(self.rew_t)
-        myRep += ".done_t=\n\n".format(self.done_t)
+        myRep = "\n> TimestepSampl/\n"
+        myRep += "._container_id={}\n\n".format(self._container_id)
+        myRep += ".obs_t={}\n\n".format(self.obs_t)
+        myRep += ".act_t={}\n\n".format(self.act_t)
+        myRep += ".obs_t_prime={}\n\n".format(self.obs_t_prime)
+        myRep += ".rew_t={}\n\n".format(self.rew_t)
+        myRep += ".done_t={}\n\n".format(self.done_t)
         return myRep
     
     def __eq__(self, other):
@@ -102,13 +102,13 @@ class SampleBatch:
     
     def __repr__(self):
         # Is required explicitely since the use of '__slots__' remove the dict representation from the class object
-        myRep = "\n::SampleBatch/\n"
+        myRep = "\n> SampleBatch\n"
         myRep += ".obs_t=\n{}\n\n".format(self.obs_t)
         myRep += ".act_t=\n{}\n\n".format(self.act_t)
         myRep += ".obs_t_prime=\n{}\n\n".format(self.obs_t_prime)
         myRep += ".rew_t=\n{}\n\n".format(self.rew_t)
         myRep += ".done_t=\n{}\n\n".format(self.done_t)
-        myRep += "._BATCH_SIZE=\n{}\n\n".format(self._BATCH_SIZE)
+        myRep += "._BATCH_SIZE={}\n\n".format(self._BATCH_SIZE)
         return myRep
 
 
@@ -167,6 +167,18 @@ class TrajectoriesPool(object):
         selected_sample = random.sample(pool_slice, self._BATCH_SIZE)
         return selected_sample
 
+    def __repr__(self):
+        # Is required explicitely since the use of '__slots__' remove the dict representation from the class object
+        SPACE_FROM_MARGIN = 6
+        m_sp = " " * SPACE_FROM_MARGIN
+        item_space = " " * 3
+        myRep = '\n' + m_sp + "> TrajectoriesPool{\n"
+        myRep += m_sp + item_space + ".CAPACITY={}\n".format(self.CAPACITY)
+        myRep += m_sp + item_space + ".size={}\n".format(self.size)
+        myRep += m_sp + item_space + "._idx={} (current index position)\n".format(self._idx)
+        myRep += m_sp + "}\n"
+        return myRep
+
 
 class PoolManager(object):
     
@@ -203,10 +215,10 @@ class PoolManager(object):
         self._curent_trj_lenght += 1
         self._step_count_since_begining_of_training += 1
         return None
-
+    
     def sample_from_pool(self) -> SampleBatch:
         return self._trajectories_pool.sample_from_pool()
-
+    
     def trajectory_ended(self) -> Tuple[float, int]:
         """ Must be called at each trajectory end
 
@@ -230,3 +242,7 @@ class PoolManager(object):
         self._rewards = []
         self._curent_trj_lenght = 0
         return None
+    
+    def __repr__(self):
+        repr = data_container_class_representation(self, 'PoolManager')
+        return repr

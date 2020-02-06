@@ -15,7 +15,7 @@ vocab = rl_name()
 tf_cv1 = tf.compat.v1  # shortcut
 
 
-class ExperimentSpec:
+class ExperimentSpec(dict):
     
     def __init__(self, algo_name=None, comment=None, batch_size_in_ts=5000, max_epoch=2, discout_factor=0.99,
                  learning_rate=1e-2, theta_nn_hidden_layer_topology: tuple = (32, 32), random_seed=0,
@@ -92,6 +92,10 @@ class ExperimentSpec:
         :return: the specification value
         """
         return self.__dict__[item]
+    
+    # (NICE TO HAVE) todo:implement --> __missing__(self, key):
+    #       https://docs.python.org/3/reference/datamodel.html#object.__missing__
+    #       https://docs.python.org/3/reference/datamodel.html#emulating-container-types
     
     def set_experiment_spec(self, dict_param: dict, print_change=True) -> None:
         """
@@ -170,9 +174,9 @@ def data_container_class_representation(class_instance, class_name: str, space_f
     """
     m_sp = " " * space_from_margin
     item_space = " " * 3
-    repr_str = m_sp + class_name + "{\n"
+    repr_str = m_sp + '> ' + class_name + "{\n"
     for k, v in class_instance.__dict__.items():
-        repr_str += m_sp + item_space + "\'{}\': {}\n".format(k, v)
+        repr_str += m_sp + item_space + ".{}: {}\n".format(k, v)
     repr_str += m_sp + "}"
     return repr_str
 
