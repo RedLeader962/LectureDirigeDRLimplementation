@@ -6,7 +6,6 @@ import numpy as np
 from gym.wrappers import TimeLimit
 
 from blocAndTools import PoolManager, Fast_PoolManager, ExperimentSpec
-from blocAndTools.buildingbloc import GymPlayground
 from blocAndTools.container.trajectories_pool import TrajectoriesPool
 
 

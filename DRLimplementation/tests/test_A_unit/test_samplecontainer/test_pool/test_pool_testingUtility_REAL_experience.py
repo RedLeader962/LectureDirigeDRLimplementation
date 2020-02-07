@@ -15,12 +15,15 @@ from blocAndTools.container.FAST_trajectories_pool import Fast_SampleBatch as Fa
 from blocAndTools.container.FAST_trajectories_pool import Fast_TrajectoriesPool as Fast_TrajectoriesPool
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 
-from .pool_testingUtility_REAL_experience import (
+from blocAndTools.container.pool_utility.pool_testingUtility_REAL_experience import (
     simulate_a_SAC_trj_run,
     full_pool_to_minimum,
     )
 
-from .pool_testingUtility_general import instantiate_top_component, print_final_pool_sideEffect
+from blocAndTools.container.pool_utility.pool_testingUtility_general import (
+    instantiate_top_component,
+    print_final_pool_sideEffect,
+    )
 
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 tf_cv1 = tf.compat.v1  # shortcut

@@ -1,17 +1,12 @@
 # coding=utf-8
 import random
-from copy import copy
-from typing import Union, Any, Tuple
 
 import pytest
-from gym.wrappers import TimeLimit
 
-from blocAndTools.container.trajectories_pool import PoolManager, TimestepSample, SampleBatch, TrajectoriesPool
+from blocAndTools.container.trajectories_pool import PoolManager, TimestepSample, SampleBatch
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 
-from .pool_testingUtility_REAL_experience import real_step_foward_and_collect
-
-import numpy as np
+from blocAndTools.container.pool_utility.pool_testingUtility_REAL_experience import real_step_foward_and_collect
 
 
 # note: exp_spec key specific to SAC

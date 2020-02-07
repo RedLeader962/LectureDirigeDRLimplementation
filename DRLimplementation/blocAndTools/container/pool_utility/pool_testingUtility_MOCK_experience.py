@@ -11,17 +11,18 @@ from blocAndTools.container.trajectories_pool import TrajectoriesPool
 
 
 class ExperienceMocker(object):
-    __slots__ = ['obs_t', 'act_t', 'obs_t', 'rew_t', 'done_t']
+    __slots__ = ['obs_t', 'act_t', 'obs_t_prime', 'rew_t', 'done_t']
     
     def __init__(self, env: Union[TimeLimit, Any]) -> None:
         self.obs_t: np.ndarray = np.ones_like(env.reset())
         self.act_t: np.ndarray = np.ones_like(env.action_space.sample())
-        self.obs_t_prime: np.ndarray = self.obs_t.copy()
+        self.obs_t_prime: np.ndarray = np.array(self.obs_t, copy=True)
         self.rew_t: float = 1.0
         self.done_t: bool = False
     
     def generate(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, float, bool]:
-        return self.obs_t.copy(), self.act_t.copy(), self.obs_t_prime.copy(), copy(self.rew_t), copy(self.done_t)
+        return self.obs_t.copy(), self.act_t.copy(), self.obs_t_prime.copy(), copy.copy(self.rew_t), copy.copy(
+            self.done_t)
 
 
 def mock_step_foward_and_collect(pool_manager: Union[TrajectoriesPool, PoolManager, Fast_PoolManager],
@@ -36,8 +37,8 @@ def mock_step_foward_and_collect(pool_manager: Union[TrajectoriesPool, PoolManag
     :param experience_mocker: a ExperienceMocker object
     :return: None
     """
-    
-    pool_manager.collect_OAnORD(experience_mocker.generate())
+
+    pool_manager.collect_OAnORD(*experience_mocker.generate())
     
     return None
 
@@ -79,9 +80,10 @@ def mock_full_pool_to_minimum(exp_spec: ExperimentSpec, poolmanager: Union[PoolM
     
     trajectories = int(exp_spec['min_pool_size'] / exp_spec['max_trj_steps'])
     for _ in range(trajectories):
-        poolmanager, obs_t = mock_collect_many_step(exp_spec['max_trj_steps'], poolmanager,
-                                                    experience_mocker,
-                                                    reset_at_end=False)
+        poolmanager = mock_collect_many_step(exp_spec['max_trj_steps'],
+                                             poolmanager,
+                                             experience_mocker,
+                                             reset_at_end=False)
         poolmanager.trajectory_ended()
     
     assert poolmanager.current_pool_size == exp_spec['min_pool_size'], (
@@ -89,9 +91,9 @@ def mock_full_pool_to_minimum(exp_spec: ExperimentSpec, poolmanager: Union[PoolM
     return poolmanager
 
 
-def simulate_a_SAC_trj_run(exp_spec: ExperimentSpec, poolmanager: Union[PoolManager, Fast_PoolManager],
-                           experience_mocker: ExperienceMocker,
-                           ) -> Union[PoolManager, Fast_PoolManager]:
+def mock_simulate_a_SAC_trj_run(exp_spec: ExperimentSpec, poolmanager: Union[PoolManager, Fast_PoolManager],
+                                experience_mocker: ExperienceMocker,
+                                ) -> Union[PoolManager, Fast_PoolManager]:
     """ Simulate the way a standard Soft Actor-Critic algorithm uses the experience pool.
     
     Repeate until epoch end:
@@ -109,9 +111,9 @@ def simulate_a_SAC_trj_run(exp_spec: ExperimentSpec, poolmanager: Union[PoolMana
     
     trajectories = int(exp_spec['timestep_per_epoch'] / exp_spec['max_trj_steps'])
     for _ in range(trajectories):
-        poolmanager, obs_t = mock_collect_and_sample_for_many_step(exp_spec['max_trj_steps'], poolmanager,
-                                                                   experience_mocker
-                                                                   )
+        poolmanager = mock_collect_and_sample_for_many_step(exp_spec['max_trj_steps'], poolmanager,
+                                                            experience_mocker
+                                                            )
         poolmanager.trajectory_ended()
     
     assert (poolmanager.timestep_collected_so_far() - exp_spec['min_pool_size']) == exp_spec['timestep_per_epoch'], (

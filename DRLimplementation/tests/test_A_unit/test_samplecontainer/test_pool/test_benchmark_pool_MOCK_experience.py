@@ -1,5 +1,5 @@
 # coding=utf-8
-from typing import Union, Any, Type
+from typing import Union, Any
 from copy import deepcopy
 
 import pytest
@@ -10,23 +10,24 @@ import tensorflow.python.util.deprecation as deprecation
 
 import numpy as np
 
-from SoftActorCritic import SoftActorCriticAgent
-
 from blocAndTools.container.trajectories_pool import PoolManager, SampleBatch, TrajectoriesPool
 from blocAndTools.container.FAST_trajectories_pool import Fast_PoolManager
 from blocAndTools.container.FAST_trajectories_pool import Fast_SampleBatch as Fast_SampleBatch
 from blocAndTools.container.FAST_trajectories_pool import Fast_TrajectoriesPool as Fast_TrajectoriesPool
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 
-from .pool_testingUtility_REAL_experience import (
-    real_step_foward_and_collect, collect_many_step, simulate_a_SAC_trj_run,
+from blocAndTools.container.pool_utility.pool_testingUtility_REAL_experience import (
+    simulate_a_SAC_trj_run,
     full_pool_to_minimum,
     )
 
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 tf_cv1 = tf.compat.v1  # shortcut
 
-from .pool_testingUtility_general import instantiate_top_component, print_final_pool_sideEffect
+from blocAndTools.container.pool_utility.pool_testingUtility_general import (
+    instantiate_top_component,
+    print_final_pool_sideEffect,
+    )
 
 
 # note: exp_spec key specific to SAC

@@ -1,20 +1,14 @@
 # coding=utf-8
 import random
-from copy import copy
-from typing import Union, Any, Tuple
 
 import pytest
-from gym.wrappers import TimeLimit
 
 from blocAndTools.container.FAST_trajectories_pool import (
     Fast_PoolManager, Fast_TimestepSample, Fast_SampleBatch,
-    Fast_TrajectoriesPool,
     )
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 
-import numpy as np
-
-from .pool_testingUtility_REAL_experience import real_step_foward_and_collect
+from blocAndTools.container.pool_utility.pool_testingUtility_REAL_experience import real_step_foward_and_collect
 
 
 # note: exp_spec key specific to SAC

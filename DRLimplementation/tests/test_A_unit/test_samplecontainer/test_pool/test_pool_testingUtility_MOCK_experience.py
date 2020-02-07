@@ -1,6 +1,5 @@
 # coding=utf-8
-from typing import Union, Any, Type
-from copy import deepcopy
+from typing import Union, Any
 
 import pytest
 from gym.wrappers import TimeLimit
@@ -10,20 +9,22 @@ import tensorflow.python.util.deprecation as deprecation
 
 import numpy as np
 
-from SoftActorCritic import SoftActorCriticAgent
-
 from blocAndTools.container.trajectories_pool import PoolManager, SampleBatch, TrajectoriesPool
 from blocAndTools.container.FAST_trajectories_pool import Fast_PoolManager
 from blocAndTools.container.FAST_trajectories_pool import Fast_SampleBatch as Fast_SampleBatch
 from blocAndTools.container.FAST_trajectories_pool import Fast_TrajectoriesPool as Fast_TrajectoriesPool
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 
-from .pool_testingUtility_REAL_experience import (
-    real_step_foward_and_collect, collect_many_step, simulate_a_SAC_trj_run,
-    full_pool_to_minimum,
+from blocAndTools.container.pool_utility.pool_testingUtility_MOCK_experience import (
+    mock_simulate_a_SAC_trj_run,
+    mock_full_pool_to_minimum,
+    ExperienceMocker,
     )
 
-from .pool_testingUtility_general import instantiate_top_component, print_final_pool_sideEffect
+from blocAndTools.container.pool_utility.pool_testingUtility_general import (
+    instantiate_top_component,
+    print_final_pool_sideEffect,
+    )
 
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 tf_cv1 = tf.compat.v1  # shortcut
@@ -57,15 +58,15 @@ def AUTO_PoolManager_setup(request) -> (ExperimentSpec, GymPlayground, Union[Poo
                                                  playground=playground)
     else:
         raise ValueError("Wrong request type: ", str(request.param))
-    
+
     env = playground.env
-    initial_observation = env.reset()
+    experience_mocker = ExperienceMocker(env)
     
     yield (exp_spec, playground,
            poolmanager,
            samplebatch,
            trajectoriespool,
-           env, initial_observation)
+           env, experience_mocker)
     
     del poolmanager
     del samplebatch
@@ -79,10 +80,11 @@ def test_pool_testingUtility_FULL_POOL_TO_MINIMUM(AUTO_PoolManager_setup):
      poolmanager,
      samplebatch,
      trajectoriespool,
-     env, initial_observation) = AUTO_PoolManager_setup
+     env, experience_mocker) = AUTO_PoolManager_setup
     
-    poolmanager, obs_t = full_pool_to_minimum(exp_spec=exp_spec, poolmanager=poolmanager,
-                                              obs_t=initial_observation, env=env)
+    poolmanager = mock_full_pool_to_minimum(exp_spec=exp_spec, poolmanager=poolmanager,
+                                            experience_mocker=experience_mocker
+                                            )
     
     print(poolmanager)
     print_final_pool_sideEffect(exp_spec, poolmanager)
@@ -95,13 +97,15 @@ def test_pool_testingUtility_OVER_SAC_TRJ_RUN(AUTO_PoolManager_setup):
      poolmanager,
      samplebatch,
      trajectoriespool,
-     env, initial_observation) = AUTO_PoolManager_setup
+     env, experience_mocker) = AUTO_PoolManager_setup
     
-    poolmanager, obs_t = full_pool_to_minimum(exp_spec=exp_spec, poolmanager=poolmanager,
-                                              obs_t=initial_observation, env=env)
+    poolmanager = mock_full_pool_to_minimum(exp_spec=exp_spec, poolmanager=poolmanager,
+                                            experience_mocker=experience_mocker
+                                            )
     
-    poolmanager, obs_t = simulate_a_SAC_trj_run(exp_spec=exp_spec, poolmanager=poolmanager,
-                                                obs_t=obs_t, env=env)
+    poolmanager = mock_simulate_a_SAC_trj_run(exp_spec=exp_spec, poolmanager=poolmanager,
+                                              experience_mocker=experience_mocker
+                                              )
     
     print(poolmanager)
     print_final_pool_sideEffect(exp_spec, poolmanager)
