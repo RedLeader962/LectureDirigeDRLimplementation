@@ -16,18 +16,19 @@ from blocAndTools.container.FAST_trajectories_pool import Fast_SampleBatch as Fa
 from blocAndTools.container.FAST_trajectories_pool import Fast_TrajectoriesPool as Fast_TrajectoriesPool
 from blocAndTools.buildingbloc import ExperimentSpec, GymPlayground
 
-from blocAndTools.container.pool_utility.pool_testingUtility_REAL_experience import (
-    simulate_a_SAC_trj_run,
-    full_pool_to_minimum,
+from blocAndTools.container.pool_utility.pool_testingUtility_MOCK_experience import (
+    mock_simulate_a_SAC_trj_run,
+    mock_full_pool_to_minimum,
+    ExperienceMocker,
     )
-
-deprecation._PRINT_DEPRECATION_WARNINGS = False
-tf_cv1 = tf.compat.v1  # shortcut
 
 from blocAndTools.container.pool_utility.pool_testingUtility_general import (
     instantiate_top_component,
     print_final_pool_sideEffect,
     )
+
+deprecation._PRINT_DEPRECATION_WARNINGS = False
+tf_cv1 = tf.compat.v1  # shortcut
 
 
 # note: exp_spec key specific to SAC
@@ -58,22 +59,22 @@ def AUTO_PoolManager_setup(request) -> (ExperimentSpec, GymPlayground, Union[Poo
                                                  playground=playground)
     else:
         raise ValueError("Wrong request type: ", str(request.param))
-    
+
     env = playground.env
-    initial_observation = env.reset()
+    experience_mocker = ExperienceMocker(env)
     
     yield (exp_spec, playground,
            poolmanager,
            samplebatch,
            trajectoriespool,
-           env, initial_observation)
+           env, experience_mocker)
     
     del poolmanager
     del samplebatch
     del trajectoriespool
 
 
-# --- PoolManager benchmark test ---------------------------------------------------------------------------------------
+# --- PoolManager benchmark test MOCK EXPERIENCE -----------------------------------------------------------------------
 
 # @pytest.mark.skip(reason=">>> Dont benchmark")
 def test_BENCH_PoolManager_COLLECT(benchmark, AUTO_PoolManager_setup):
@@ -81,15 +82,15 @@ def test_BENCH_PoolManager_COLLECT(benchmark, AUTO_PoolManager_setup):
      initinal_poolmanager,
      initinal_samplebatch,
      initinal_trajectoriespool,
-     env, initial_observation) = AUTO_PoolManager_setup
+     env, experience_mocker) = AUTO_PoolManager_setup
     
     def benchmark_full_pool_to_minimum():
         poolmanager = deepcopy(initinal_poolmanager)
-        b_poolmanager, b_obs_t = full_pool_to_minimum(exp_spec=exp_spec, poolmanager=poolmanager,
-                                                      obs_t=initial_observation, env=env)
-        return b_poolmanager, b_obs_t
+        b_poolmanager = mock_full_pool_to_minimum(exp_spec=exp_spec, poolmanager=poolmanager,
+                                                  experience_mocker=experience_mocker)
+        return b_poolmanager
     
-    b_poolmanager, b_obs_t = benchmark(benchmark_full_pool_to_minimum)
+    b_poolmanager = benchmark(benchmark_full_pool_to_minimum)
     
     assert initinal_poolmanager.current_pool_size == 0
     
@@ -103,19 +104,19 @@ def test_BENCH_PoolManager_GRADIENT_STEP(benchmark, AUTO_PoolManager_setup):
      initinal_poolmanager,
      initinal_samplebatch,
      initinal_trajectoriespool,
-     env, initial_observation) = AUTO_PoolManager_setup
+     env, experience_mocker) = AUTO_PoolManager_setup
     
-    initinal_poolmanager, initial_observation = full_pool_to_minimum(exp_spec=exp_spec,
-                                                                     poolmanager=initinal_poolmanager,
-                                                                     obs_t=initial_observation, env=env)
+    initinal_poolmanager = mock_full_pool_to_minimum(exp_spec=exp_spec,
+                                                     poolmanager=initinal_poolmanager,
+                                                     experience_mocker=experience_mocker)
     
     def benchmark_simulate_a_SAC_trj_run():
         poolmanager = deepcopy(initinal_poolmanager)
-        b_poolmanager, b_obs_t = simulate_a_SAC_trj_run(exp_spec=exp_spec, poolmanager=poolmanager,
-                                                        obs_t=initial_observation, env=env)
-        return b_poolmanager, b_obs_t
+        b_poolmanager = mock_simulate_a_SAC_trj_run(exp_spec=exp_spec, poolmanager=poolmanager,
+                                                    experience_mocker=experience_mocker)
+        return b_poolmanager
     
-    b_poolmanager, b_obs_t = benchmark(benchmark_simulate_a_SAC_trj_run)
+    b_poolmanager = benchmark(benchmark_simulate_a_SAC_trj_run)
     
     assert initinal_poolmanager.current_pool_size == exp_spec['min_pool_size']
     

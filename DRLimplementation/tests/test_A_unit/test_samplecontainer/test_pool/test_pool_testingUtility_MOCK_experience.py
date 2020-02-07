@@ -73,7 +73,7 @@ def AUTO_PoolManager_setup(request) -> (ExperimentSpec, GymPlayground, Union[Poo
     del trajectoriespool
 
 
-# --- PoolManager benchmark test ---------------------------------------------------------------------------------------
+# --- PoolManager test MOCK EXPERIENCE ---------------------------------------------------------------------------------
 
 def test_pool_testingUtility_FULL_POOL_TO_MINIMUM(AUTO_PoolManager_setup):
     (exp_spec, playground,
@@ -83,8 +83,7 @@ def test_pool_testingUtility_FULL_POOL_TO_MINIMUM(AUTO_PoolManager_setup):
      env, experience_mocker) = AUTO_PoolManager_setup
     
     poolmanager = mock_full_pool_to_minimum(exp_spec=exp_spec, poolmanager=poolmanager,
-                                            experience_mocker=experience_mocker
-                                            )
+                                            experience_mocker=experience_mocker)
     
     print(poolmanager)
     print_final_pool_sideEffect(exp_spec, poolmanager)
@@ -100,12 +99,10 @@ def test_pool_testingUtility_OVER_SAC_TRJ_RUN(AUTO_PoolManager_setup):
      env, experience_mocker) = AUTO_PoolManager_setup
     
     poolmanager = mock_full_pool_to_minimum(exp_spec=exp_spec, poolmanager=poolmanager,
-                                            experience_mocker=experience_mocker
-                                            )
+                                            experience_mocker=experience_mocker)
     
     poolmanager = mock_simulate_a_SAC_trj_run(exp_spec=exp_spec, poolmanager=poolmanager,
-                                              experience_mocker=experience_mocker
-                                              )
+                                              experience_mocker=experience_mocker)
     
     print(poolmanager)
     print_final_pool_sideEffect(exp_spec, poolmanager)
