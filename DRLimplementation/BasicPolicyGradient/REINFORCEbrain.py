@@ -22,6 +22,9 @@ def REINFORCE_policy(observation_placeholder: tf.Tensor, action_placeholder: tf.
     trajectories more likely and similar bad trajectories less likely.
     In the case of Deep Reinforcement Learning, the policy parameter θ is a neural net.
 
+    Input layer: state
+    Output layer: action, stopGradient(Qvalues)
+
     :type observation_placeholder: tf.Tensor
     :type action_placeholder: tf.Tensor
     :type Q_values_placeholder: tf.Tensor
