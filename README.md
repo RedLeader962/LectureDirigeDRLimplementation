@@ -30,7 +30,6 @@ Québec, QC, Canada,
 - Classical RL:
   - **[Actor-Critic](DRLimplementation/ActorCritic)**
   - **[Basic policy gradient](DRLimplementation/BasicPolicyGradient)**
-- Meta-DRL
 - **[A reflexion on design, architecture and implementation details](https://github.com/RedLeader962/LectureDirigeDRLimplementation/raw/master/Reflexion_on_design_and_architecture_LucCoupal_v1-1.pdf)**
 
 ---
