@@ -473,7 +473,7 @@ class SoftActorCriticAgent(Agent):
         """
         Evaluate the agent training by forcing it to act deterministicaly.
         
-        How: by using the policy mu instead of samplaing from the policy distribution
+        How: by using the policy mu instead of sampling from the policy distribution
         
         :param render_env:
         :param sess: the current tf session

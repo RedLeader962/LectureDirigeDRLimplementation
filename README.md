@@ -26,6 +26,7 @@ Québec, QC, Canada,
 ### Essay on:
 - Maximum Entropy RL:
   - **[Soft Actor-Critic](DRLimplementation/SoftActorCritic)**
+  - See my **blog post [_Soft Actor-Critic_ part 1: intuition and theoretical aspect](https://redleader962.github.io/blog/2020/SAC-part-1-distillarized/)** for more details on _SAC_ and _MaxEnt-RL_
 - Classical RL:
   - **[Actor-Critic](DRLimplementation/ActorCritic)**
   - **[Basic policy gradient](DRLimplementation/BasicPolicyGradient)**

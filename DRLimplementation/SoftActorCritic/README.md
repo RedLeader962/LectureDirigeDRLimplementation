@@ -17,8 +17,11 @@ What is particular though is that contrary to other off-policy algortihm, it's s
 
 
 The learning curve of the _Maximum Entropy RL_ framework is quite steep due to it's depth and to how much it re-think the RL problem. It was definitavely required in order to understand how _SAC_ work.
-Tackling the applied part was arguably the most difficult project I did to date, both in term of component to implement \& silent bug dificulties.
+Tackling the applied part was arguably the most difficult project I did to date, both in term of component to implement and silent bug dificulties.
 Never the less I'm particularly proud of the result.
+
+See my **blog post [_Soft Actor-Critic_ part 1: intuition and theoretical aspect](https://redleader962.github.io/blog/2020/SAC-part-1-distillarized/)** for more details on _SAC_ and _MaxEnt-RL_
+
 
 ### Reading material:
 - [Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning with a Stochastic Actor](https://arxiv.org/abs/1801.01290)
